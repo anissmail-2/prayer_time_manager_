@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../core/services/todo_service.dart';
 import '../core/services/prayer_time_service.dart';
+import '../core/services/user_preferences_service.dart';
 import '../core/helpers/analytics_helper.dart';
 import '../core/theme/app_theme.dart';
 import '../models/task.dart';
@@ -22,11 +23,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String? _nextPrayer;
   String? _nextPrayerTime;
   Duration? _timeToNextPrayer;
+  bool _isPrayerModeEnabled = true; // Default to prayer mode
 
   @override
   void initState() {
     super.initState();
     AnalyticsHelper.logScreenView('dashboard');
+    _loadPrayerMode();
     _loadData();
     // Update timer every minute
     Future.delayed(Duration.zero, () {
@@ -34,6 +37,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _startTimer();
       }
     });
+  }
+
+  Future<void> _loadPrayerMode() async {
+    final enabled = await UserPreferencesService.isPrayerModeEnabled();
+    if (mounted) {
+      setState(() {
+        _isPrayerModeEnabled = enabled;
+      });
+    }
   }
 
   void _startTimer() {
@@ -47,11 +59,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    
+
     try {
-      _prayerTimes = await PrayerTimeService.getPrayerTimes();
-      _todayTasks = await TodoService.getUpcomingTasksWithTimes(_prayerTimes);
-      _updateNextPrayer();
+      if (_isPrayerModeEnabled) {
+        _prayerTimes = await PrayerTimeService.getPrayerTimes();
+        _todayTasks = await TodoService.getUpcomingTasksWithTimes(_prayerTimes);
+        _updateNextPrayer();
+      } else {
+        // In productivity mode, just load tasks without prayer times
+        _todayTasks = await TodoService.getUpcomingTasksWithTimes({});
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -62,7 +79,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
       }
     }
-    
+
     if (mounted) {
       setState(() => _isLoading = false);
     }
@@ -150,8 +167,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _buildWelcomeSection(),
                     const SizedBox(height: AppTheme.space24),
                     _buildStatsCards(),
-                    const SizedBox(height: AppTheme.space24),
-                    _buildNextPrayerCard(),
+                    if (_isPrayerModeEnabled) ...[
+                      const SizedBox(height: AppTheme.space24),
+                      _buildNextPrayerCard(),
+                    ],
                     const SizedBox(height: AppTheme.space24),
                     _buildTodayTasksSection(),
                   ],

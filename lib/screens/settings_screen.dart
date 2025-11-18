@@ -4,6 +4,7 @@ import '../core/theme/app_theme.dart';
 import '../core/services/auth_service.dart';
 import '../core/services/firebase_service.dart';
 import '../core/services/data_sync_service.dart';
+import '../core/services/user_preferences_service.dart';
 import 'prayer_settings_screen.dart';
 import 'location_settings_screen.dart';
 import 'notification_settings_screen.dart';
@@ -18,6 +19,40 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _isSyncing = false;
+  bool _isPrayerModeEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPrayerMode();
+  }
+
+  Future<void> _loadPrayerMode() async {
+    final enabled = await UserPreferencesService.isPrayerModeEnabled();
+    if (mounted) {
+      setState(() {
+        _isPrayerModeEnabled = enabled;
+      });
+    }
+  }
+
+  Future<void> _togglePrayerMode(bool value) async {
+    await UserPreferencesService.setPrayerMode(value);
+    if (mounted) {
+      setState(() {
+        _isPrayerModeEnabled = value;
+      });
+
+      // Show informational message
+      final mode = value ? 'Prayer Mode' : 'Productivity Mode';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Switched to $mode'),
+          backgroundColor: AppTheme.success,
+        ),
+      );
+    }
+  }
 
   Future<void> _handleSignOut() async {
     final confirm = await showDialog<bool>(
@@ -182,6 +217,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // General Settings
           _buildSectionHeader('General'),
           _buildSettingsTile(
+            icon: Icons.mosque,
+            title: 'Prayer Mode',
+            subtitle: _isPrayerModeEnabled
+                ? 'Show prayer times and Islamic features'
+                : 'Hide prayer-related features',
+            trailing: Switch(
+              value: _isPrayerModeEnabled,
+              onChanged: _togglePrayerMode,
+              activeColor: AppTheme.primary,
+            ),
+          ),
+          _buildSettingsTile(
             icon: Icons.notifications,
             title: 'Notifications',
             subtitle: 'Manage prayer and task notifications',
@@ -194,8 +241,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: AppTheme.space16),
 
-          // Prayer Settings
-          _buildSectionHeader('Prayer Settings'),
+          // Prayer Settings (only show when prayer mode is enabled)
+          if (_isPrayerModeEnabled) ...[
+            _buildSectionHeader('Prayer Settings'),
           _buildSettingsTile(
             icon: Icons.access_time,
             title: 'Prayer Durations',
@@ -207,31 +255,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
               );
             },
           ),
-          _buildSettingsTile(
-            icon: Icons.location_on,
-            title: 'Location',
-            subtitle: 'Set location for accurate prayer times',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const LocationSettingsScreen()),
-              );
-            },
-          ),
-          const SizedBox(height: AppTheme.space16),
+            _buildSettingsTile(
+              icon: Icons.location_on,
+              title: 'Location',
+              subtitle: 'Set location for accurate prayer times',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LocationSettingsScreen()),
+                );
+              },
+            ),
+            const SizedBox(height: AppTheme.space16),
+          ],
           
           // App Info
           _buildSectionHeader('About'),
           _buildSettingsTile(
             icon: Icons.info_outline,
-            title: 'TaskFlow Pro',
+            title: _isPrayerModeEnabled ? 'TaskFlow Pro' : 'TaskFlow',
             subtitle: 'Version 1.0.0',
             onTap: () {
+              final appName = _isPrayerModeEnabled ? 'TaskFlow Pro' : 'TaskFlow';
               showAboutDialog(
                 context: context,
-                applicationName: 'TaskFlow Pro',
+                applicationName: appName,
                 applicationVersion: '1.0.0',
-                applicationLegalese: '© 2024 TaskFlow Pro. All rights reserved.',
+                applicationLegalese: '© 2024 $appName. All rights reserved.',
               );
             },
           ),

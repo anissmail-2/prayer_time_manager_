@@ -12,6 +12,7 @@ import 'profile_screen.dart';
 import '../core/theme/app_theme.dart';
 import '../core/services/auth_service.dart';
 import '../core/services/data_migration_service.dart';
+import '../core/services/user_preferences_service.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -25,7 +26,9 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
   bool _isCollapsed = false;
   late AnimationController _animationController;
   late Animation<double> _widthAnimation;
-  
+  bool _isPrayerModeEnabled = true; // Default to prayer mode
+  String _appTitle = 'TaskFlow Pro'; // Dynamic app title based on mode
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -45,44 +48,54 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
     });
   }
   
-  final List<NavigationItem> _navigationItems = [
-    NavigationItem(
-      icon: Icons.dashboard_outlined,
-      selectedIcon: Icons.dashboard,
-      label: 'Dashboard',
-      route: 'dashboard',
-    ),
-    NavigationItem(
-      icon: Icons.event_note_outlined,
-      selectedIcon: Icons.event_note,
-      label: 'Agenda',
-      route: 'agenda',
-    ),
-    NavigationItem(
-      icon: Icons.folder_outlined,
-      selectedIcon: Icons.folder,
-      label: 'Spaces',
-      route: 'spaces',
-    ),
-    NavigationItem(
-      icon: Icons.timeline_outlined,
-      selectedIcon: Icons.timeline,
-      label: 'Timeline',
-      route: 'timeline',
-    ),
-    NavigationItem(
-      icon: Icons.auto_awesome_outlined,
-      selectedIcon: Icons.auto_awesome,
-      label: 'AI Assistant',
-      route: 'ai_assistant',
-    ),
-    NavigationItem(
-      icon: Icons.access_time_outlined,
-      selectedIcon: Icons.access_time_filled,
-      label: 'Prayer Schedule',
-      route: 'prayer_schedule',
-    ),
-  ];
+  List<NavigationItem> get _navigationItems {
+    final List<NavigationItem> items = [
+      NavigationItem(
+        icon: Icons.dashboard_outlined,
+        selectedIcon: Icons.dashboard,
+        label: 'Dashboard',
+        route: 'dashboard',
+      ),
+      NavigationItem(
+        icon: Icons.event_note_outlined,
+        selectedIcon: Icons.event_note,
+        label: 'Agenda',
+        route: 'agenda',
+      ),
+      NavigationItem(
+        icon: Icons.folder_outlined,
+        selectedIcon: Icons.folder,
+        label: 'Spaces',
+        route: 'spaces',
+      ),
+      NavigationItem(
+        icon: Icons.timeline_outlined,
+        selectedIcon: Icons.timeline,
+        label: 'Timeline',
+        route: 'timeline',
+      ),
+      NavigationItem(
+        icon: Icons.auto_awesome_outlined,
+        selectedIcon: Icons.auto_awesome,
+        label: 'AI Assistant',
+        route: 'ai_assistant',
+      ),
+    ];
+
+    // Add Prayer Schedule only if prayer mode is enabled
+    if (_isPrayerModeEnabled) {
+      items.add(
+        NavigationItem(
+          icon: Icons.access_time_outlined,
+          selectedIcon: Icons.access_time_filled,
+          label: 'Prayer Schedule',
+          route: 'prayer_schedule',
+        ),
+      );
+    }
+
+    return items;
+  }
 
   @override
   void initState() {
@@ -98,7 +111,10 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
       parent: _animationController,
       curve: Curves.easeInOutCubic,
     ));
-    
+
+    // Load prayer mode preference
+    _loadPrayerMode();
+
     // Set system UI
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
@@ -108,6 +124,17 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
     );
+  }
+
+  Future<void> _loadPrayerMode() async {
+    final enabled = await UserPreferencesService.isPrayerModeEnabled();
+    final title = await UserPreferencesService.getAppTitle();
+    if (mounted) {
+      setState(() {
+        _isPrayerModeEnabled = enabled;
+        _appTitle = title;
+      });
+    }
   }
 
   @override
@@ -205,7 +232,7 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
               const SizedBox(width: 16),
             Expanded(
               child: Text(
-                'TaskFlow Pro',
+                _appTitle,
                 style: AppTheme.headlineMedium.copyWith(
                   color: AppTheme.textPrimary,
                   fontWeight: FontWeight.w600,
@@ -389,7 +416,7 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'TaskFlow',
+                          _appTitle,
                           style: AppTheme.headlineSmall.copyWith(
                             color: AppTheme.textPrimary,
                             fontWeight: FontWeight.bold,
@@ -525,7 +552,7 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
                       const SizedBox(width: 16),
                       Expanded(
                         child: Text(
-                          'TaskFlow Pro',
+                          _appTitle,
                           style: AppTheme.headlineMedium.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,

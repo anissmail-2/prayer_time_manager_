@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../models/task.dart';
 import '../core/services/todo_service.dart';
 import '../core/services/prayer_time_service.dart';
+import '../core/services/user_preferences_service.dart';
 import '../core/theme/app_theme.dart';
 import '../widgets/scheduling_section.dart';
 
@@ -58,19 +59,24 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
   List<int> _monthlyDates = []; // Specific dates in month
   String? _monthlyPattern; // "first_monday", etc.
 
+  // Prayer mode state
+  bool _isPrayerModeEnabled = true;
+
   @override
   void initState() {
     super.initState();
-    
+
     _animationController = AnimationController(
       duration: AppTheme.animationMedium,
       vsync: this,
     );
-    
+
     _fadeAnimation = CurvedAnimation(
       parent: _animationController,
       curve: AppTheme.animationCurve,
     );
+
+    _loadPrayerMode();
     
     if (widget.task != null) {
       // Edit mode
@@ -114,6 +120,15 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
     }
     
     _animationController.forward();
+  }
+
+  Future<void> _loadPrayerMode() async {
+    final enabled = await UserPreferencesService.isPrayerModeEnabled();
+    if (mounted) {
+      setState(() {
+        _isPrayerModeEnabled = enabled;
+      });
+    }
   }
 
   @override
@@ -430,6 +445,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
                 isOptional: false, // Required for Agenda
                 initialHasSchedule: true,
                 hideDatePicker: true, // Hide date picker since it's handled in recurrence
+                showPrayerRelativeOptions: _isPrayerModeEnabled, // Show prayer options based on mode
                 initialTaskDate: _selectedTime ?? _startDate,
                 initialStartScheduleType: _startScheduleType,
                 initialStartTime: _selectedTime,

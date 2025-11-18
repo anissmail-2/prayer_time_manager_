@@ -10,30 +10,31 @@ class SchedulingSection extends StatefulWidget {
   final DateTime? initialTaskDate;
   final bool includeRecurrence;
   final bool hideDatePicker; // Hide date picker when recurrence is included
-  
+  final bool showPrayerRelativeOptions; // Show prayer-relative scheduling options
+
   // Start time
   final ScheduleType initialStartScheduleType;
   final DateTime? initialStartTime;
   final PrayerName? initialStartPrayer;
   final bool initialStartIsBeforePrayer;
   final int initialStartMinutesOffset;
-  
+
   // End time
   final ScheduleType initialEndScheduleType;
   final DateTime? initialEndTime;
   final PrayerName? initialEndPrayer;
   final bool initialEndIsBeforePrayer;
   final int initialEndMinutesOffset;
-  
+
   // Recurrence
   final TaskRecurrence initialRecurrence;
   final List<int> initialWeeklyDays;
   final DateTime? initialStartDate;
   final DateTime? initialEndDate;
-  
+
   final Map<String, String> prayerTimes;
   final Function(SchedulingData) onScheduleChanged;
-  
+
   const SchedulingSection({
     super.key,
     this.isOptional = false,
@@ -41,6 +42,7 @@ class SchedulingSection extends StatefulWidget {
     this.initialTaskDate,
     this.includeRecurrence = false,
     this.hideDatePicker = false,
+    this.showPrayerRelativeOptions = true,
     this.initialStartScheduleType = ScheduleType.absolute,
     this.initialStartTime,
     this.initialStartPrayer,
@@ -399,35 +401,36 @@ class _SchedulingSectionState extends State<SchedulingSection> {
                 ),
               ),
               const Spacer(),
-              // Schedule Type Toggle
-              Container(
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.1) : AppTheme.surface,
-                  borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+              // Schedule Type Toggle (only show if prayer relative options are enabled)
+              if (widget.showPrayerRelativeOptions)
+                Container(
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withOpacity(0.1) : AppTheme.surface,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildMiniToggle(
+                        icon: Icons.access_time,
+                        isSelected: scheduleType == ScheduleType.absolute,
+                        onTap: () => onScheduleTypeChanged(ScheduleType.absolute),
+                        tooltip: 'Specific Time',
+                      ),
+                      Container(
+                        width: 1,
+                        height: 24,
+                        color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
+                      ),
+                      _buildMiniToggle(
+                        icon: Icons.mosque,
+                        isSelected: scheduleType == ScheduleType.prayerRelative,
+                        onTap: () => onScheduleTypeChanged(ScheduleType.prayerRelative),
+                        tooltip: 'Prayer Related',
+                      ),
+                    ],
+                  ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildMiniToggle(
-                      icon: Icons.access_time,
-                      isSelected: scheduleType == ScheduleType.absolute,
-                      onTap: () => onScheduleTypeChanged(ScheduleType.absolute),
-                      tooltip: 'Specific Time',
-                    ),
-                    Container(
-                      width: 1,
-                      height: 24,
-                      color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
-                    ),
-                    _buildMiniToggle(
-                      icon: Icons.mosque,
-                      isSelected: scheduleType == ScheduleType.prayerRelative,
-                      onTap: () => onScheduleTypeChanged(ScheduleType.prayerRelative),
-                      tooltip: 'Prayer Related',
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
           const SizedBox(height: AppTheme.space16),
@@ -435,7 +438,7 @@ class _SchedulingSectionState extends State<SchedulingSection> {
           // Time Content
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
-            child: scheduleType == ScheduleType.absolute
+            child: (!widget.showPrayerRelativeOptions || scheduleType == ScheduleType.absolute)
                 ? _buildAbsoluteTimeContent(
                     context: context,
                     isDark: isDark,

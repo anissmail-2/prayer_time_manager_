@@ -4,6 +4,7 @@ import '../core/theme/app_theme.dart';
 import '../models/enhanced_task.dart';
 import '../models/task.dart';
 import '../core/services/prayer_time_service.dart';
+import '../core/services/user_preferences_service.dart';
 import 'scheduling_section.dart';
 
 class EnhancedItemForm extends StatefulWidget {
@@ -68,34 +69,47 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
   String? _monthlyPattern; // "first_monday", etc.
   
   Map<String, dynamic>? _prayerTimes;
-  
+
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-  
+
   // Error message state
   String? _errorMessage;
+
+  // Prayer mode state
+  bool _isPrayerModeEnabled = true;
 
   @override
   void initState() {
     super.initState();
-    
+
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    
+
     _fadeAnimation = CurvedAnimation(
       parent: _animationController,
       curve: Curves.easeIn,
     );
-    
+
     _loadPrayerTimes();
-    
+    _loadPrayerMode();
+
     if (widget.editingItem != null) {
       _loadExistingItem(widget.editingItem!);
     }
-    
+
     _animationController.forward();
+  }
+
+  Future<void> _loadPrayerMode() async {
+    final enabled = await UserPreferencesService.isPrayerModeEnabled();
+    if (mounted) {
+      setState(() {
+        _isPrayerModeEnabled = enabled;
+      });
+    }
   }
 
   void _loadExistingItem(EnhancedTask item) {
@@ -815,6 +829,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
               isOptional: true, // Optional for Space
               includeRecurrence: true, // Include recurrence in schedule
               hideDatePicker: true, // Hide date picker since recurrence handles dates
+              showPrayerRelativeOptions: _isPrayerModeEnabled, // Show prayer options based on mode
               initialHasSchedule: _hasSchedule,
               initialTaskDate: _taskDate,
               initialStartScheduleType: _startScheduleType,
