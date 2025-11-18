@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "981562878803",
+    "project_id": "task-flow-pro-ec2b8",
+    "storage_bucket": "task-flow-pro-ec2b8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:981562878803:android:b6159089df7adc498f4fa6",
+        "android_client_info": {
+          "package_name": "com.awkati.taskflow"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "981562878803-upnvobcpt527dhmsck19h2dqhoch3nl2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.awkati.taskflow",
+            "certificate_hash": "7e0597780ad6c4da65d653494a841c24281a59eb"
+          }
+        },
+        {
+          "client_id": "981562878803-ab3ap8q1uiu7hdn1l0su09leb38uvrf0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCWiAExqalTcYgkNhtnpSftfQNLs_MZMl8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "981562878803-ab3ap8q1uiu7hdn1l0su09leb38uvrf0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
