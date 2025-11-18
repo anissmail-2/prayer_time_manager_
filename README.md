@@ -1,163 +1,274 @@
-# Prayer Time Manager
+# TaskFlow Pro
 
-A Flutter application for managing prayer times in Abu Dhabi with full permission support for future features.
+A Flutter application that seamlessly integrates professional task management with Islamic prayer times. Schedule tasks relative to prayer times, leverage AI-powered assistance, and maintain productivity with prayer-aware planning.
+
+![Flutter](https://img.shields.io/badge/Flutter-3.8.1+-02569B?logo=flutter)
+![Platform](https://img.shields.io/badge/Platform-Android-3DDC84?logo=android)
+![License](https://img.shields.io/badge/License-Private-red)
+
+---
+
+## ✨ Features
+
+- **Prayer-Aware Scheduling** - Schedule tasks relative to prayer times (e.g., "15 minutes before Dhuhr")
+- **AI Assistant** - Natural language task management powered by Google Gemini
+- **Offline-First** - Full functionality without internet via automatic caching
+- **Space Organization** - Hierarchical project/context management
+- **Voice Input** - Android voice transcription via Deepgram (Android only)
+- **Timeline View** - Visual daily schedule with prayer time blocks
+- **Cloud Sync** - Optional Firebase synchronization
+- **Multi-Platform UI** - Adaptive design for mobile, tablet, and desktop
+
+---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Flutter SDK (3.8.1 or higher)
-- Android SDK
-- Java JDK 17
+
+- Flutter SDK ^3.8.1
+- Dart SDK (included with Flutter)
+- Android SDK (Min API 24, Target API 36)
+- Java JDK 11
 
 ### Installation
-```bash
-# Clone the repository
-cd prayer_time_manager
 
-# Get dependencies
-flutter pub get
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd prayer_time_manager_
+   ```
 
-# Run the app
-flutter run
+2. **Install dependencies**
+   ```bash
+   flutter pub get
+   ```
 
-# Build APK
-flutter build apk --release
-```
+3. **Configure API keys**
+   ```bash
+   # Copy the example environment file
+   cp .env.example .env
 
-## 📱 Features Ready for Implementation
+   # Edit .env and add your API keys
+   # - GEMINI_API_KEY (for AI features)
+   # - DEEPGRAM_API_KEY (for voice input)
+   # - FIREBASE_API_KEY (for cloud sync)
+   ```
 
-### ✅ Permissions (All Configured & Tested)
-- **Camera**: Ready for prayer time AR features or QR code scanning
-- **Location**: Ready for automatic city detection and Qibla direction
-- **Gallery/Photos**: Ready for custom notification backgrounds
-- **Microphone**: Ready for voice reminders or Quran recitation
-- **Notifications**: Ready for prayer time alerts
+4. **Run the app**
+   ```bash
+   flutter run
+   ```
 
-### 📁 Project Structure
-```
-lib/
-├── main.dart                    # App entry point
-├── screens/
-│   └── home_screen.dart         # Main home screen
-├── core/
-│   └── helpers/
-│       ├── permission_helper.dart    # All permission logic
-│       └── prayer_time_api.dart      # Prayer time API documentation
-├── examples/
-│   └── permissions/
-│       └── permission_test_screen.dart  # Test all permissions
-└── utils/
-    └── constants.dart           # App constants
-```
-
-## 🔧 Key Components
-
-### Permission Helper (`lib/core/helpers/permission_helper.dart`)
-Handles all permission requests with Android 13+ support:
-```dart
-// Request all permissions
-final statuses = await PermissionHelper.requestAllPermissions();
-
-// Check specific permission
-bool hasCamera = await PermissionHelper.hasCameraPermission();
-
-// Request specific permission
-bool granted = await PermissionHelper.requestCameraPermission();
-```
-
-### Prayer Time API (`lib/core/helpers/prayer_time_api.dart`)
-Documentation for fetching prayer times:
-- Uses Aladhan API (free, no auth required)
-- Configured for Abu Dhabi
-- Easy to extend for other cities
-
-## 📝 Android Configuration
-
-### Minimum SDK
-- minSdk: 23 (Android 6.0)
-- targetSdk: 34 (Android 14)
-
-### Permissions in AndroidManifest.xml
-All permissions are already configured:
-- Camera
-- Location (Fine & Coarse)
-- Storage/Media (Android 13+ compatible)
-- Microphone
-- Notifications
-- Internet (for API calls)
-
-## 🎯 Next Steps for Development
-
-### 1. Add Prayer Time Features
-```bash
-# Add http package for API calls
-flutter pub add http
-
-# Add shared_preferences for settings
-flutter pub add shared_preferences
-```
-
-### 2. Implement Notifications
-```bash
-# Add back the notifications package when ready
-flutter pub add flutter_local_notifications
-```
-
-### 3. Add Audio Features
-```bash
-# For audio recording
-flutter pub add record
-
-# For Adhan playback
-flutter pub add just_audio  # (already added)
-```
-
-### 4. Add Islamic Features
-- Qibla direction using location + compass
-- Prayer time calculations
-- Islamic calendar
-- Tasbeeh counter
-
-## 🧪 Testing Permissions
-
-1. Open the app
-2. Go to "Developer Tools" section
-3. Click "Test All Permissions"
-4. Test each feature individually
-
-## 📱 Building for Release
-
-```bash
-# Build release APK
-flutter build apk --release
-
-# APK location
-build/app/outputs/flutter-apk/app-release.apk
-```
-
-## 🤝 Contributing
-
-This project is structured for easy development:
-- All permissions are pre-configured
-- Helper classes are ready to use
-- Example implementations provided
-- Clean separation of concerns
-
-## 📄 License
-
-This project is for personal use.
-
-## 🆘 Troubleshooting
-
-### Permission Issues
-- For Android 13+: Photos, Videos, and Audio permissions are separate
-- For older Android: Uses combined Storage permission
-- All handled automatically by PermissionHelper
-
-### Build Issues
-- Ensure NDK version 27.0.12077973 is installed
-- Core library desugaring is enabled for compatibility
+5. **Build APK**
+   ```bash
+   flutter build apk --release
+   ```
 
 ---
 
-**Note**: All permission implementations are in the `examples/permissions` folder. Don't reinvent the wheel - use what's already there!
+## 📁 Project Structure
+
+```
+prayer_time_manager_/
+├── lib/                        # Main source code
+│   ├── core/                   # Core functionality
+│   │   ├── config/            # App configuration
+│   │   ├── helpers/           # Utility classes
+│   │   ├── services/          # Business logic services
+│   │   └── theme/             # UI theme system
+│   ├── models/                # Data models
+│   ├── screens/               # UI screens
+│   ├── widgets/               # Reusable widgets
+│   └── main.dart              # Entry point
+├── test/                      # Test files
+├── android/                   # Android platform code
+├── docs/                      # Documentation
+│   ├── CLAUDE.md              # Complete project memory
+│   ├── README.md              # Detailed documentation
+│   ├── setup/                 # Setup guides
+│   ├── testing/               # Testing documentation
+│   └── archive/               # Historical documents
+├── scripts/                   # Utility scripts
+├── .env.example              # Environment template
+└── pubspec.yaml              # Dependencies
+```
+
+---
+
+## 📚 Documentation
+
+### Essential Reading
+- **[CLAUDE.md](docs/CLAUDE.md)** - Complete project memory and architecture guide
+- **[Detailed README](docs/README.md)** - Comprehensive project documentation
+
+### Setup Guides
+- **[Android Setup](docs/setup/ANDROID_SETUP.md)** - Android build configuration and troubleshooting
+
+### Testing
+- **[Testing Guide](docs/testing/TESTING_GUIDE.md)** - How to run and write tests
+
+### Scripts
+- **[GO.sh](scripts/GO.sh)** - Development helper script
+- **[deploy-web.sh](scripts/deploy-web.sh)** - Web deployment script
+
+---
+
+## 🏗️ Architecture
+
+### Design Principles
+- **No State Management Libraries** - Direct state with `setState()`
+- **Static Service Pattern** - All business logic in static service classes
+- **Offline-First** - Automatic caching via `StorageHelper`
+- **Permission Abstraction** - Centralized `PermissionHelper`
+- **Theme Consistency** - Single source via `AppTheme`
+
+### Key Services
+- **TodoService** - Task CRUD operations
+- **PrayerTimeService** - Prayer time calculations
+- **EnhancedAIAssistant** - AI-powered task management
+- **SpaceService** - Project organization
+- **DataSyncService** - Firebase cloud sync
+- **PermissionHelper** - Centralized permission management
+
+### Navigation
+- **MainLayout** - Adaptive navigation shell
+  - Mobile: Navigation drawer
+  - Desktop/Tablet: Collapsible sidebar
+- 6 main screens: Dashboard, Agenda, Spaces, Timeline, AI Assistant, Prayer Schedule
+
+---
+
+## 🧪 Testing
+
+### Run Tests
+```bash
+# All tests
+flutter test
+
+# Specific test file
+flutter test test/offline_functionality_test.dart
+
+# With coverage
+flutter test --coverage
+```
+
+### Current Status
+✅ 4/4 tests passing (100%)
+- Widget tests
+- Offline functionality tests
+- Network connectivity tests
+
+See [Testing Guide](docs/testing/TESTING_GUIDE.md) for details.
+
+---
+
+## 🔧 Development
+
+### Essential Commands
+```bash
+# Run app in debug mode
+flutter run
+
+# Run in release mode
+flutter run --release
+
+# Static analysis
+flutter analyze
+
+# Format code
+flutter format lib/ test/
+
+# Clean build
+flutter clean && flutter pub get
+
+# Check outdated packages
+flutter pub outdated
+```
+
+### Code Quality
+- Linting enabled via `analysis_options.yaml`
+- Flutter lints ^5.0.0
+- Run `flutter analyze` before committing
+
+---
+
+## 🔐 Configuration
+
+### Environment Variables (.env)
+```bash
+GEMINI_API_KEY=your_gemini_api_key_here
+DEEPGRAM_API_KEY=your_deepgram_api_key_here
+FIREBASE_API_KEY=your_firebase_api_key_here
+FIREBASE_PROJECT_ID=your_project_id_here
+```
+
+**Security:** Never commit `.env` file with real keys! Use `.env.example` as template.
+
+### App Configuration
+- **Location**: `lib/core/config/app_config.dart`
+- **Local overrides**: `lib/core/config/app_config.local.dart` (gitignored)
+- **Package name**: `com.awkati.taskflow`
+
+---
+
+## 📱 Platform Support
+
+### Android ✅
+- Min SDK: 24 (Android 7.0)
+- Target SDK: 36 (Android 14+)
+- Platform channels: Voice recording, file picker
+- Full feature support
+
+### iOS ⚠️
+- Not currently supported
+- Requires platform channel implementation
+
+### Web 🔧
+- Basic support (limited features)
+
+### Desktop (Linux) 🔧
+- Limited support
+- UI works, some features disabled
+
+---
+
+## 🤝 Contributing
+
+### Before Committing
+1. Run tests: `flutter test`
+2. Check analysis: `flutter analyze`
+3. Format code: `flutter format .`
+4. Update documentation if needed
+
+### Commit Guidelines
+- Clear, descriptive commit messages
+- Reference issues when applicable
+- Don't commit API keys or secrets
+
+---
+
+## 📖 Additional Resources
+
+- [Flutter Documentation](https://docs.flutter.dev/)
+- [Dart Language Tour](https://dart.dev/guides/language/language-tour)
+- [Flutter Testing](https://docs.flutter.dev/testing)
+- [Android Development](https://developer.android.com/)
+
+---
+
+## 📄 License
+
+Private project. All rights reserved.
+
+---
+
+## 🙏 Prayer Times API
+
+Uses [Aladhan API](https://aladhan.com/prayer-times-api) for accurate prayer times worldwide.
+
+---
+
+**Package Name:** `taskflow_pro`
+**Namespace:** `com.awkati.taskflow`
+**Current Version:** Development
+**Last Updated:** 2025-11-18

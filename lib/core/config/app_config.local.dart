@@ -1,38 +1,41 @@
 /// Local App Configuration - DO NOT COMMIT THIS FILE
-/// Add this file to .gitignore
+/// This file is gitignored for security
+/// Copy app_config.dart and replace placeholders with real keys
 library;
 
 class AppConfig {
   // Company domain - change this to your actual domain when ready for Play Store
   static const String companyDomain = 'taskflow';
   static const String companyName = 'awkati';
-  
+
   // Full package name
   static String get packageName => 'com.$companyName.$companyDomain'; // com.awkati.taskflow
-  
-  // ACTUAL API Keys - Keep these secret!
-  static const String geminiApiKey = 'AIzaSyDuW4ld6jnO3SPocwJbUK1xTI3oMZs7lVI';
-  static const String deepgramApiKey = '17cf7c16bb088ca96a3ce9e0170b8c78d0f3d3a5';
-  
+
+  // REPLACE WITH YOUR ACTUAL API KEYS
+  static const String geminiApiKey = 'your_gemini_api_key_here';
+  static const String deepgramApiKey = 'your_deepgram_api_key_here';
+
   // Firebase Configuration
-  static const String firebaseProjectId = 'YOUR_FIREBASE_PROJECT_ID';
-  
+  static const String firebaseProjectId = 'your_firebase_project_id_here';
+
   // Feature Flags
   static const bool enableVoiceInput = true;
   static const bool enableFirebaseSync = false;
-  
+
   // API Endpoints
   static const String prayerTimeApiBase = 'https://api.aladhan.com/v1';
-  
+
   // Validation
-  static bool get hasValidGeminiKey => 
-      geminiApiKey != 'YOUR_GEMINI_API_KEY_HERE' && 
+  static bool get hasValidGeminiKey =>
+      geminiApiKey != 'YOUR_GEMINI_API_KEY_HERE' &&
+      geminiApiKey != 'your_gemini_api_key_here' &&
       geminiApiKey.isNotEmpty;
-  
-  static bool get hasValidDeepgramKey => 
-      deepgramApiKey != 'YOUR_DEEPGRAM_API_KEY_HERE' && 
+
+  static bool get hasValidDeepgramKey =>
+      deepgramApiKey != 'YOUR_DEEPGRAM_API_KEY_HERE' &&
+      deepgramApiKey != 'your_deepgram_api_key_here' &&
       deepgramApiKey.isNotEmpty;
-  
+
   static void validateConfiguration() {
     if (!hasValidGeminiKey) {
       print('⚠️ WARNING: Gemini API key not configured. AI features will not work.');
