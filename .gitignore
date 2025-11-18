@@ -91,6 +91,9 @@ xcuserdata/
 # Coverage
 coverage/
 
+# GitHub workflows (requires manual addition due to GitHub App permissions)
+.github/workflows/
+
 # Exceptions to above rules
 !.vscode/launch.json
 !.vscode/extensions.json
