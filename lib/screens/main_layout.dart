@@ -6,6 +6,9 @@ import 'timeline_screen.dart';
 import 'ai_assistant_screen.dart';
 import 'prayer_schedule_screen.dart';
 import 'mobile_spaces_screen.dart';
+import 'settings_screen.dart';
+import 'search_screen.dart';
+import 'profile_screen.dart';
 import '../core/theme/app_theme.dart';
 import '../core/services/auth_service.dart';
 import '../core/services/data_migration_service.dart';
@@ -216,8 +219,9 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
               child: IconButton(
                 icon: const Icon(Icons.search),
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Search feature coming soon!')),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SearchScreen()),
                   );
                 },
                 color: AppTheme.textSecondary,
@@ -294,8 +298,9 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
                 switch (value) {
                   case 'profile':
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Profile screen coming soon!')),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const ProfileScreen()),
                       );
                     }
                     break;
@@ -308,8 +313,9 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
                     break;
                   case 'settings':
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Settings screen coming soon!')),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const SettingsScreen()),
                       );
                     }
                     break;
@@ -578,8 +584,9 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
                 title: Text('Settings', style: TextStyle(color: AppTheme.textPrimary)),
                 onTap: () {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Settings screen coming soon!')),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SettingsScreen()),
                   );
                 },
               ),

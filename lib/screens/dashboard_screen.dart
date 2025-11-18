@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../core/services/todo_service.dart';
 import '../core/services/prayer_time_service.dart';
+import '../core/helpers/analytics_helper.dart';
 import '../core/theme/app_theme.dart';
 import '../models/task.dart';
 import '../widgets/task_details_dialog.dart';
@@ -25,6 +26,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    AnalyticsHelper.logScreenView('dashboard');
     _loadData();
     // Update timer every minute
     Future.delayed(Duration.zero, () {

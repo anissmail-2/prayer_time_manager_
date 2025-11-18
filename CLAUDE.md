@@ -141,13 +141,15 @@ Examples:
 ### AI Integration
 
 #### Gemini Configuration
-- **API Key**: `AIzaSyDuW4ld6jnO3SPocwJbUK1xTI3oMZs7lVI`
+- **API Key**: Configured in `.env` or `app_config.local.dart`
 - **Model**: `gemini-2.5-flash-lite-preview-06-17`
 - **Temperature**: 0.7 for creativity
+- **Setup**: See `SETUP_INSTRUCTIONS.md` for API key configuration
 
 #### Voice Input (Android Only)
-- **Deepgram API Key**: `17cf7c16bb088ca96a3ce9e0170b8c78d0f3d3a5`
-- **Platform Channel**: `com.example.prayer_time_manager/audio_recorder`
+- **Deepgram API Key**: Configured in `.env` or `app_config.local.dart`
+- **Platform Channel**: `com.awkati.taskflow/audio_recorder`
+- **Setup**: See `SETUP_INSTRUCTIONS.md` for API key configuration
 - **Custom Implementation**: `MainActivity.kt`
 
 #### AI Assistant Capabilities
