@@ -23,12 +23,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isSyncing = false;
   bool _isPrayerModeEnabled = true;
   ThemeMode _themeMode = ThemeMode.system;
+  String _weekStartDay = 'monday';
 
   @override
   void initState() {
     super.initState();
     _loadPrayerMode();
     _loadThemeMode();
+    _loadWeekStartDay();
+  }
+
+  Future<void> _loadWeekStartDay() async {
+    final day = await UserPreferencesService.getWeekStartDay();
+    if (mounted) {
+      setState(() {
+        _weekStartDay = day;
+      });
+    }
   }
 
   Future<void> _loadPrayerMode() async {
@@ -46,6 +57,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _themeMode = mode;
       });
+    }
+  }
+
+  Future<void> _showWeekStartDialog() async {
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Week Starts On'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile<String>(
+              title: const Text('Monday'),
+              value: 'monday',
+              groupValue: _weekStartDay,
+              onChanged: (value) => Navigator.pop(context, value),
+            ),
+            RadioListTile<String>(
+              title: const Text('Sunday'),
+              value: 'sunday',
+              groupValue: _weekStartDay,
+              onChanged: (value) => Navigator.pop(context, value),
+            ),
+            RadioListTile<String>(
+              title: const Text('Saturday'),
+              value: 'saturday',
+              groupValue: _weekStartDay,
+              onChanged: (value) => Navigator.pop(context, value),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && result != _weekStartDay) {
+      await UserPreferencesService.setWeekStartDay(result);
+      setState(() {
+        _weekStartDay = result;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Week starts on ${result.substring(0, 1).toUpperCase()}${result.substring(1)}'),
+            backgroundColor: AppTheme.success,
+          ),
+        );
+      }
     }
   }
 
@@ -304,6 +369,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       : Icons.brightness_auto,
               color: AppTheme.primary,
             ),
+          ),
+          _buildSettingsTile(
+            icon: Icons.calendar_view_week_outlined,
+            title: 'Week Starts On',
+            subtitle: '${_weekStartDay.substring(0, 1).toUpperCase()}${_weekStartDay.substring(1)}',
+            onTap: _showWeekStartDialog,
           ),
           _buildSettingsTile(
             icon: Icons.mosque,

@@ -177,6 +177,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
             ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AddEditItemScreen(prayerTimes: _prayerTimes),
+            ),
+          );
+          if (result == true) {
+            await _loadData();
+          }
+        },
+        backgroundColor: AppTheme.primary,
+        child: const Icon(Icons.add),
+      ),
     );
   }
 

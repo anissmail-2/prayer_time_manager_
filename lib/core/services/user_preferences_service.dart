@@ -8,6 +8,7 @@ class UserPreferencesService {
   static const _onboardingCompletedKey = 'onboarding_completed';
   static const _userDisplayNameKey = 'user_display_name';
   static const _appModeKey = 'app_mode'; // 'prayer' or 'productivity'
+  static const _weekStartDayKey = 'week_start_day'; // 'monday', 'sunday', 'saturday'
 
   /// Check if prayer mode is enabled
   /// Default: true (for existing users)
@@ -94,10 +95,43 @@ class UserPreferencesService {
         : 'Stay productive and organized';
   }
 
+  /// Get week start day ('monday', 'sunday', or 'saturday')
+  /// Default: 'monday'
+  static Future<String> getWeekStartDay() async {
+    final value = await StorageHelper.getString(_weekStartDayKey);
+    return value ?? 'monday';
+  }
+
+  /// Set week start day
+  static Future<void> setWeekStartDay(String day) async {
+    await StorageHelper.saveString(_weekStartDayKey, day);
+    await AnalyticsHelper.logEvent(
+      name: 'week_start_day_changed',
+      parameters: {'day': day},
+    );
+  }
+
+  /// Get week start day as int (DateTime weekday format)
+  /// Monday = 1, Sunday = 7, Saturday = 6
+  static Future<int> getWeekStartDayInt() async {
+    final day = await getWeekStartDay();
+    switch (day) {
+      case 'monday':
+        return DateTime.monday; // 1
+      case 'sunday':
+        return DateTime.sunday; // 7
+      case 'saturday':
+        return DateTime.saturday; // 6
+      default:
+        return DateTime.monday; // Default to Monday
+    }
+  }
+
   /// Clear all preferences (use with caution)
   static Future<void> clearAllPreferences() async {
     await StorageHelper.saveString(_prayerModeKey, 'false');
     await StorageHelper.saveString(_onboardingCompletedKey, 'false');
     await StorageHelper.saveString(_userDisplayNameKey, '');
+    await StorageHelper.saveString(_weekStartDayKey, 'monday');
   }
 }

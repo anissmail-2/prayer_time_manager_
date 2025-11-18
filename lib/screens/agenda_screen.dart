@@ -43,9 +43,13 @@ class _AgendaScreenState extends State<AgendaScreen> {
   // Search with debouncing
   final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounceTimer;
-  
+
   // Scroll controller for infinite scrolling
   final ScrollController _scrollController = ScrollController();
+
+  // Undo delete state
+  Task? _lastDeletedTask;
+  int? _lastDeletedIndex;
 
   @override
   void initState() {
@@ -213,18 +217,49 @@ class _AgendaScreenState extends State<AgendaScreen> {
 
   Future<void> _deleteTask(String taskId) async {
     try {
+      // Store the task and its position for undo
+      final index = _filteredTasks.indexWhere((t) => t.task.id == taskId);
+      if (index == -1) return;
+
+      final deletedTaskWithTime = _filteredTasks[index];
+      _lastDeletedTask = deletedTaskWithTime.task;
+      _lastDeletedIndex = index;
+
+      // Delete from service
       await TodoService.deleteTask(taskId);
-      
-      // Remove from list without full reload
+
+      // Remove from list
       if (mounted) {
         setState(() {
-          _filteredTasks.removeWhere((t) => t.task.id == taskId);
+          _filteredTasks.removeAt(index);
         });
-        
+
+        // Show snackbar with undo option
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Item deleted'),
-            backgroundColor: AppTheme.success,
+          SnackBar(
+            content: const Text('Task deleted'),
+            backgroundColor: AppTheme.error,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'UNDO',
+              textColor: Colors.white,
+              onPressed: () async {
+                // Restore the deleted task
+                if (_lastDeletedTask != null) {
+                  await TodoService.addTask(_lastDeletedTask!);
+                  await _loadData();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Task restored'),
+                        backgroundColor: AppTheme.success,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                }
+              },
+            ),
           ),
         );
       }
@@ -809,6 +844,26 @@ class _AgendaScreenState extends State<AgendaScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
+                    // Priority indicator
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.space8,
+                        vertical: AppTheme.space4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _getPriorityColor(task.priority),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                      ),
+                      child: Text(
+                        _getPriorityLabel(task.priority),
+                        style: AppTheme.labelSmall.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppTheme.space8),
                     // Item type indicator
                     Container(
                       padding: const EdgeInsets.all(AppTheme.space6),
@@ -820,20 +875,6 @@ class _AgendaScreenState extends State<AgendaScreen> {
                         _getItemTypeIcon(task.itemType),
                         size: 14,
                         color: _getItemTypeColor(task.itemType),
-                      ),
-                    ),
-                    const SizedBox(height: AppTheme.space4),
-                    // Priority indicator
-                    Container(
-                      padding: const EdgeInsets.all(AppTheme.space6),
-                      decoration: BoxDecoration(
-                        color: _getPriorityColor(task.priority).withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        _getPriorityIcon(task.priority),
-                        size: 14,
-                        color: _getPriorityColor(task.priority),
                       ),
                     ),
                   ],
@@ -908,7 +949,18 @@ class _AgendaScreenState extends State<AgendaScreen> {
         return Icons.arrow_downward_rounded;
     }
   }
-  
+
+  String _getPriorityLabel(TaskPriority priority) {
+    switch (priority) {
+      case TaskPriority.high:
+        return 'HIGH';
+      case TaskPriority.medium:
+        return 'MED';
+      case TaskPriority.low:
+        return 'LOW';
+    }
+  }
+
   IconData _getItemTypeIcon(ItemType type) {
     switch (type) {
       case ItemType.task:
