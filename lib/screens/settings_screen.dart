@@ -6,6 +6,7 @@ import '../core/services/firebase_service.dart';
 import '../core/services/data_sync_service.dart';
 import 'prayer_settings_screen.dart';
 import 'location_settings_screen.dart';
+import 'notification_settings_screen.dart';
 import 'auth_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -178,6 +179,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: AppTheme.space16),
           ],
           
+          // General Settings
+          _buildSectionHeader('General'),
+          _buildSettingsTile(
+            icon: Icons.notifications,
+            title: 'Notifications',
+            subtitle: 'Manage prayer and task notifications',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
+              );
+            },
+          ),
+          const SizedBox(height: AppTheme.space16),
+
           // Prayer Settings
           _buildSectionHeader('Prayer Settings'),
           _buildSettingsTile(

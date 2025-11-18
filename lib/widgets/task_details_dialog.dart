@@ -5,6 +5,8 @@ import '../core/theme/app_theme.dart';
 import '../core/services/prayer_time_service.dart';
 import '../models/task.dart';
 import '../models/enhanced_task.dart';
+import 'subtasks_widget.dart';
+import 'attachments_widget.dart';
 
 extension StringExtension on String {
   String capitalize() {
@@ -378,6 +380,31 @@ class TaskDetailsDialog extends StatelessWidget {
                             ],
                           ),
                         ),
+
+                      // Subtasks
+                      if (!enhancedTask!.isSubtask)
+                        _buildSection(
+                          '',
+                          SubtasksWidget(
+                            parentTask: enhancedTask!,
+                            onSubtasksChanged: () {
+                              // Optionally refresh parent task
+                            },
+                            allowEditing: onEdit != null,
+                          ),
+                        ),
+
+                      // Attachments
+                      _buildSection(
+                        '',
+                        AttachmentsWidget(
+                          attachmentPaths: enhancedTask!.attachments,
+                          onAttachmentsChanged: (newAttachments) {
+                            // Optionally update attachments
+                          },
+                          allowEditing: onEdit != null,
+                        ),
+                      ),
                     ],
                   ],
                 ),

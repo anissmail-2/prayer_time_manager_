@@ -5,6 +5,7 @@ import 'core/theme/app_theme.dart';
 import 'core/services/api_config_service.dart';
 import 'core/services/firebase_service.dart';
 import 'core/services/data_sync_service.dart';
+import 'core/services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,7 +18,13 @@ void main() async {
   
   // Initialize data sync service
   await DataSyncService.initialize();
-  
+
+  // Initialize notification service
+  await NotificationService.initialize();
+
+  // Schedule daily prayer notifications
+  await NotificationService.schedulePrayerNotifications();
+
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,

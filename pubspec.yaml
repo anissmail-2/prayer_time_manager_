@@ -86,10 +86,14 @@ dependencies:
   cloud_firestore: ^5.6.0
   firebase_analytics: ^11.3.6
   firebase_crashlytics: ^4.2.0
-  
+
+  # Notifications
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.9.4
+
   # Secure storage - temporarily disabled for Linux build
   # flutter_secure_storage: ^9.2.2
-  
+
   # Environment variables
   flutter_dotenv: ^5.1.0
 
