@@ -216,7 +216,9 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
               child: IconButton(
                 icon: const Icon(Icons.search),
                 onPressed: () {
-                  // TODO: Implement search
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Search feature coming soon!')),
+                  );
                 },
                 color: AppTheme.textSecondary,
                 splashRadius: 24,
@@ -227,7 +229,9 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
               child: IconButton(
                 icon: const Icon(Icons.notifications_none),
                 onPressed: () {
-                  // TODO: Implement notifications
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Notifications coming soon!')),
+                  );
                 },
                 color: AppTheme.textSecondary,
                 splashRadius: 24,
@@ -289,13 +293,25 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
               onSelected: (value) async {
                 switch (value) {
                   case 'profile':
-                    // TODO: Navigate to profile screen
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Profile screen coming soon!')),
+                      );
+                    }
                     break;
                   case 'subscription':
-                    // TODO: Navigate to subscription screen
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Subscription management coming soon!')),
+                      );
+                    }
                     break;
                   case 'settings':
-                    // TODO: Navigate to settings screen
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Settings screen coming soon!')),
+                      );
+                    }
                     break;
                   case 'signout':
                     await AuthService.signOut();
@@ -562,7 +578,9 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
                 title: Text('Settings', style: TextStyle(color: AppTheme.textPrimary)),
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Navigate to settings
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Settings screen coming soon!')),
+                  );
                 },
               ),
             ),

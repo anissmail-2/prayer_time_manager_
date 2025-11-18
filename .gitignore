@@ -47,6 +47,12 @@ app.*.map.json
 .env.*.local
 lib/core/config/app_config.local.dart
 
+# Firebase configuration files (contain API keys)
+google-services.json
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+firebase_options.dart
+
 # Output and log files
 *.txt
 *.log

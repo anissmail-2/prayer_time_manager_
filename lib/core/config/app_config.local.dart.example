@@ -1,6 +1,6 @@
 /// Local App Configuration - DO NOT COMMIT THIS FILE
-/// This file is gitignored for security
-/// Copy app_config.dart and replace placeholders with real keys
+/// Copy this file to app_config.local.dart and add your real API keys
+/// The .local.dart version is gitignored for security
 library;
 
 class AppConfig {

@@ -28,7 +28,9 @@ class FirebaseService {
   static Future<void> initialize() async {
     // Skip Firebase initialization on unsupported platforms
     if (!isSupported) {
-      print('Firebase is not supported on this platform');
+      if (kDebugMode) {
+        print('ℹ️ Firebase is not supported on this platform');
+      }
       return;
     }
     
@@ -60,12 +62,13 @@ class FirebaseService {
       );
       
       _isInitialized = true;
-      print('Firebase initialized successfully');
-      print('Firebase Auth instance: $_auth');
-      print('Firebase Firestore instance: $_firestore');
+      if (kDebugMode) {
+        print('✅ Firebase initialized successfully');
+      }
     } catch (e) {
-      print('Error initializing Firebase: $e');
-      print('Error type: ${e.runtimeType}');
+      if (kDebugMode) {
+        print('❌ Error initializing Firebase: $e');
+      }
       // Don't rethrow on unsupported platforms
       if (isSupported) {
         rethrow;
