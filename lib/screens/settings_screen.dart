@@ -5,6 +5,8 @@ import '../core/services/auth_service.dart';
 import '../core/services/firebase_service.dart';
 import '../core/services/data_sync_service.dart';
 import '../core/services/user_preferences_service.dart';
+import '../core/services/theme_service.dart';
+import '../main.dart';
 import 'prayer_settings_screen.dart';
 import 'location_settings_screen.dart';
 import 'notification_settings_screen.dart';
@@ -20,11 +22,13 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _isSyncing = false;
   bool _isPrayerModeEnabled = true;
+  ThemeMode _themeMode = ThemeMode.system;
 
   @override
   void initState() {
     super.initState();
     _loadPrayerMode();
+    _loadThemeMode();
   }
 
   Future<void> _loadPrayerMode() async {
@@ -33,6 +37,77 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _isPrayerModeEnabled = enabled;
       });
+    }
+  }
+
+  Future<void> _loadThemeMode() async {
+    final mode = await ThemeService.getThemeMode();
+    if (mounted) {
+      setState(() {
+        _themeMode = mode;
+      });
+    }
+  }
+
+  Future<void> _showThemeDialog() async {
+    final result = await showDialog<ThemeMode>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Choose Theme'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile<ThemeMode>(
+              title: const Text('Light'),
+              subtitle: const Text('Always use light theme'),
+              value: ThemeMode.light,
+              groupValue: _themeMode,
+              onChanged: (value) => Navigator.pop(context, value),
+            ),
+            RadioListTile<ThemeMode>(
+              title: const Text('Dark'),
+              subtitle: const Text('Always use dark theme'),
+              value: ThemeMode.dark,
+              groupValue: _themeMode,
+              onChanged: (value) => Navigator.pop(context, value),
+            ),
+            RadioListTile<ThemeMode>(
+              title: const Text('System Default'),
+              subtitle: const Text('Follow system theme'),
+              value: ThemeMode.system,
+              groupValue: _themeMode,
+              onChanged: (value) => Navigator.pop(context, value),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && result != _themeMode) {
+      await ThemeService.setThemeMode(result);
+      setState(() {
+        _themeMode = result;
+      });
+
+      // Update the root app theme
+      final appState = context.findAncestorStateOfType<TaskFlowProState>();
+      appState?.updateThemeMode(result);
+
+      // Show feedback
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Theme changed to ${ThemeService.getThemeModeName(result)}'),
+            backgroundColor: AppTheme.success,
+          ),
+        );
+      }
     }
   }
 
@@ -216,6 +291,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
           
           // General Settings
           _buildSectionHeader('General'),
+          _buildSettingsTile(
+            icon: Icons.palette_outlined,
+            title: 'Theme',
+            subtitle: ThemeService.getThemeModeName(_themeMode),
+            onTap: _showThemeDialog,
+            trailing: Icon(
+              _themeMode == ThemeMode.light
+                  ? Icons.light_mode
+                  : _themeMode == ThemeMode.dark
+                      ? Icons.dark_mode
+                      : Icons.brightness_auto,
+              color: AppTheme.primary,
+            ),
+          ),
           _buildSettingsTile(
             icon: Icons.mosque,
             title: 'Prayer Mode',

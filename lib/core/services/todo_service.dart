@@ -75,13 +75,28 @@ class TodoService {
       // Use Firestore directly when logged in
       return FirestoreTodoService.deleteTask(taskId);
     }
-    
+
     // Only use local storage when not logged in
     final tasks = await getAllTasks();
     tasks.removeWhere((task) => task.id == taskId);
     await _saveTasks(tasks);
   }
-  
+
+  // Duplicate a task
+  static Future<Task> duplicateTask(Task originalTask) async {
+    // Create a copy with a new ID and reset completion status
+    final duplicatedTask = originalTask.copyWith(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: '${originalTask.title} (Copy)',
+      isCompleted: false,
+      completedDates: [],
+      createdAt: DateTime.now(),
+    );
+
+    await addTask(duplicatedTask);
+    return duplicatedTask;
+  }
+
   // Mark task as completed for today
   static Future<void> markTaskCompleted(String taskId, DateTime date) async {
     final tasks = await getAllTasks();

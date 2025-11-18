@@ -621,8 +621,23 @@ class _AgendaScreenState extends State<AgendaScreen> {
       decoration: AppTheme.cardDecoration(),
       child: Dismissible(
         key: Key(task.id),
-        direction: DismissDirection.endToStart,
+        direction: DismissDirection.horizontal, // Allow both directions
+        // Background for swipe right (complete)
         background: Container(
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.only(left: AppTheme.space20),
+          decoration: BoxDecoration(
+            color: isCompleted ? AppTheme.warning : AppTheme.success,
+            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+          ),
+          child: Icon(
+            isCompleted ? Icons.restart_alt : Icons.check_circle_outline,
+            color: Colors.white,
+            size: 28,
+          ),
+        ),
+        // Secondary background for swipe left (delete)
+        secondaryBackground: Container(
           alignment: Alignment.centerRight,
           padding: const EdgeInsets.only(right: AppTheme.space20),
           decoration: BoxDecoration(
@@ -636,26 +651,37 @@ class _AgendaScreenState extends State<AgendaScreen> {
           ),
         ),
         confirmDismiss: (direction) async {
-          return await showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Delete Item'),
-              content: const Text('Are you sure you want to delete this item?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  style: TextButton.styleFrom(foregroundColor: AppTheme.error),
-                  child: const Text('Delete'),
-                ),
-              ],
-            ),
-          );
+          if (direction == DismissDirection.startToEnd) {
+            // Swipe right - toggle completion
+            _toggleTaskCompletion(taskWithTime);
+            return false; // Don't dismiss
+          } else {
+            // Swipe left - delete
+            return await showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Delete Item'),
+                content: const Text('Are you sure you want to delete this item?'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    style: TextButton.styleFrom(foregroundColor: AppTheme.error),
+                    child: const Text('Delete'),
+                  ),
+                ],
+              ),
+            );
+          }
         },
-        onDismissed: (direction) => _deleteTask(task.id),
+        onDismissed: (direction) {
+          if (direction == DismissDirection.endToStart) {
+            _deleteTask(task.id);
+          }
+        },
         child: InkWell(
           onTap: () {
             showDialog(
@@ -668,13 +694,26 @@ class _AgendaScreenState extends State<AgendaScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => AddEditItemScreen(
-                        task: task, 
+                        task: task,
                         prayerTimes: _prayerTimes,
                       ),
                     ),
                   );
                   if (result == true) {
                     await _loadData();
+                  }
+                },
+                onDuplicate: () async {
+                  await TodoService.duplicateTask(task);
+                  await _loadData();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Task duplicated successfully'),
+                        backgroundColor: AppTheme.success,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
                   }
                 },
                 onDelete: () => _deleteTask(task.id),

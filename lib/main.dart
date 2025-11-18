@@ -6,6 +6,7 @@ import 'core/services/api_config_service.dart';
 import 'core/services/firebase_service.dart';
 import 'core/services/data_sync_service.dart';
 import 'core/services/notification_service.dart';
+import 'core/services/theme_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,23 +45,52 @@ void main() async {
   runApp(const TaskFlowPro());
 }
 
-class TaskFlowPro extends StatelessWidget {
+class TaskFlowPro extends StatefulWidget {
   const TaskFlowPro({super.key});
+
+  @override
+  State<TaskFlowPro> createState() => TaskFlowProState();
+}
+
+class TaskFlowProState extends State<TaskFlowPro> {
+  ThemeMode _themeMode = ThemeMode.system;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadThemeMode();
+  }
+
+  Future<void> _loadThemeMode() async {
+    final mode = await ThemeService.getThemeMode();
+    if (mounted) {
+      setState(() {
+        _themeMode = mode;
+      });
+    }
+  }
+
+  // Public method to update theme mode from settings
+  void updateThemeMode(ThemeMode mode) {
+    setState(() {
+      _themeMode = mode;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'TaskFlow Pro',
       debugShowCheckedModeBanner: false,
-      
+
       // Theme configuration
       theme: AppTheme.lightTheme(),
       darkTheme: AppTheme.darkTheme(),
-      themeMode: ThemeMode.system, // Follows system theme
-      
+      themeMode: _themeMode,
+
       // Navigation
       home: const AuthWrapper(),
-      
+
       // Page transitions
       builder: (context, child) {
         return MediaQuery(

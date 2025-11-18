@@ -20,6 +20,7 @@ class TaskDetailsDialog extends StatelessWidget {
   final EnhancedTask? enhancedTask;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final VoidCallback? onDuplicate;
   final VoidCallback? onToggleComplete;
   final Map<String, String>? cachedPrayerTimes;
 
@@ -29,6 +30,7 @@ class TaskDetailsDialog extends StatelessWidget {
     this.enhancedTask,
     this.onEdit,
     this.onDelete,
+    this.onDuplicate,
     this.onToggleComplete,
     this.cachedPrayerTimes,
   }) : assert(task != null || enhancedTask != null);
@@ -447,6 +449,21 @@ class TaskDetailsDialog extends StatelessWidget {
                           ),
                         ),
                       
+                      // Duplicate Button
+                      if (onDuplicate != null) ...[
+                        const SizedBox(width: 8),
+                        _buildActionButton(
+                          onTap: () {
+                            Navigator.pop(context);
+                            onDuplicate!();
+                          },
+                          icon: Icons.content_copy_rounded,
+                          label: '',
+                          color: AppTheme.secondary,
+                          isCompact: true,
+                        ),
+                      ],
+
                       // Delete Button
                       if (onDelete != null) ...[
                         const SizedBox(width: 8),
@@ -461,7 +478,7 @@ class TaskDetailsDialog extends StatelessWidget {
                           isCompact: true,
                         ),
                       ],
-                      
+
                       // Edit Button (Primary)
                       if (onEdit != null) ...[
                         const SizedBox(width: 8),
