@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/task.dart';
@@ -50,30 +51,15 @@ class FirestoreTodoService {
   
   /// Add a new task
   static Future<void> addTask(Task task) async {
-    print('FirestoreTodoService.addTask called');
-    print('_useFirestore: $_useFirestore');
-    print('AuthService.isLoggedIn: ${AuthService.isLoggedIn}');
-    print('AuthService.userId: ${AuthService.userId}');
-    print('_tasksCollection: $_tasksCollection');
-    
     if (!_useFirestore) {
-      print('FirestoreTodoService.addTask - Not using Firestore (not authenticated or no collection)');
       throw Exception('User not authenticated');
     }
-    
-    print('FirestoreTodoService.addTask - User: ${AuthService.userId}');
-    print('FirestoreTodoService.addTask - Collection path: users/${AuthService.userId}/tasks');
-    
+
     try {
       // Add to Firestore only
-      print('FirestoreTodoService.addTask - Adding task with ID: ${task.id}');
-      print('Task data: ${task.toJson()}');
       await _tasksCollection!.doc(task.id).set(task.toJson());
-      print('FirestoreTodoService.addTask - Task added successfully to Firestore');
-    } catch (e, stackTrace) {
+    } catch (e) {
       print('Error adding task to Firestore: $e');
-      print('Error type: ${e.runtimeType}');
-      print('Stack trace: $stackTrace');
       rethrow;
     }
   }
@@ -108,11 +94,23 @@ class FirestoreTodoService {
     }
   }
   
-  /// Toggle task completion
+  /// Get a single task by id (single-document read)
+  static Future<Task?> _getTaskById(String taskId) async {
+    if (!_useFirestore) {
+      throw Exception('User not authenticated');
+    }
+
+    final doc = await _tasksCollection!.doc(taskId).get();
+    final data = doc.data();
+    if (!doc.exists || data == null) return null;
+    return Task.fromJson({...data, 'id': doc.id});
+  }
+
+  /// Toggle task completion (fetches/updates only the single doc)
   static Future<void> toggleTaskCompletion(String taskId, DateTime date) async {
-    final tasks = await getAllTasks();
-    final task = tasks.firstWhere((t) => t.id == taskId);
-    
+    final task = await _getTaskById(taskId);
+    if (task == null) return;
+
     // Toggle completion for the date
     List<DateTime> updatedDates = List.from(task.completedDates);
     if (task.isCompletedForDate(date)) {
@@ -120,26 +118,26 @@ class FirestoreTodoService {
     } else {
       updatedDates.add(date);
     }
-    
+
     await updateTask(task.copyWith(completedDates: updatedDates));
   }
-  
-  /// Mark task as completed for a specific date
+
+  /// Mark task as completed for a specific date (single-document update)
   static Future<void> markTaskAsCompleted(String taskId, DateTime date) async {
-    final tasks = await getAllTasks();
-    final task = tasks.firstWhere((t) => t.id == taskId);
-    
+    final task = await _getTaskById(taskId);
+    if (task == null) return;
+
     // Add date to completed dates if not already there
     if (!task.isCompletedForDate(date)) {
       List<DateTime> updatedDates = List.from(task.completedDates)..add(date);
       await updateTask(task.copyWith(completedDates: updatedDates));
     }
   }
-  
+
   /// Get tasks for a specific date
   static Future<List<Task>> getTasksForDate(DateTime date) async {
     final allTasks = await getAllTasks();
-    return allTasks.where((task) => task.shouldShowToday(date)).toList();
+    return allTasks.where((task) => task.shouldShowOnDate(date)).toList();
   }
   
   /// Create a task from AI suggestion
@@ -184,19 +182,43 @@ class FirestoreTodoService {
     return task;
   }
   
+  /// Read tasks straight from SharedPreferences.
+  /// Migration/sync MUST use this instead of TodoService.getAllTasks(),
+  /// which returns Firestore data when the user is logged in.
+  static Future<List<Task>> _getLocalTasks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final tasksJson = prefs.getString(_tasksKey);
+    if (tasksJson == null) return [];
+
+    try {
+      final List<dynamic> tasksList = json.decode(tasksJson);
+      return tasksList.map((taskJson) => Task.fromJson(taskJson)).toList();
+    } catch (e) {
+      print('Error decoding local tasks: $e');
+      return [];
+    }
+  }
+
+  /// Write tasks straight to SharedPreferences (local mirror).
+  static Future<void> _saveLocalTasks(List<Task> tasks) async {
+    final prefs = await SharedPreferences.getInstance();
+    final tasksJson = json.encode(tasks.map((task) => task.toJson()).toList());
+    await prefs.setString(_tasksKey, tasksJson);
+  }
+
   /// Migrate local data to Firestore
   static Future<void> migrateLocalDataToFirestore() async {
     if (!_useFirestore) return;
-    
+
     final prefs = await SharedPreferences.getInstance();
     final migrated = prefs.getBool(_migrationKey) ?? false;
-    
+
     if (migrated) return;
-    
+
     try {
-      // Get local tasks
-      final localTasks = await TodoService.getAllTasks();
-      
+      // Get local tasks (raw SharedPreferences, never Firestore)
+      final localTasks = await _getLocalTasks();
+
       if (localTasks.isEmpty) {
         // No data to migrate
         await prefs.setBool(_migrationKey, true);
@@ -251,41 +273,70 @@ class FirestoreTodoService {
             .toList());
   }
   
-  /// Sync local changes to Firestore (for offline-to-online sync)
+  /// Sync local changes to Firestore (for offline-to-online sync).
+  /// Consults deletion tombstones so deletes are propagated in both
+  /// directions instead of resurrecting deleted tasks.
   static Future<void> syncLocalChangesToFirestore() async {
     if (!_useFirestore) return;
-    
+
     try {
-      // Get local tasks
-      final localTasks = await TodoService.getAllTasks();
-      
+      // Get local tasks (raw SharedPreferences, never Firestore)
+      final localTasks = await _getLocalTasks();
+
+      // Deletion tombstones (pruned to the last 30 days)
+      final tombstones = await TodoService.getDeletedTaskTombstones();
+
       // Get Firestore tasks
       final firestoreSnapshot = await _tasksCollection!.get();
       final firestoreTasks = Map.fromEntries(
-        firestoreSnapshot.docs.map((doc) => 
+        firestoreSnapshot.docs.map((doc) =>
           MapEntry(doc.id, Task.fromJson({...doc.data(), 'id': doc.id}))
         )
       );
-      
-      // Find tasks that are newer locally
+
+      var localChanged = false;
+      final mergedLocalTasks = List<Task>.from(localTasks);
+
       for (final localTask in localTasks) {
+        if (tombstones.containsKey(localTask.id)) {
+          // Task was deleted — remove the stale local copy and make sure
+          // it is gone from Firestore too.
+          mergedLocalTasks.removeWhere((t) => t.id == localTask.id);
+          localChanged = true;
+          if (firestoreTasks.containsKey(localTask.id)) {
+            await _tasksCollection!.doc(localTask.id).delete();
+          }
+          continue;
+        }
+
         final firestoreTask = firestoreTasks[localTask.id];
-        
-        if (firestoreTask == null || 
+        if (firestoreTask == null ||
             (localTask.updatedAt ?? localTask.createdAt).isAfter(
               firestoreTask.updatedAt ?? firestoreTask.createdAt)) {
           // Local task is newer or doesn't exist in Firestore
           await _tasksCollection!.doc(localTask.id).set(localTask.toJson());
         }
       }
-      
-      // Find tasks that exist in Firestore but not locally
+
+      // Tasks that exist in Firestore but not locally
       for (final firestoreTask in firestoreTasks.values) {
         final localExists = localTasks.any((t) => t.id == firestoreTask.id);
-        if (!localExists) {
-          // Add to local storage
-          await TodoService.addTask(firestoreTask);
+        if (localExists) continue;
+
+        if (tombstones.containsKey(firestoreTask.id)) {
+          // Deleted on this device — propagate the deletion to Firestore
+          // instead of re-downloading it.
+          await _tasksCollection!.doc(firestoreTask.id).delete();
+        } else {
+          // New in the cloud — hydrate the local mirror directly
+          // (TodoService.addTask would route back to Firestore).
+          mergedLocalTasks.add(firestoreTask);
+          localChanged = true;
         }
+      }
+
+      if (localChanged) {
+        await _saveLocalTasks(mergedLocalTasks);
       }
     } catch (e) {
       print('Error syncing tasks: $e');

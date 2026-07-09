@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'auth_service.dart';
 import '../../models/task.dart';
+import '../../models/enhanced_task.dart';
 import '../../models/space.dart';
 import '../../models/activity.dart';
 import '../../models/chat_message.dart';
@@ -47,7 +48,11 @@ class DataMigrationService {
       // Migrate spaces
       onProgress('Migrating spaces...');
       await _migrateSpaces(userId, prefs);
-      
+
+      // Migrate enhanced tasks (unscheduled ideas)
+      onProgress('Migrating ideas...');
+      await _migrateEnhancedTasks(userId, prefs);
+
       // Migrate activities
       onProgress('Migrating activities...');
       await _migrateActivities(userId, prefs);
@@ -93,11 +98,41 @@ class DataMigrationService {
 
     for (final task in tasksList) {
       final docRef = userTasksRef.doc(task.id);
-      batch.set(docRef, {
-        ...task.toJson(),
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      // Preserve the task's own ISO timestamps: overwriting them with
+      // FieldValue.serverTimestamp() destroys real creation dates and
+      // mixes Timestamp/String types, breaking orderBy('createdAt').
+      batch.set(docRef, task.toJson());
+    }
+
+    await batch.commit();
+  }
+
+  // Migrate enhanced tasks (unscheduled ideas).
+  // Stored per space, matching firestore.rules:
+  //   users/{uid}/spaces/{spaceId}/enhanced_tasks/{taskId}
+  // Tasks without a space go under the reserved 'unassigned' space id.
+  static Future<void> _migrateEnhancedTasks(String userId, SharedPreferences prefs) async {
+    final tasksJson = prefs.getString('enhanced_tasks');
+    if (tasksJson == null) return;
+
+    final tasksList = (jsonDecode(tasksJson) as List)
+        .map((json) => EnhancedTask.fromJson(json))
+        .toList();
+
+    if (tasksList.isEmpty) return;
+
+    final batch = _firestore.batch();
+    final userSpacesRef = _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('spaces');
+
+    for (final task in tasksList) {
+      final docRef = userSpacesRef
+          .doc(task.spaceId ?? 'unassigned')
+          .collection('enhanced_tasks')
+          .doc(task.id);
+      batch.set(docRef, task.toJson());
     }
 
     await batch.commit();
@@ -122,11 +157,8 @@ class DataMigrationService {
 
     for (final space in spacesList) {
       final docRef = userSpacesRef.doc(space.id);
-      batch.set(docRef, {
-        ...space.toJson(),
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      // Preserve the space's own ISO timestamps (see _migrateTasks)
+      batch.set(docRef, space.toJson());
     }
 
     await batch.commit();
@@ -151,11 +183,8 @@ class DataMigrationService {
 
     for (final activity in activitiesList) {
       final docRef = userActivitiesRef.doc(activity.id);
-      batch.set(docRef, {
-        ...activity.toJson(),
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      // Preserve the activity's own ISO timestamps (see _migrateTasks)
+      batch.set(docRef, activity.toJson());
     }
 
     await batch.commit();
@@ -245,15 +274,18 @@ class DataMigrationService {
     await batch.commit();
   }
 
-  // Clear local data after migration
+  // Clear local data after migration.
+  // NOTE: 'prayer_durations' and 'location_settings' are intentionally
+  // NOT removed — PrayerDurationService and LocationService only ever read
+  // SharedPreferences, so deleting them would silently reset the user's
+  // settings. The local copies remain the working copies; Firestore just
+  // holds a backup.
   static Future<void> _clearLocalData(SharedPreferences prefs) async {
     final keysToRemove = [
       'tasks',
       'spaces',
       'enhanced_tasks',
       'activities',
-      'prayer_durations',
-      'location_settings',
       'ai_conversations',
       'current_ai_conversation',
     ];

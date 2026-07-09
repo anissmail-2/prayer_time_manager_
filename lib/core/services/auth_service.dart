@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'data_migration_service.dart';
 import 'firebase_service.dart';
 
 class AuthService {
@@ -261,8 +262,7 @@ class AuthService {
 
   // Check if user needs to migrate local data
   static Future<bool> hasLocalData() async {
-    // This will be implemented to check SharedPreferences for existing data
-    return false; // Placeholder
+    return DataMigrationService.hasLocalData();
   }
 
   // Get user subscription tier

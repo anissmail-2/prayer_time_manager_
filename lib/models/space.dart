@@ -1,5 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+// Sentinel used by copyWith to distinguish "not provided" from
+// an explicit null (which clears the field).
+const Object _unset = Object();
+
 class Space {
   final String id;
   final String name;
@@ -82,7 +86,7 @@ class Space {
     DateTime? updatedAt,
     SpaceStatus? status,
     List<String>? itemIds,
-    String? parentSpaceId,
+    Object? parentSpaceId = _unset,
     List<String>? subSpaceIds,
     Map<String, dynamic>? metadata,
   }) {
@@ -95,7 +99,11 @@ class Space {
       updatedAt: updatedAt ?? DateTime.now(),
       status: status ?? this.status,
       itemIds: itemIds ?? this.itemIds,
-      parentSpaceId: parentSpaceId ?? this.parentSpaceId,
+      // Passing an explicit null makes the space root-level;
+      // omitting the parameter keeps the current parent.
+      parentSpaceId: identical(parentSpaceId, _unset)
+          ? this.parentSpaceId
+          : parentSpaceId as String?,
       subSpaceIds: subSpaceIds ?? this.subSpaceIds,
       metadata: metadata ?? this.metadata,
     );

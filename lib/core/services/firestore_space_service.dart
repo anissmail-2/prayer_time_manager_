@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/space.dart';
@@ -99,18 +100,43 @@ class FirestoreSpaceService {
     }
   }
   
+  /// Read spaces straight from SharedPreferences.
+  /// Migration/sync MUST use this instead of SpaceService.getAllSpaces(),
+  /// which returns Firestore data when the user is logged in.
+  static Future<List<Space>> _getLocalSpaces() async {
+    final prefs = await SharedPreferences.getInstance();
+    final spacesJson = prefs.getString(_spacesKey);
+    if (spacesJson == null) return [];
+
+    try {
+      final List<dynamic> spacesList = jsonDecode(spacesJson);
+      return spacesList.map((json) => Space.fromJson(json)).toList();
+    } catch (e) {
+      print('Error decoding local spaces: $e');
+      return [];
+    }
+  }
+
+  /// Write spaces straight to SharedPreferences (local mirror).
+  static Future<void> _saveLocalSpaces(List<Space> spaces) async {
+    final prefs = await SharedPreferences.getInstance();
+    final spacesJson = jsonEncode(spaces.map((s) => s.toJson()).toList());
+    await prefs.setString(_spacesKey, spacesJson);
+  }
+
   /// Migrate local data to Firestore
   static Future<void> migrateLocalDataToFirestore() async {
     if (!_useFirestore) return;
-    
+
     final prefs = await SharedPreferences.getInstance();
     final migrated = prefs.getBool(_migrationKey) ?? false;
-    
+
     if (migrated) return;
-    
+
     try {
-      final localSpaces = await SpaceService.getAllSpaces();
-      
+      // Get local spaces (raw SharedPreferences, never Firestore)
+      final localSpaces = await _getLocalSpaces();
+
       if (localSpaces.isEmpty) {
         await prefs.setBool(_migrationKey, true);
         return;
@@ -154,34 +180,67 @@ class FirestoreSpaceService {
             .toList());
   }
   
-  /// Sync local changes to Firestore
+  /// Sync local changes to Firestore.
+  /// Consults deletion tombstones so deletes are propagated in both
+  /// directions instead of resurrecting deleted spaces.
   static Future<void> syncLocalChangesToFirestore() async {
     if (!_useFirestore) return;
-    
+
     try {
-      final localSpaces = await SpaceService.getAllSpaces();
+      // Get local spaces (raw SharedPreferences, never Firestore)
+      final localSpaces = await _getLocalSpaces();
+
+      // Deletion tombstones (pruned to the last 30 days)
+      final tombstones = await SpaceService.getDeletedSpaceTombstones();
+
       final firestoreSnapshot = await _spacesCollection!.get();
       final firestoreSpaces = Map.fromEntries(
-        firestoreSnapshot.docs.map((doc) => 
+        firestoreSnapshot.docs.map((doc) =>
           MapEntry(doc.id, Space.fromJson({...doc.data(), 'id': doc.id}))
         )
       );
-      
+
+      var localChanged = false;
+      final mergedLocalSpaces = List<Space>.from(localSpaces);
+
       for (final localSpace in localSpaces) {
+        if (tombstones.containsKey(localSpace.id)) {
+          // Space was deleted — remove the stale local copy and make sure
+          // it is gone from Firestore too.
+          mergedLocalSpaces.removeWhere((s) => s.id == localSpace.id);
+          localChanged = true;
+          if (firestoreSpaces.containsKey(localSpace.id)) {
+            await _spacesCollection!.doc(localSpace.id).delete();
+          }
+          continue;
+        }
+
         final firestoreSpace = firestoreSpaces[localSpace.id];
-        
-        if (firestoreSpace == null || 
+        if (firestoreSpace == null ||
             (localSpace.updatedAt ?? localSpace.createdAt).isAfter(
               firestoreSpace.updatedAt ?? firestoreSpace.createdAt)) {
           await _spacesCollection!.doc(localSpace.id).set(localSpace.toJson());
         }
       }
-      
+
       for (final firestoreSpace in firestoreSpaces.values) {
         final localExists = localSpaces.any((s) => s.id == firestoreSpace.id);
-        if (!localExists) {
-          await SpaceService.createSpace(firestoreSpace);
+        if (localExists) continue;
+
+        if (tombstones.containsKey(firestoreSpace.id)) {
+          // Deleted on this device — propagate the deletion to Firestore
+          // instead of re-downloading it.
+          await _spacesCollection!.doc(firestoreSpace.id).delete();
+        } else {
+          // New in the cloud — hydrate the local mirror directly
+          // (SpaceService.createSpace would route back to Firestore).
+          mergedLocalSpaces.add(firestoreSpace);
+          localChanged = true;
         }
+      }
+
+      if (localChanged) {
+        await _saveLocalSpaces(mergedLocalSpaces);
       }
     } catch (e) {
       print('Error syncing spaces: $e');

@@ -7,7 +7,9 @@ import 'firestore_todo_service.dart';
 
 class TodoService {
   static const String _tasksKey = 'tasks';
-  
+  static const String _deletedTasksKey = 'deleted_task_ids';
+  static const Duration _tombstoneRetention = Duration(days: 30);
+
   // Get all tasks
   static Future<List<Task>> getAllTasks() async {
     // Use Firestore when logged in
@@ -71,92 +73,143 @@ class TodoService {
   
   // Delete a task
   static Future<void> deleteTask(String taskId) async {
+    // Record a tombstone so sync propagates the deletion
+    // instead of resurrecting the task.
+    await recordTaskDeletion(taskId);
+
     if (AuthService.isLoggedIn) {
       // Use Firestore directly when logged in
       return FirestoreTodoService.deleteTask(taskId);
     }
-    
+
     // Only use local storage when not logged in
     final tasks = await getAllTasks();
     tasks.removeWhere((task) => task.id == taskId);
     await _saveTasks(tasks);
   }
-  
-  // Mark task as completed for today
-  static Future<void> markTaskCompleted(String taskId, DateTime date) async {
-    final tasks = await getAllTasks();
-    final index = tasks.indexWhere((task) => task.id == taskId);
-    
-    if (index != -1) {
-      final task = tasks[index];
-      final updatedCompletedDates = List<DateTime>.from(task.completedDates)..add(date);
-      
-      // If it's a one-time task, mark it as completed
-      final isCompleted = task.recurrence == TaskRecurrence.once;
-      
-      tasks[index] = task.copyWith(
-        completedDates: updatedCompletedDates,
-        isCompleted: isCompleted,
-      );
-      
+
+  // Route a single-task save to the right backend
+  static Future<void> _saveUpdatedTask(Task updatedTask, List<Task> tasks, int index) async {
+    if (AuthService.isLoggedIn) {
+      await FirestoreTodoService.updateTask(updatedTask);
+    } else {
+      tasks[index] = updatedTask;
       await _saveTasks(tasks);
     }
   }
-  
-  // Unmark task completion for a date
-  static Future<void> unmarkTaskCompleted(String taskId, DateTime date) async {
+
+  // Mark task as completed for a date.
+  // Returns the updated task, or null if the task was not found.
+  static Future<Task?> markTaskCompleted(String taskId, DateTime date) async {
     final tasks = await getAllTasks();
     final index = tasks.indexWhere((task) => task.id == taskId);
-    
-    if (index != -1) {
-      final task = tasks[index];
-      final updatedCompletedDates = List<DateTime>.from(task.completedDates)
-        ..removeWhere((d) => Task.isSameDay(d, date));
-      
-      tasks[index] = task.copyWith(
-        completedDates: updatedCompletedDates,
-        isCompleted: false,
-      );
-      
-      await _saveTasks(tasks);
-    }
+    if (index == -1) return null;
+
+    final task = tasks[index];
+    final updatedCompletedDates = List<DateTime>.from(task.completedDates)..add(date);
+
+    // If it's a one-time task, mark it as completed
+    final isCompleted = task.recurrence == TaskRecurrence.once;
+
+    final updatedTask = task.copyWith(
+      completedDates: updatedCompletedDates,
+      isCompleted: isCompleted,
+    );
+
+    await _saveUpdatedTask(updatedTask, tasks, index);
+    return updatedTask;
   }
-  
-  // Toggle task completion status
-  static Future<void> toggleTaskStatus(Task task) async {
+
+  // Unmark task completion for a date.
+  // Returns the updated task, or null if the task was not found.
+  static Future<Task?> unmarkTaskCompleted(String taskId, DateTime date) async {
+    final tasks = await getAllTasks();
+    final index = tasks.indexWhere((task) => task.id == taskId);
+    if (index == -1) return null;
+
+    final task = tasks[index];
+    final updatedCompletedDates = List<DateTime>.from(task.completedDates)
+      ..removeWhere((d) => Task.isSameDay(d, date));
+
+    final updatedTask = task.copyWith(
+      completedDates: updatedCompletedDates,
+      isCompleted: false,
+    );
+
+    await _saveUpdatedTask(updatedTask, tasks, index);
+    return updatedTask;
+  }
+
+  // Toggle task completion status.
+  // Returns the updated task, or null if the task was not found.
+  static Future<Task?> toggleTaskStatus(Task task) async {
     final today = DateTime.now();
-    
+
     if (task.recurrence == TaskRecurrence.once) {
       // For one-time tasks, toggle the isCompleted status
-      await updateTask(task.copyWith(isCompleted: !task.isCompleted));
-    } else {
-      // For recurring tasks, toggle completion for today
-      if (task.isCompletedForDate(today)) {
-        await unmarkTaskCompleted(task.id, today);
-      } else {
-        await markTaskCompleted(task.id, today);
-      }
+      final updatedTask = task.copyWith(isCompleted: !task.isCompleted);
+      await updateTask(updatedTask);
+      return updatedTask;
     }
+
+    // For recurring tasks, toggle completion for today
+    if (task.isCompletedForDate(today)) {
+      return unmarkTaskCompleted(task.id, today);
+    } else {
+      return markTaskCompleted(task.id, today);
+    }
+  }
+
+  // ---- Deletion tombstones (used by sync to propagate deletions) ----
+
+  /// Record that a task was deleted (id -> deletion time).
+  static Future<void> recordTaskDeletion(String taskId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final tombstones = _decodeTombstones(prefs.getString(_deletedTasksKey));
+    tombstones[taskId] = DateTime.now();
+    await prefs.setString(_deletedTasksKey, _encodeTombstones(tombstones));
+  }
+
+  /// Get deletion tombstones, pruning entries older than 30 days.
+  static Future<Map<String, DateTime>> getDeletedTaskTombstones() async {
+    final prefs = await SharedPreferences.getInstance();
+    final tombstones = _decodeTombstones(prefs.getString(_deletedTasksKey));
+    final cutoff = DateTime.now().subtract(_tombstoneRetention);
+    final beforePrune = tombstones.length;
+    tombstones.removeWhere((_, deletedAt) => deletedAt.isBefore(cutoff));
+    if (tombstones.length != beforePrune) {
+      await prefs.setString(_deletedTasksKey, _encodeTombstones(tombstones));
+    }
+    return tombstones;
+  }
+
+  static Map<String, DateTime> _decodeTombstones(String? jsonStr) {
+    if (jsonStr == null) return {};
+    try {
+      final Map<String, dynamic> decoded = json.decode(jsonStr);
+      final result = <String, DateTime>{};
+      decoded.forEach((id, timestamp) {
+        final parsed = DateTime.tryParse(timestamp.toString());
+        if (parsed != null) result[id] = parsed;
+      });
+      return result;
+    } catch (e) {
+      return {};
+    }
+  }
+
+  static String _encodeTombstones(Map<String, DateTime> tombstones) {
+    return json.encode(
+      tombstones.map((id, time) => MapEntry(id, time.toIso8601String())),
+    );
   }
   
   // Get tasks for today
   static Future<List<Task>> getTasksForToday() async {
     final tasks = await getAllTasks();
     final today = DateTime.now();
-    
-    return tasks.where((task) {
-      // Skip completed one-time tasks
-      if (task.isCompleted && task.recurrence == TaskRecurrence.once) {
-        return false;
-      }
-      
-      // Check if end date has passed
-      if (task.endDate != null && today.isAfter(task.endDate!)) {
-        return false;
-      }
-      
-      return task.shouldShowToday(today);
-    }).toList();
+
+    return tasks.where((task) => _shouldTaskShowOnDate(task, today)).toList();
   }
   
   // Get all tasks with calculated times for today
@@ -212,65 +265,15 @@ class TodoService {
     return tasksWithTimes;
   }
   
-  // Check if task should show on a specific date
+  // Check if task should show on a specific date.
+  // Recurrence logic lives in Task.shouldShowOnDate (single source of truth).
   static bool _shouldTaskShowOnDate(Task task, DateTime date) {
     // Skip completed one-time tasks
     if (task.isCompleted && task.recurrence == TaskRecurrence.once) {
       return false;
     }
-    
-    // Check if end date has passed
-    if (task.endDate != null && date.isAfter(task.endDate!)) {
-      return false;
-    }
-    
-    // Get the effective start date
-    final effectiveStartDate = task.startDate ?? task.createdAt;
-    final startDateOnly = DateTime(effectiveStartDate.year, effectiveStartDate.month, effectiveStartDate.day);
-    
-    // Check if date is before the task's start date
-    if (date.isBefore(startDateOnly)) {
-      return false;
-    }
-    
-    // Apply recurrence rules based on task recurrence type
-    switch (task.recurrence) {
-      case TaskRecurrence.once:
-        // For one-time tasks, only show on start/creation date
-        return Task.isSameDay(effectiveStartDate, date);
-      
-      case TaskRecurrence.daily:
-        // Show every day after start date
-        return true;
-      
-      case TaskRecurrence.weekly:
-        // If weekly interval is specified, check if it's the right week
-        if (task.weeklyInterval != null && task.weeklyInterval! > 1) {
-          final weeksDiff = date.difference(startDateOnly).inDays ~/ 7;
-          if (weeksDiff % task.weeklyInterval! != 0) {
-            return false;
-          }
-        }
-        
-        // Check if date's day of week matches any selected weekly days
-        if (task.weeklyDays != null && task.weeklyDays!.isNotEmpty) {
-          return task.weeklyDays!.contains(date.weekday);
-        }
-        // If no specific days selected, show on same weekday as start date
-        return date.weekday == effectiveStartDate.weekday;
-      
-      case TaskRecurrence.monthly:
-        // Check for specific monthly dates
-        if (task.monthlyDates != null && task.monthlyDates!.isNotEmpty) {
-          return task.monthlyDates!.contains(date.day);
-        }
-        // Default: Show on same day of month as start date
-        return date.day == effectiveStartDate.day;
-      
-      case TaskRecurrence.yearly:
-        // Show on same month and day as start date
-        return date.month == effectiveStartDate.month && date.day == effectiveStartDate.day;
-    }
+
+    return task.shouldShowOnDate(date);
   }
   
   // Get upcoming tasks with calculated times
@@ -315,11 +318,6 @@ class TodoService {
     tasksWithTimes.sort((a, b) => a.scheduledTime.compareTo(b.scheduledTime));
     
     return tasksWithTimes;
-  }
-  
-  // Calculate actual time for a task
-  static DateTime? _calculatePrayerRelativeTime(Task task, Map<String, String> prayerTimes, DateTime date) {
-    return _calculateTaskTime(task, prayerTimes, date);
   }
   
   // Calculate prayer-relative end time

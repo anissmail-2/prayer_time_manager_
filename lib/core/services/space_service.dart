@@ -10,7 +10,9 @@ import 'firestore_space_service.dart';
 class SpaceService {
   static const String _spacesKey = 'spaces';
   static const String _enhancedTasksKey = 'enhanced_tasks';
-  
+  static const String _deletedSpacesKey = 'deleted_space_ids';
+  static const Duration _tombstoneRetention = Duration(days: 30);
+
   // Spaces
   static Future<List<Space>> getAllSpaces() async {
     // Use Firestore when logged in
@@ -84,14 +86,21 @@ class SpaceService {
   
   static Future<void> deleteSpace(String id, {bool deleteSubSpaces = true, String? reassignToSpaceId}) async {
     if (AuthService.isLoggedIn) {
-      // Use Firestore directly when logged in
-      return FirestoreSpaceService.deleteSpace(id);
+      // Use Firestore when logged in, honoring the same
+      // sub-space deletion/reassignment semantics as the local path.
+      return _deleteSpaceInFirestore(
+        id,
+        deleteSubSpaces: deleteSubSpaces,
+        reassignToSpaceId: reassignToSpaceId,
+      );
     }
-    
+
     // Only use local storage when not logged in
     final spaces = await getAllSpaces();
-    final spaceToDelete = spaces.firstWhere((s) => s.id == id);
-    
+    final index = spaces.indexWhere((s) => s.id == id);
+    if (index == -1) return; // Unknown space id — nothing to delete
+    final spaceToDelete = spaces[index];
+
     // Handle sub-spaces
     if (spaceToDelete.subSpaceIds.isNotEmpty) {
       if (deleteSubSpaces) {
@@ -107,7 +116,7 @@ class SpaceService {
             await updateSpace(subSpace.copyWith(
               parentSpaceId: reassignToSpaceId,
             ));
-            
+
             // If reassigning to another parent, update that parent's subSpaceIds
             if (reassignToSpaceId != null) {
               final newParent = await getSpace(reassignToSpaceId);
@@ -121,7 +130,7 @@ class SpaceService {
         }
       }
     }
-    
+
     // Remove space from parent's sub-space list if it has a parent
     if (spaceToDelete.parentSpaceId != null) {
       final parentSpace = await getSpace(spaceToDelete.parentSpaceId!);
@@ -131,22 +140,137 @@ class SpaceService {
         await updateSpace(parentSpace.copyWith(subSpaceIds: updatedSubSpaceIds));
       }
     }
-    
-    // Remove the space itself
-    spaces.removeWhere((s) => s.id == id);
-    await _saveSpaces(spaces);
-    
+
+    // Remove the space itself. The recursive deletes/updates above have
+    // modified storage, so re-read the CURRENT list instead of saving the
+    // stale snapshot from the top of this method (which would resurrect
+    // deleted sub-spaces).
+    final currentSpaces = await getAllSpaces();
+    currentSpaces.removeWhere((s) => s.id == id);
+    await _saveSpaces(currentSpaces);
+
+    // Record a tombstone so sync propagates the deletion
+    await recordSpaceDeletion(id);
+
     // Handle tasks in the deleted space
-    final tasks = await getAllEnhancedTasks();
-    for (final task in tasks.where((t) => t.spaceId == id)) {
-      if (reassignToSpaceId != null) {
-        // Reassign tasks to another space
-        await updateEnhancedTask(task.copyWith(spaceId: reassignToSpaceId));
+    await _reassignOrDetachSpaceTasks(id, reassignToSpaceId);
+  }
+
+  /// Firestore variant of deleteSpace with full sub-space semantics.
+  static Future<void> _deleteSpaceInFirestore(
+    String id, {
+    required bool deleteSubSpaces,
+    String? reassignToSpaceId,
+  }) async {
+    final spaceToDelete = await FirestoreSpaceService.getSpaceById(id);
+    if (spaceToDelete == null) return;
+
+    // Handle sub-spaces
+    if (spaceToDelete.subSpaceIds.isNotEmpty) {
+      if (deleteSubSpaces) {
+        // Recursively delete all sub-spaces
+        for (final subSpaceId in spaceToDelete.subSpaceIds) {
+          await _deleteSpaceInFirestore(subSpaceId, deleteSubSpaces: true);
+        }
       } else {
-        // Remove space reference from tasks
-        await updateEnhancedTask(task.copyWith(spaceId: null));
+        // Make sub-spaces root level or reassign to another parent
+        for (final subSpaceId in spaceToDelete.subSpaceIds) {
+          final subSpace = await FirestoreSpaceService.getSpaceById(subSpaceId);
+          if (subSpace != null) {
+            await FirestoreSpaceService.updateSpace(subSpace.copyWith(
+              parentSpaceId: reassignToSpaceId,
+            ));
+
+            if (reassignToSpaceId != null) {
+              final newParent =
+                  await FirestoreSpaceService.getSpaceById(reassignToSpaceId);
+              if (newParent != null &&
+                  !newParent.subSpaceIds.contains(subSpaceId)) {
+                await FirestoreSpaceService.updateSpace(newParent.copyWith(
+                  subSpaceIds: [...newParent.subSpaceIds, subSpaceId],
+                ));
+              }
+            }
+          }
+        }
       }
     }
+
+    // Remove space from parent's sub-space list if it has a parent
+    if (spaceToDelete.parentSpaceId != null) {
+      final parentSpace =
+          await FirestoreSpaceService.getSpaceById(spaceToDelete.parentSpaceId!);
+      if (parentSpace != null && parentSpace.subSpaceIds.contains(id)) {
+        final updatedSubSpaceIds = List<String>.from(parentSpace.subSpaceIds)
+          ..remove(id);
+        await FirestoreSpaceService.updateSpace(
+            parentSpace.copyWith(subSpaceIds: updatedSubSpaceIds));
+      }
+    }
+
+    // Delete the space document itself
+    await FirestoreSpaceService.deleteSpace(id);
+
+    // Record a tombstone so sync propagates the deletion
+    await recordSpaceDeletion(id);
+
+    // Handle tasks in the deleted space
+    await _reassignOrDetachSpaceTasks(id, reassignToSpaceId);
+  }
+
+  /// Reassign tasks of a deleted space to another space,
+  /// or detach them (clear their space reference).
+  static Future<void> _reassignOrDetachSpaceTasks(
+      String spaceId, String? reassignToSpaceId) async {
+    final tasks = await getAllEnhancedTasks();
+    for (final task in tasks.where((t) => t.spaceId == spaceId)) {
+      // copyWith treats an explicit null as "clear the space reference"
+      await updateEnhancedTask(task.copyWith(spaceId: reassignToSpaceId));
+    }
+  }
+
+  // ---- Deletion tombstones (used by sync to propagate deletions) ----
+
+  /// Record that a space was deleted (id -> deletion time).
+  static Future<void> recordSpaceDeletion(String spaceId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final tombstones = _decodeTombstones(prefs.getString(_deletedSpacesKey));
+    tombstones[spaceId] = DateTime.now();
+    await prefs.setString(_deletedSpacesKey, _encodeTombstones(tombstones));
+  }
+
+  /// Get deletion tombstones, pruning entries older than 30 days.
+  static Future<Map<String, DateTime>> getDeletedSpaceTombstones() async {
+    final prefs = await SharedPreferences.getInstance();
+    final tombstones = _decodeTombstones(prefs.getString(_deletedSpacesKey));
+    final cutoff = DateTime.now().subtract(_tombstoneRetention);
+    final beforePrune = tombstones.length;
+    tombstones.removeWhere((_, deletedAt) => deletedAt.isBefore(cutoff));
+    if (tombstones.length != beforePrune) {
+      await prefs.setString(_deletedSpacesKey, _encodeTombstones(tombstones));
+    }
+    return tombstones;
+  }
+
+  static Map<String, DateTime> _decodeTombstones(String? jsonStr) {
+    if (jsonStr == null) return {};
+    try {
+      final Map<String, dynamic> decoded = jsonDecode(jsonStr);
+      final result = <String, DateTime>{};
+      decoded.forEach((id, timestamp) {
+        final parsed = DateTime.tryParse(timestamp.toString());
+        if (parsed != null) result[id] = parsed;
+      });
+      return result;
+    } catch (e) {
+      return {};
+    }
+  }
+
+  static String _encodeTombstones(Map<String, DateTime> tombstones) {
+    return jsonEncode(
+      tombstones.map((id, time) => MapEntry(id, time.toIso8601String())),
+    );
   }
   
   static Future<void> _saveSpaces(List<Space> spaces) async {

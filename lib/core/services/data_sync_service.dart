@@ -25,19 +25,29 @@ class DataSyncService {
       }
     });
     
-    // Listen to connectivity changes
-    Connectivity().onConnectivityChanged.listen((result) async {
-      if (result != ConnectivityResult.none && AuthService.isLoggedIn) {
+    // Listen to connectivity changes.
+    // connectivity_plus ^6 emits a List<ConnectivityResult>.
+    Connectivity().onConnectivityChanged.listen((results) async {
+      final isOnline = results.isNotEmpty &&
+          !results.contains(ConnectivityResult.none);
+      if (isOnline && AuthService.isLoggedIn) {
         // Back online - sync any local changes
         await syncAllData();
       }
     });
   }
-  
-  /// Called when user signs in
+
+  /// Called when user signs in: push any unmigrated local data to
+  /// Firestore, then run a two-way sync (which also hydrates the local
+  /// mirror with cloud data).
   static Future<void> _onUserSignedIn() async {
-    print('User signed in - using Firestore directly');
-    // No need to sync since we're using Firestore directly when logged in
+    try {
+      await migrateAllDataToFirestore();
+      await syncAllData();
+      await _loadFirestoreDataToLocal();
+    } catch (e) {
+      print('Error handling sign-in sync: $e');
+    }
   }
   
   /// Migrate all local data to Firestore
@@ -92,8 +102,16 @@ class DataSyncService {
   
   /// Clear all local data (useful after sign out)
   static Future<void> clearLocalData() async {
-    // This would clear SharedPreferences data
-    // Implement based on your needs
+    final prefs = await SharedPreferences.getInstance();
+    const keysToRemove = [
+      'tasks',
+      'spaces',
+      'enhanced_tasks',
+      'activities',
+    ];
+    for (final key in keysToRemove) {
+      await prefs.remove(key);
+    }
   }
   
   /// Force refresh all data from Firestore
@@ -156,8 +174,7 @@ class DataSyncService {
       results['errors'].add('Sync error: $e');
       results['message'] = 'Sync failed: $e';
     }
-    
-    print('Manual sync results: $results');
+
     return results;
   }
   
