@@ -133,14 +133,18 @@ class TaskFilterService {
       if (_prayerTimesCache.containsKey(cacheKey)) {
         prayerTimes = _prayerTimesCache[cacheKey]!;
       } else {
-        // Load and cache prayer times
+        // Load and cache prayer times. Never cache an EMPTY map (a
+        // transient fetch failure) — that would pin the failure for the
+        // session; leaving it uncached retries on the next access.
         prayerTimes = await PrayerTimeService.getPrayerTimes(date: currentDate);
-        _prayerTimesCache[cacheKey] = prayerTimes;
-        
-        // Keep cache size reasonable (max 60 days)
-        if (_prayerTimesCache.length > 60) {
-          final oldestKey = _prayerTimesCache.keys.first;
-          _prayerTimesCache.remove(oldestKey);
+        if (prayerTimes.isNotEmpty) {
+          _prayerTimesCache[cacheKey] = prayerTimes;
+
+          // Keep cache size reasonable (max 60 days)
+          if (_prayerTimesCache.length > 60) {
+            final oldestKey = _prayerTimesCache.keys.first;
+            _prayerTimesCache.remove(oldestKey);
+          }
         }
       }
       

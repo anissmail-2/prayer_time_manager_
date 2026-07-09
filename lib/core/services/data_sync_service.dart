@@ -100,17 +100,40 @@ class DataSyncService {
     }
   }
   
-  /// Clear all local data (useful after sign out)
+  /// Clear all local data. Called from AuthService.signOut so the next
+  /// account signing in on this device cannot inherit (and upload to its
+  /// own cloud) the previous user's local mirror. The signed-out user's
+  /// data is safe in their cloud: sign-in auto-runs migrate + sync.
+  ///
+  /// Also clears deletion tombstones and migration flags — tombstones
+  /// from user A must not soft-delete user B's cloud docs, and a stale
+  /// migration flag must not skip a new user's migration.
   static Future<void> clearLocalData() async {
     final prefs = await SharedPreferences.getInstance();
     const keysToRemove = [
+      // Local content mirror
       'tasks',
       'spaces',
       'enhanced_tasks',
       'activities',
+      // Deletion tombstones
+      'deleted_task_ids',
+      'deleted_space_ids',
     ];
     for (final key in keysToRemove) {
       await prefs.remove(key);
+    }
+
+    // Migration/sync flags (covers both the legacy global keys and the
+    // per-uid variants, e.g. 'data_migrated_to_firestore_<uid>').
+    const flagPrefixes = [
+      'data_migrated_to_firestore',
+      'spaces_migrated_to_firestore',
+    ];
+    for (final key in prefs.getKeys().toList()) {
+      if (flagPrefixes.any((prefix) => key.startsWith(prefix))) {
+        await prefs.remove(key);
+      }
     }
   }
   
@@ -187,20 +210,16 @@ class DataSyncService {
       final tasks = await FirestoreTodoService.getAllTasks();
       final spaces = await FirestoreSpaceService.getAllSpaces();
       
-      // Save to local storage
+      // Save to local storage. Write the mirror even when the cloud list
+      // is empty: a fresh account must overwrite any stale local mirror
+      // instead of inheriting it.
       final prefs = await SharedPreferences.getInstance();
-      
-      // Save tasks
-      if (tasks.isNotEmpty) {
-        final tasksJson = json.encode(tasks.map((task) => task.toJson()).toList());
-        await prefs.setString('tasks', tasksJson);
-      }
-      
-      // Save spaces
-      if (spaces.isNotEmpty) {
-        final spacesJson = json.encode(spaces.map((space) => space.toJson()).toList());
-        await prefs.setString('spaces', spacesJson);
-      }
+
+      final tasksJson = json.encode(tasks.map((task) => task.toJson()).toList());
+      await prefs.setString('tasks', tasksJson);
+
+      final spacesJson = json.encode(spaces.map((space) => space.toJson()).toList());
+      await prefs.setString('spaces', spacesJson);
       
       print('Loaded ${tasks.length} tasks and ${spaces.length} spaces from Firestore');
     } catch (e) {

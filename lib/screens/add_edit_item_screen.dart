@@ -211,6 +211,10 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
         title: _titleController.text,
         description: _descriptionController.text.isEmpty ? null : _descriptionController.text,
         createdAt: widget.task?.createdAt ?? DateTime.now(),
+        // Stamp the edit time so last-write-wins sync never reverts this
+        // save with an older cloud copy (toJson falls back to createdAt
+        // when updatedAt is null).
+        updatedAt: DateTime.now(),
         scheduleType: scheduleType,
         // Start time fields
         absoluteTime: _startScheduleType == ScheduleType.absolute ? _selectedTime : null,

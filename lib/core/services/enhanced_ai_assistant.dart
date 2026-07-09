@@ -1380,6 +1380,8 @@ Don't pretend to do things you cannot do. If a feature isn't available, say so.'
         description: taskToUpdate.task.description,
         priority: priority,
         createdAt: taskToUpdate.task.createdAt,
+        // Stamp the edit time so last-write-wins sync keeps this update
+        updatedAt: DateTime.now(),
         scheduleType: taskToUpdate.task.scheduleType,
         absoluteTime: taskToUpdate.task.absoluteTime,
         relatedPrayer: taskToUpdate.task.relatedPrayer,

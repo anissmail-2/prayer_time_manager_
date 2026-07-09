@@ -13,18 +13,55 @@ import '../../models/prayer_duration.dart';
 class DataMigrationService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Check if user has local data
+  // Firestore allows at most 500 writes per batch; stay comfortably under.
+  static const int _batchChunkSize = 400;
+
+  // Genuine user CONTENT keys. Settings keys ('prayer_durations',
+  // 'location_settings') are deliberately excluded: they are never
+  // cleared after migration, so counting them made the migration prompt
+  // re-fire on every launch.
+  static const List<String> _contentKeys = [
+    'tasks',
+    'spaces',
+    'enhanced_tasks',
+    'activities',
+  ];
+
+  // Check if the device holds genuinely unmigrated user content.
+  // A key whose value decodes to an empty list/map does not count —
+  // sync hydration re-creates 'tasks'/'spaces' (possibly empty) for
+  // logged-in users, and that must not look like unmigrated data.
   static Future<bool> hasLocalData() async {
     final prefs = await SharedPreferences.getInstance();
-    
-    // Check for any of these keys
-    final hasData = prefs.containsKey('tasks') ||
-        prefs.containsKey('spaces') ||
-        prefs.containsKey('activities') ||
-        prefs.containsKey('prayer_durations') ||
-        prefs.containsKey('location_settings');
-    
-    return hasData;
+
+    for (final key in _contentKeys) {
+      final raw = prefs.getString(key);
+      if (raw == null || raw.isEmpty) continue;
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is List && decoded.isNotEmpty) return true;
+        if (decoded is Map && decoded.isNotEmpty) return true;
+      } catch (_) {
+        // Undecodable content — ignore rather than re-prompt forever
+      }
+    }
+
+    return false;
+  }
+
+  /// Commit doc writes in chunks so migrations of large datasets don't
+  /// exceed Firestore's per-batch write limit.
+  static Future<void> _setInChunks(
+    List<MapEntry<DocumentReference<Map<String, dynamic>>, Map<String, dynamic>>>
+        writes,
+  ) async {
+    for (var i = 0; i < writes.length; i += _batchChunkSize) {
+      final batch = _firestore.batch();
+      for (final entry in writes.skip(i).take(_batchChunkSize)) {
+        batch.set(entry.key, entry.value);
+      }
+      await batch.commit();
+    }
   }
 
   // Migrate all local data to Firebase
@@ -68,11 +105,19 @@ class DataMigrationService {
       // Migrate AI conversations
       onProgress('Migrating AI conversations...');
       await _migrateAIConversations(userId, prefs);
-      
-      // Clear local data after successful migration
-      onProgress('Cleaning up local data...');
-      await _clearLocalData(prefs);
-      
+
+      // Deliberately do NOT clear any local keys after migration.
+      // SpaceService ('enhanced_tasks'), ActivityService ('activities'),
+      // AIConversationService ('ai_conversations'/'current_ai_conversation'),
+      // PrayerDurationService and LocationService all serve their data from
+      // SharedPreferences only — deleting those keys makes the data vanish
+      // from the app the moment migration finishes. 'tasks'/'spaces' are
+      // served from Firestore when logged in, but their local copies are
+      // the offline mirror that DataSyncService keeps in sync. So the
+      // consistent policy is: local storage stays the working copy for
+      // everything; the Firestore copy written above is the cloud backup
+      // (mirroring the decision already made for prayer_durations and
+      // location_settings).
       onProgress('Migration completed successfully!');
     } catch (e) {
       onError('Migration failed: $e');
@@ -90,21 +135,18 @@ class DataMigrationService {
 
     if (tasksList.isEmpty) return;
 
-    final batch = _firestore.batch();
     final userTasksRef = _firestore
         .collection('users')
         .doc(userId)
         .collection('tasks');
 
-    for (final task in tasksList) {
-      final docRef = userTasksRef.doc(task.id);
-      // Preserve the task's own ISO timestamps: overwriting them with
-      // FieldValue.serverTimestamp() destroys real creation dates and
-      // mixes Timestamp/String types, breaking orderBy('createdAt').
-      batch.set(docRef, task.toJson());
-    }
-
-    await batch.commit();
+    // Preserve the task's own ISO timestamps: overwriting them with
+    // FieldValue.serverTimestamp() destroys real creation dates and
+    // mixes Timestamp/String types, breaking orderBy('createdAt').
+    await _setInChunks([
+      for (final task in tasksList)
+        MapEntry(userTasksRef.doc(task.id), task.toJson()),
+    ]);
   }
 
   // Migrate enhanced tasks (unscheduled ideas).
@@ -121,21 +163,21 @@ class DataMigrationService {
 
     if (tasksList.isEmpty) return;
 
-    final batch = _firestore.batch();
     final userSpacesRef = _firestore
         .collection('users')
         .doc(userId)
         .collection('spaces');
 
-    for (final task in tasksList) {
-      final docRef = userSpacesRef
-          .doc(task.spaceId ?? 'unassigned')
-          .collection('enhanced_tasks')
-          .doc(task.id);
-      batch.set(docRef, task.toJson());
-    }
-
-    await batch.commit();
+    await _setInChunks([
+      for (final task in tasksList)
+        MapEntry(
+          userSpacesRef
+              .doc(task.spaceId ?? 'unassigned')
+              .collection('enhanced_tasks')
+              .doc(task.id),
+          task.toJson(),
+        ),
+    ]);
   }
 
   // Migrate spaces
@@ -149,19 +191,16 @@ class DataMigrationService {
 
     if (spacesList.isEmpty) return;
 
-    final batch = _firestore.batch();
     final userSpacesRef = _firestore
         .collection('users')
         .doc(userId)
         .collection('spaces');
 
-    for (final space in spacesList) {
-      final docRef = userSpacesRef.doc(space.id);
-      // Preserve the space's own ISO timestamps (see _migrateTasks)
-      batch.set(docRef, space.toJson());
-    }
-
-    await batch.commit();
+    // Preserve the space's own ISO timestamps (see _migrateTasks)
+    await _setInChunks([
+      for (final space in spacesList)
+        MapEntry(userSpacesRef.doc(space.id), space.toJson()),
+    ]);
   }
 
   // Migrate activities
@@ -175,19 +214,16 @@ class DataMigrationService {
 
     if (activitiesList.isEmpty) return;
 
-    final batch = _firestore.batch();
     final userActivitiesRef = _firestore
         .collection('users')
         .doc(userId)
         .collection('activities');
 
-    for (final activity in activitiesList) {
-      final docRef = userActivitiesRef.doc(activity.id);
-      // Preserve the activity's own ISO timestamps (see _migrateTasks)
-      batch.set(docRef, activity.toJson());
-    }
-
-    await batch.commit();
+    // Preserve the activity's own ISO timestamps (see _migrateTasks)
+    await _setInChunks([
+      for (final activity in activitiesList)
+        MapEntry(userActivitiesRef.doc(activity.id), activity.toJson()),
+    ]);
   }
 
   // Migrate prayer durations
@@ -232,12 +268,14 @@ class DataMigrationService {
     if (conversationsJson == null) return;
 
     final conversations = jsonDecode(conversationsJson) as Map<String, dynamic>;
-    
-    final batch = _firestore.batch();
+
     final userConversationsRef = _firestore
         .collection('users')
         .doc(userId)
         .collection('ai_conversations');
+
+    final writes = <MapEntry<DocumentReference<Map<String, dynamic>>,
+        Map<String, dynamic>>>[];
 
     conversations.forEach((id, messagesJson) {
       final messages = (messagesJson as List)
@@ -247,9 +285,8 @@ class DataMigrationService {
                 timestamp: DateTime.parse(json['timestamp'] ?? DateTime.now().toIso8601String()),
               ))
           .toList();
-      
-      final docRef = userConversationsRef.doc(id);
-      batch.set(docRef, {
+
+      writes.add(MapEntry(userConversationsRef.doc(id), {
         'messages': messages.map((m) => {
           'text': m.text,
           'isUser': m.isUser,
@@ -257,48 +294,43 @@ class DataMigrationService {
         }).toList(),
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      }));
     });
 
-    // Also migrate current conversation ID
+    // Also migrate current conversation ID. Use set+merge, not update():
+    // update() throws when users/{uid} doesn't exist (e.g. accounts
+    // created before the user-doc was introduced), aborting migration.
     final currentConversationId = prefs.getString('current_ai_conversation');
     if (currentConversationId != null) {
       await _firestore
           .collection('users')
           .doc(userId)
-          .update({
-            'currentAIConversationId': currentConversationId,
-          });
+          .set(
+            {'currentAIConversationId': currentConversationId},
+            SetOptions(merge: true),
+          );
     }
 
-    await batch.commit();
+    await _setInChunks(writes);
   }
 
-  // Clear local data after migration.
-  // NOTE: 'prayer_durations' and 'location_settings' are intentionally
-  // NOT removed — PrayerDurationService and LocationService only ever read
-  // SharedPreferences, so deleting them would silently reset the user's
-  // settings. The local copies remain the working copies; Firestore just
-  // holds a backup.
-  static Future<void> _clearLocalData(SharedPreferences prefs) async {
-    final keysToRemove = [
-      'tasks',
-      'spaces',
-      'enhanced_tasks',
-      'activities',
-      'ai_conversations',
-      'current_ai_conversation',
-    ];
-
-    for (final key in keysToRemove) {
-      await prefs.remove(key);
-    }
-  }
-
-  // Check if migration is needed and show dialog
+  // Check if migration is needed and show dialog.
+  // The prompt fires at most once per account: a per-uid flag records
+  // that the dialog was answered (either way), because hasLocalData can
+  // stay true forever (sync hydration re-creates 'tasks'/'spaces').
   static Future<bool> checkAndPromptMigration(BuildContext context) async {
+    // Migration copies data into users/{uid}/... — pointless without a uid.
+    final userId = AuthService.userId;
+    if (userId == null) return false;
+
+    final prefs = await SharedPreferences.getInstance();
+    final promptShownKey = 'migration_prompt_shown_$userId';
+    if (prefs.getBool(promptShownKey) ?? false) return false;
+
     final hasData = await hasLocalData();
     if (!hasData) return false;
+
+    if (!context.mounted) return false;
 
     final result = await showDialog<bool>(
       context: context,
@@ -320,6 +352,9 @@ class DataMigrationService {
         ],
       ),
     );
+
+    // Record the answer (accepted OR skipped) so the prompt never re-fires
+    await prefs.setBool(promptShownKey, true);
 
     return result ?? false;
   }

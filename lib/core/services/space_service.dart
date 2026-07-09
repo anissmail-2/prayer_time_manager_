@@ -239,6 +239,16 @@ class SpaceService {
     await prefs.setString(_deletedSpacesKey, _encodeTombstones(tombstones));
   }
 
+  /// Remove a single tombstone (used by sync when a NEWER cloud edit
+  /// wins over a local delete — the space must stay alive).
+  static Future<void> removeSpaceDeletionTombstone(String spaceId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final tombstones = _decodeTombstones(prefs.getString(_deletedSpacesKey));
+    if (tombstones.remove(spaceId) != null) {
+      await prefs.setString(_deletedSpacesKey, _encodeTombstones(tombstones));
+    }
+  }
+
   /// Get deletion tombstones, pruning entries older than 30 days.
   static Future<Map<String, DateTime>> getDeletedSpaceTombstones() async {
     final prefs = await SharedPreferences.getInstance();

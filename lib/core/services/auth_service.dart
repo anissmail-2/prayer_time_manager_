@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'data_migration_service.dart';
+import 'data_sync_service.dart';
 import 'firebase_service.dart';
 
 class AuthService {
@@ -108,6 +109,13 @@ class AuthService {
       if (_auth != null) _auth!.signOut(),
       _googleSignIn.signOut(),
     ]);
+
+    // Sign-out succeeded — clear the local mirror (tasks/spaces/etc.),
+    // deletion tombstones, and migration flags so the next account on
+    // this device cannot inherit this user's data and upload it into
+    // its own cloud. This user's data stays in their cloud; signing
+    // back in re-hydrates it via migrate + sync.
+    await DataSyncService.clearLocalData();
   }
 
   // Reset password

@@ -56,17 +56,24 @@ class TodoService {
   
   // Update a task
   static Future<void> updateTask(Task updatedTask) async {
+    // Defensive belt: if the caller built a Task without updatedAt, stamp
+    // it here so last-write-wins sync never treats this edit as stale
+    // (toJson falls back to createdAt when updatedAt is null).
+    final task = updatedTask.updatedAt == null
+        ? updatedTask.copyWith(updatedAt: DateTime.now())
+        : updatedTask;
+
     if (AuthService.isLoggedIn) {
       // Use Firestore directly when logged in
-      return FirestoreTodoService.updateTask(updatedTask);
+      return FirestoreTodoService.updateTask(task);
     }
-    
+
     // Only use local storage when not logged in
     final tasks = await getAllTasks();
-    final index = tasks.indexWhere((task) => task.id == updatedTask.id);
-    
+    final index = tasks.indexWhere((t) => t.id == task.id);
+
     if (index != -1) {
-      tasks[index] = updatedTask;
+      tasks[index] = task;
       await _saveTasks(tasks);
     }
   }
@@ -99,14 +106,21 @@ class TodoService {
   }
 
   // Mark task as completed for a date.
-  // Returns the updated task, or null if the task was not found.
+  // For one-time tasks this keeps BOTH completion signals in sync
+  // (isCompleted flag + completedDates entry) so UIs that check either
+  // one agree. Returns the updated task, or null if not found.
   static Future<Task?> markTaskCompleted(String taskId, DateTime date) async {
     final tasks = await getAllTasks();
     final index = tasks.indexWhere((task) => task.id == taskId);
     if (index == -1) return null;
 
     final task = tasks[index];
-    final updatedCompletedDates = List<DateTime>.from(task.completedDates)..add(date);
+    // Deduplicate: don't add a second entry for a date that is
+    // already marked completed.
+    final updatedCompletedDates = List<DateTime>.from(task.completedDates);
+    if (!task.isCompletedForDate(date)) {
+      updatedCompletedDates.add(date);
+    }
 
     // If it's a one-time task, mark it as completed
     final isCompleted = task.recurrence == TaskRecurrence.once;
@@ -121,6 +135,9 @@ class TodoService {
   }
 
   // Unmark task completion for a date.
+  // For one-time tasks this clears BOTH completion signals: isCompleted
+  // and ALL completedDates entries (a once task has a single logical
+  // completion, so no stale per-date entry may survive).
   // Returns the updated task, or null if the task was not found.
   static Future<Task?> unmarkTaskCompleted(String taskId, DateTime date) async {
     final tasks = await getAllTasks();
@@ -128,8 +145,10 @@ class TodoService {
     if (index == -1) return null;
 
     final task = tasks[index];
-    final updatedCompletedDates = List<DateTime>.from(task.completedDates)
-      ..removeWhere((d) => Task.isSameDay(d, date));
+    final updatedCompletedDates = task.recurrence == TaskRecurrence.once
+        ? <DateTime>[]
+        : (List<DateTime>.from(task.completedDates)
+          ..removeWhere((d) => Task.isSameDay(d, date)));
 
     final updatedTask = task.copyWith(
       completedDates: updatedCompletedDates,
@@ -141,15 +160,19 @@ class TodoService {
   }
 
   // Toggle task completion status.
+  // Delegates to markTaskCompleted/unmarkTaskCompleted so one-time tasks
+  // keep isCompleted and completedDates consistent (previously the toggle
+  // only flipped isCompleted, leaving a stale completedDates entry that
+  // made un-completing from the Timeline a visual no-op).
   // Returns the updated task, or null if the task was not found.
   static Future<Task?> toggleTaskStatus(Task task) async {
     final today = DateTime.now();
 
     if (task.recurrence == TaskRecurrence.once) {
-      // For one-time tasks, toggle the isCompleted status
-      final updatedTask = task.copyWith(isCompleted: !task.isCompleted);
-      await updateTask(updatedTask);
-      return updatedTask;
+      final isDone = task.isCompleted || task.isCompletedForDate(today);
+      return isDone
+          ? unmarkTaskCompleted(task.id, today)
+          : markTaskCompleted(task.id, today);
     }
 
     // For recurring tasks, toggle completion for today
@@ -168,6 +191,16 @@ class TodoService {
     final tombstones = _decodeTombstones(prefs.getString(_deletedTasksKey));
     tombstones[taskId] = DateTime.now();
     await prefs.setString(_deletedTasksKey, _encodeTombstones(tombstones));
+  }
+
+  /// Remove a single tombstone (used by sync when a NEWER cloud edit
+  /// wins over a local delete — the task must stay alive).
+  static Future<void> removeTaskDeletionTombstone(String taskId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final tombstones = _decodeTombstones(prefs.getString(_deletedTasksKey));
+    if (tombstones.remove(taskId) != null) {
+      await prefs.setString(_deletedTasksKey, _encodeTombstones(tombstones));
+    }
   }
 
   /// Get deletion tombstones, pruning entries older than 30 days.
@@ -467,11 +500,15 @@ class TodoService {
       minutesOffset: suggestion.minutesOffset,
       recurrence: _parseRecurrenceType(suggestion.recurrenceType),
       weeklyDays: suggestion.weeklyDays,
-      endDate: suggestion.endDate != null 
+      // Anchor the task to the requested date. Without this, a once +
+      // prayer-relative task falls back to createdAt and "tomorrow"
+      // shows up today (and never on the requested day).
+      startDate: baseDate,
+      endDate: suggestion.endDate != null
           ? DateTime.tryParse(suggestion.endDate!)
           : null,
     );
-    
+
     await addTask(task);
   }
   
