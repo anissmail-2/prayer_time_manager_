@@ -103,18 +103,17 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
   }
   
   Widget _buildPhoneLayout() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (_showSpacesList || _selectedSpace == null) {
       // Show spaces list
       return Scaffold(
-        backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.backgroundLight,
+        backgroundColor: AppTheme.backgroundColor(context),
         appBar: AppBar(
-          backgroundColor: isDark ? AppTheme.surfaceDark : AppTheme.surface,
+          backgroundColor: AppTheme.surfaceColor(context),
           elevation: 0,
           title: Text(
             'Spaces',
             style: AppTheme.headlineSmall.copyWith(
-              color: isDark ? Colors.white : AppTheme.textPrimary,
+              color: AppTheme.textPrimaryColor(context),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -130,12 +129,12 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
     } else {
       // Show selected space content
       return Scaffold(
-        backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.backgroundLight,
+        backgroundColor: AppTheme.backgroundColor(context),
         appBar: AppBar(
-          backgroundColor: isDark ? AppTheme.surfaceDark : AppTheme.surface,
+          backgroundColor: AppTheme.surfaceColor(context),
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : AppTheme.textPrimary),
+            icon: Icon(Icons.arrow_back, color: AppTheme.textPrimaryColor(context)),
             onPressed: () {
               setState(() {
                 // If viewing a sub-space, go back to parent
@@ -156,7 +155,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
           title: Text(
             _selectedSpace?.name ?? 'Space',
             style: AppTheme.headlineSmall.copyWith(
-              color: isDark ? Colors.white : AppTheme.textPrimary,
+              color: AppTheme.textPrimaryColor(context),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -207,18 +206,17 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
   }
   
   Widget _buildTabletLayout() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.backgroundLight,
+      backgroundColor: AppTheme.backgroundColor(context),
       body: Row(
         children: [
           // Space list sidebar
           Container(
             width: 300,
             decoration: BoxDecoration(
-              color: AppTheme.surface,
+              color: AppTheme.surfaceColor(context),
               border: Border(
-                right: BorderSide(color: AppTheme.borderLight),
+                right: BorderSide(color: AppTheme.borderColor(context)),
               ),
             ),
             child: Column(
@@ -239,13 +237,13 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                         Icon(
                           Icons.folder_outlined,
                           size: 64,
-                          color: AppTheme.textTertiary,
+                          color: AppTheme.textTertiaryColor(context),
                         ),
                         const SizedBox(height: AppTheme.space16),
                         Text(
                           'Select a space to view items',
                           style: AppTheme.bodyLarge.copyWith(
-                            color: AppTheme.textSecondary,
+                            color: AppTheme.textSecondaryColor(context),
                           ),
                         ),
                       ],
@@ -261,9 +259,9 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
     return Container(
       padding: const EdgeInsets.all(AppTheme.space16),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceColor(context),
         border: Border(
-          bottom: BorderSide(color: AppTheme.borderLight),
+          bottom: BorderSide(color: AppTheme.borderColor(context)),
         ),
       ),
       child: Row(
@@ -271,7 +269,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
           Text(
             'Spaces',
             style: AppTheme.headlineMedium.copyWith(
-              color: AppTheme.textPrimary,
+              color: AppTheme.textPrimaryColor(context),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -300,13 +298,13 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
             Icon(
               Icons.folder_outlined,
               size: 64,
-              color: AppTheme.textTertiary,
+              color: AppTheme.textTertiaryColor(context),
             ),
             const SizedBox(height: AppTheme.space16),
             Text(
               'No spaces yet',
               style: AppTheme.bodyLarge.copyWith(
-                color: AppTheme.textSecondary,
+                color: AppTheme.textSecondaryColor(context),
               ),
             ),
             const SizedBox(height: AppTheme.space8),
@@ -343,7 +341,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
             bottom: AppTheme.space12,
           ),
           child: Material(
-            color: AppTheme.surface,
+            color: AppTheme.surfaceColor(context),
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
             elevation: 2,
             child: InkWell(
@@ -382,7 +380,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                           Text(
                             space.name,
                             style: AppTheme.bodyLarge.copyWith(
-                              color: AppTheme.textPrimary,
+                              color: AppTheme.textPrimaryColor(context),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -391,7 +389,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                             Text(
                               space.description!,
                               style: AppTheme.bodySmall.copyWith(
-                                color: AppTheme.textSecondary,
+                                color: AppTheme.textSecondaryColor(context),
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -407,15 +405,15 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                                   Icon(
                                     Icons.list,
                                     size: 16,
-                                    color: AppTheme.textTertiary,
+                                    color: AppTheme.textTertiaryColor(context),
                                   ),
                                   const SizedBox(width: AppTheme.space4),
                                   Text(
-                                    totalItems == ideaCount 
+                                    totalItems == ideaCount
                                         ? '$ideaCount items'
                                         : '$ideaCount items ($totalItems total)',
                                     style: AppTheme.bodySmall.copyWith(
-                                      color: AppTheme.textTertiary,
+                                      color: AppTheme.textTertiaryColor(context),
                                     ),
                                   ),
                                   if (subSpaces.isNotEmpty) ...[
@@ -423,13 +421,13 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                                     Icon(
                                       Icons.folder_open,
                                       size: 16,
-                                      color: AppTheme.textTertiary,
+                                      color: AppTheme.textTertiaryColor(context),
                                     ),
                                     const SizedBox(width: AppTheme.space4),
                                     Text(
                                       '${subSpaces.length} sub-spaces',
                                       style: AppTheme.bodySmall.copyWith(
-                                        color: AppTheme.textTertiary,
+                                        color: AppTheme.textTertiaryColor(context),
                                       ),
                                     ),
                                   ],
@@ -441,7 +439,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                       ),
                     ),
                     PopupMenuButton<String>(
-                      icon: Icon(Icons.more_vert, color: AppTheme.textSecondary),
+                      icon: Icon(Icons.more_vert, color: AppTheme.textSecondaryColor(context)),
                       onSelected: (value) => _handleSpaceMenuAction(value, space),
                       itemBuilder: (context) => [
                         const PopupMenuItem(
@@ -502,9 +500,9 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
         // Space info header with breadcrumb and sub-spaces
         Container(
           decoration: BoxDecoration(
-            color: AppTheme.surface,
+            color: AppTheme.surfaceColor(context),
             border: Border(
-              bottom: BorderSide(color: AppTheme.borderLight),
+              bottom: BorderSide(color: AppTheme.borderColor(context)),
             ),
           ),
           child: Column(
@@ -534,7 +532,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                       Text(
                         'Sub-spaces',
                         style: AppTheme.bodyMedium.copyWith(
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.textSecondaryColor(context),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -570,9 +568,9 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
         Container(
           padding: const EdgeInsets.all(AppTheme.space16),
           decoration: BoxDecoration(
-            color: AppTheme.surface,
+            color: AppTheme.surfaceColor(context),
             border: Border(
-              bottom: BorderSide(color: AppTheme.borderLight),
+              bottom: BorderSide(color: AppTheme.borderColor(context)),
             ),
           ),
           child: Row(
@@ -592,7 +590,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                      borderSide: BorderSide(color: AppTheme.borderLight),
+                      borderSide: BorderSide(color: AppTheme.borderColor(context)),
                     ),
                     suffixIcon: IconButton(
                       icon: Icon(Icons.add, color: AppTheme.primary),
@@ -626,19 +624,19 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.lightbulb_outline, size: 48, color: AppTheme.textTertiary),
+                      Icon(Icons.lightbulb_outline, size: 48, color: AppTheme.textTertiaryColor(context)),
                       const SizedBox(height: AppTheme.space16),
                       Text(
                         'No items in this space',
                         style: AppTheme.bodyLarge.copyWith(
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.textSecondaryColor(context),
                         ),
                       ),
                       const SizedBox(height: AppTheme.space8),
                       Text(
                         'Add items quickly with just a name!',
                         style: AppTheme.bodySmall.copyWith(
-                          color: AppTheme.textTertiary,
+                          color: AppTheme.textTertiaryColor(context),
                         ),
                       ),
                     ],
@@ -663,7 +661,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.space12),
       child: Material(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceColor(context),
         borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
         elevation: 1,
         child: InkWell(
@@ -697,7 +695,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                                 child: Text(
                                   idea.title,
                                   style: AppTheme.bodyLarge.copyWith(
-                                    color: AppTheme.textPrimary,
+                                    color: AppTheme.textPrimaryColor(context),
                                     fontWeight: FontWeight.w500,
                                     decoration: idea.status == TaskStatus.done 
                                         ? TextDecoration.lineThrough 
@@ -718,7 +716,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                             Text(
                               idea.description!,
                               style: AppTheme.bodySmall.copyWith(
-                                color: AppTheme.textSecondary,
+                                color: AppTheme.textSecondaryColor(context),
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
@@ -729,7 +727,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                             Text(
                               _getScheduleDisplayText(idea),
                               style: AppTheme.bodySmall.copyWith(
-                                color: AppTheme.textTertiary,
+                                color: AppTheme.textTertiaryColor(context),
                                 fontStyle: FontStyle.italic,
                               ),
                             ),
@@ -762,7 +760,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                     
                     // Actions
                     PopupMenuButton<String>(
-                      icon: Icon(Icons.more_vert, color: AppTheme.textSecondary),
+                      icon: Icon(Icons.more_vert, color: AppTheme.textSecondaryColor(context)),
                       onSelected: (value) {
                         switch (value) {
                           case 'push':
@@ -927,7 +925,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                   description: descriptionController.text.isNotEmpty
                       ? descriptionController.text
                       : null,
-                  color: 'FF${Colors.primaries[_spaces.length % Colors.primaries.length].value.toRadixString(16).padLeft(8, '0').substring(2)}',
+                  color: 'FF${Colors.primaries[_spaces.length % Colors.primaries.length].toARGB32().toRadixString(16).padLeft(8, '0').substring(2)}',
                   createdAt: DateTime.now(),
                   parentSpaceId: parentSpaceId,
                 );
@@ -1197,7 +1195,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                     Text(
                       'This item needs both start and end times to be pushed to the timeline.',
                       style: AppTheme.bodyMedium.copyWith(
-                        color: AppTheme.textSecondary,
+                        color: AppTheme.textSecondaryColor(dialogContext),
                       ),
                     ),
                     const SizedBox(height: AppTheme.space24),
@@ -1442,12 +1440,12 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                 padding: const EdgeInsets.only(left: AppTheme.space16, bottom: AppTheme.space4),
                 child: Row(
                   children: [
-                    Icon(Icons.folder_outlined, size: 16, color: AppTheme.textSecondary),
+                    Icon(Icons.folder_outlined, size: 16, color: AppTheme.textSecondaryColor(dialogContext)),
                     const SizedBox(width: AppTheme.space8),
                     Text(
                       subSpace.name,
                       style: AppTheme.bodySmall.copyWith(
-                        color: AppTheme.textSecondary,
+                        color: AppTheme.textSecondaryColor(dialogContext),
                       ),
                     ),
                   ],
@@ -1459,7 +1457,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                   child: Text(
                     '...and ${subSpaces.length - 3} more',
                     style: AppTheme.bodySmall.copyWith(
-                      color: AppTheme.textTertiary,
+                      color: AppTheme.textTertiaryColor(dialogContext),
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -1569,13 +1567,13 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                 Icon(
                   Icons.folder,
                   size: 16,
-                  color: isLast ? AppTheme.primary : AppTheme.textSecondary,
+                  color: isLast ? AppTheme.primary : AppTheme.textSecondaryColor(context),
                 ),
                 const SizedBox(width: AppTheme.space4),
                 Text(
                   space.name,
                   style: AppTheme.bodySmall.copyWith(
-                    color: isLast ? AppTheme.primary : AppTheme.textSecondary,
+                    color: isLast ? AppTheme.primary : AppTheme.textSecondaryColor(context),
                     fontWeight: isLast ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),
@@ -1590,7 +1588,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
           Icon(
             Icons.chevron_right,
             size: 16,
-            color: AppTheme.textTertiary,
+            color: AppTheme.textTertiaryColor(context),
           ),
         );
       }

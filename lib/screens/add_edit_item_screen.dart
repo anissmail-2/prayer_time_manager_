@@ -255,7 +255,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
-      backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.background,
+      backgroundColor: AppTheme.backgroundColor(context),
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -299,7 +299,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
                   hintText: 'Enter title',
                   prefixIcon: Icon(Icons.task_alt, color: AppTheme.primary),
                   filled: true,
-                  fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
+                  fillColor: AppTheme.surfaceVariantColor(context),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                     borderSide: BorderSide.none,
@@ -307,7 +307,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                     borderSide: BorderSide(
-                      color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
+                      color: isDark ? AppTheme.borderDark : Colors.transparent,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
@@ -343,7 +343,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
                   hintText: 'Add more details',
                   prefixIcon: Icon(Icons.description_outlined, color: AppTheme.primary),
                   filled: true,
-                  fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
+                  fillColor: AppTheme.surfaceVariantColor(context),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                     borderSide: BorderSide.none,
@@ -351,7 +351,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                     borderSide: BorderSide(
-                      color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
+                      color: isDark ? AppTheme.borderDark : Colors.transparent,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
@@ -472,7 +472,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
               // Recurrence type selector - redesigned for 5 options
               Container(
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
+                  color: AppTheme.surfaceVariantColor(context),
                   borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                 ),
                 padding: const EdgeInsets.all(AppTheme.space4),
@@ -645,7 +645,6 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
     required TaskRecurrence type,
     required bool isSelected,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final label = type.toString().split('.').last.toUpperCase();
     
     return InkWell(
@@ -663,7 +662,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
           child: Text(
             label,
             style: AppTheme.labelMedium.copyWith(
-              color: isSelected ? AppTheme.primary : (isDark ? Colors.white54 : Colors.grey[600]),
+              color: isSelected ? AppTheme.primary : AppTheme.textSecondaryColor(context),
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
@@ -699,12 +698,12 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
           decoration: BoxDecoration(
             color: isSelected 
                 ? AppTheme.primary
-                : isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
+                : AppTheme.surfaceVariantColor(context),
             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
             border: Border.all(
               color: isSelected 
                   ? AppTheme.primary
-                  : isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
+                  : isDark ? AppTheme.borderDark : Colors.transparent,
             ),
           ),
           child: Center(
@@ -713,7 +712,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
               style: AppTheme.labelLarge.copyWith(
                 color: isSelected 
                     ? Colors.white
-                    : (isDark ? Colors.white70 : Colors.grey[700]),
+                    : (AppTheme.textSecondaryColor(context)),
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
@@ -743,12 +742,12 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
         decoration: BoxDecoration(
           color: isSelected 
               ? AppTheme.primary
-              : isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
+              : AppTheme.surfaceVariantColor(context),
           borderRadius: BorderRadius.circular(AppTheme.radiusCircular),
           border: Border.all(
             color: isSelected 
                 ? AppTheme.primary
-                : isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
+                : isDark ? AppTheme.borderDark : Colors.transparent,
           ),
         ),
         child: Row(
@@ -759,7 +758,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
               size: 18,
               color: isSelected 
                   ? Colors.white
-                  : (isDark ? Colors.white70 : Colors.grey[700]),
+                  : (AppTheme.textSecondaryColor(context)),
             ),
             const SizedBox(width: AppTheme.space8),
             Text(
@@ -767,7 +766,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
               style: AppTheme.labelLarge.copyWith(
                 color: isSelected 
                     ? Colors.white
-                    : (isDark ? Colors.white70 : Colors.grey[700]),
+                    : (AppTheme.textSecondaryColor(context)),
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
@@ -784,7 +783,6 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
     required String label,
     required Color color,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isSelected = _priority == priority;
     
     return InkWell(
@@ -798,12 +796,12 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
         decoration: BoxDecoration(
           color: isSelected 
               ? color.withValues(alpha: 0.15)
-              : isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+              : AppTheme.surfaceVariantColor(context),
           borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           border: Border.all(
-            color: isSelected 
+            color: isSelected
                 ? color
-                : isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300,
+                : AppTheme.borderColor(context),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -812,13 +810,13 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
             Icon(
               icon,
               size: 24,
-              color: isSelected ? color : AppTheme.textSecondary,
+              color: isSelected ? color : AppTheme.textSecondaryColor(context),
             ),
             const SizedBox(height: AppTheme.space4),
             Text(
               label,
               style: AppTheme.labelMedium.copyWith(
-                color: isSelected ? color : AppTheme.textSecondary,
+                color: isSelected ? color : AppTheme.textSecondaryColor(context),
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
@@ -870,8 +868,6 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
   }
   
   Future<void> _showDatePreview() async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     final date = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -883,8 +879,8 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
             colorScheme: ColorScheme.light(
               primary: AppTheme.primary,
               onPrimary: Colors.white,
-              surface: isDark ? AppTheme.surfaceDark : Colors.white,
-              onSurface: isDark ? Colors.white : AppTheme.textPrimary,
+              surface: AppTheme.surfaceColor(context),
+              onSurface: AppTheme.textPrimaryColor(context),
             ),
           ),
           child: child!,
@@ -949,7 +945,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
         Text(
           label,
           style: AppTheme.labelMedium.copyWith(
-            color: AppTheme.textSecondary,
+            color: AppTheme.textSecondaryColor(context),
           ),
         ),
         const Spacer(),
@@ -974,7 +970,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? AppTheme.surfaceDark : Colors.white,
+        backgroundColor: AppTheme.surfaceColor(context),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
         ),
@@ -1003,7 +999,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
                 Text(
                   DateFormat('EEEE, MMM d, yyyy').format(date),
                   style: AppTheme.labelSmall.copyWith(
-                    color: AppTheme.textSecondary,
+                    color: AppTheme.textSecondaryColor(context),
                   ),
                 ),
               ],
@@ -1054,7 +1050,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
                         Text(
                           'Prayer times for ${DateFormat('MMM d').format(date)} are not available yet',
                           style: AppTheme.bodyMedium.copyWith(
-                            color: AppTheme.textSecondary,
+                            color: AppTheme.textSecondaryColor(context),
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -1062,7 +1058,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
                         Text(
                           'Times will be calculated automatically when the date arrives',
                           style: AppTheme.labelSmall.copyWith(
-                            color: AppTheme.textTertiary,
+                            color: AppTheme.textTertiaryColor(context),
                             fontStyle: FontStyle.italic,
                           ),
                           textAlign: TextAlign.center,
@@ -1076,9 +1072,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
               width: double.infinity,
               padding: const EdgeInsets.all(AppTheme.space12),
               decoration: BoxDecoration(
-                color: isDark 
-                    ? Colors.white.withValues(alpha: 0.05)
-                    : AppTheme.surfaceVariant,
+                color: AppTheme.surfaceVariantColor(context),
                 borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
               ),
               child: Column(
@@ -1087,7 +1081,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
                   Text(
                     'Your Schedule Rule:',
                     style: AppTheme.labelSmall.copyWith(
-                      color: AppTheme.textTertiary,
+                      color: AppTheme.textTertiaryColor(context),
                     ),
                   ),
                   const SizedBox(height: AppTheme.space4),
@@ -1159,7 +1153,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
           Text(
             'Task Date',
             style: AppTheme.labelLarge.copyWith(
-              color: isDark ? Colors.white70 : Colors.grey[700],
+              color: AppTheme.textSecondaryColor(context),
             ),
           ),
           const SizedBox(height: AppTheme.space8),
@@ -1169,7 +1163,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
             child: Container(
               padding: const EdgeInsets.all(AppTheme.space16),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
+                color: AppTheme.surfaceVariantColor(context),
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                 border: Border.all(
                   color: AppTheme.primary.withValues(alpha: 0.3),
@@ -1194,7 +1188,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
                   ),
                   Icon(
                     Icons.arrow_drop_down,
-                    color: Colors.grey,
+                    color: AppTheme.textTertiaryColor(context),
                   ),
                 ],
               ),
@@ -1240,7 +1234,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
         Text(
           'Start Date',
           style: AppTheme.labelLarge.copyWith(
-            color: isDark ? Colors.white70 : Colors.grey[700],
+            color: AppTheme.textSecondaryColor(context),
           ),
         ),
         const SizedBox(height: AppTheme.space8),
@@ -1250,10 +1244,10 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
           child: Container(
             padding: const EdgeInsets.all(AppTheme.space16),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
+              color: AppTheme.surfaceVariantColor(context),
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
               border: Border.all(
-                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
+                color: isDark ? AppTheme.borderDark : Colors.transparent,
               ),
             ),
             child: Row(
@@ -1273,7 +1267,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
                 ),
                 Icon(
                   Icons.arrow_drop_down,
-                  color: Colors.grey,
+                  color: AppTheme.textTertiaryColor(context),
                 ),
               ],
             ),
@@ -1286,7 +1280,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
           Text(
             'Repeat Every',
             style: AppTheme.labelLarge.copyWith(
-              color: isDark ? Colors.white70 : Colors.grey[700],
+              color: AppTheme.textSecondaryColor(context),
             ),
           ),
           const SizedBox(height: AppTheme.space8),
@@ -1295,10 +1289,10 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
               Container(
                 width: 80,
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
+                  color: AppTheme.surfaceVariantColor(context),
                   borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                   border: Border.all(
-                    color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
+                    color: isDark ? AppTheme.borderDark : Colors.transparent,
                   ),
                 ),
                 child: DropdownButtonFormField<int>(
@@ -1331,7 +1325,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
           Text(
             'On Days',
             style: AppTheme.labelLarge.copyWith(
-              color: isDark ? Colors.white70 : Colors.grey[700],
+              color: AppTheme.textSecondaryColor(context),
             ),
           ),
           const SizedBox(height: AppTheme.space8),
@@ -1362,7 +1356,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
           Text(
             'Select Days of Month',
             style: AppTheme.labelLarge.copyWith(
-              color: isDark ? Colors.white70 : Colors.grey[700],
+              color: AppTheme.textSecondaryColor(context),
             ),
           ),
           const SizedBox(height: AppTheme.space8),
@@ -1370,10 +1364,10 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
           Container(
             padding: const EdgeInsets.all(AppTheme.space12),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
+              color: AppTheme.surfaceVariantColor(context),
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
               border: Border.all(
-                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
+                color: isDark ? AppTheme.borderDark : Colors.transparent,
               ),
             ),
             child: GridView.builder(
@@ -1405,16 +1399,12 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
                     decoration: BoxDecoration(
                       color: isSelected
                           ? AppTheme.primary
-                          : isDark
-                              ? Colors.white.withValues(alpha: 0.05)
-                              : AppTheme.surface,
+                          : AppTheme.surfaceColor(context),
                       borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                       border: Border.all(
                         color: isSelected
                             ? AppTheme.primary
-                            : isDark
-                                ? Colors.white.withValues(alpha: 0.1)
-                                : Colors.grey.withValues(alpha: 0.2),
+                            : AppTheme.borderColor(context),
                       ),
                     ),
                     child: Center(
@@ -1423,9 +1413,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
                         style: AppTheme.labelMedium.copyWith(
                           color: isSelected
                               ? Colors.white
-                              : isDark
-                                  ? Colors.white70
-                                  : Colors.black87,
+                              : AppTheme.textPrimaryColor(context),
                           fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                         ),
                       ),
@@ -1440,7 +1428,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
             Text(
               'Tap to select days when the task should repeat',
               style: AppTheme.labelSmall.copyWith(
-                color: Colors.grey,
+                color: AppTheme.textTertiaryColor(context),
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -1452,7 +1440,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
         Text(
           'End Date',
           style: AppTheme.labelLarge.copyWith(
-            color: isDark ? Colors.white70 : Colors.grey[700],
+            color: AppTheme.textSecondaryColor(context),
           ),
         ),
         const SizedBox(height: AppTheme.space8),
@@ -1462,17 +1450,17 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
           child: Container(
             padding: const EdgeInsets.all(AppTheme.space16),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
+              color: AppTheme.surfaceVariantColor(context),
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
               border: Border.all(
-                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
+                color: isDark ? AppTheme.borderDark : Colors.transparent,
               ),
             ),
             child: Row(
               children: [
                 Icon(
                   Icons.event_busy,
-                  color: _endDate != null ? AppTheme.primary : Colors.grey,
+                  color: _endDate != null ? AppTheme.primary : AppTheme.textTertiaryColor(context),
                 ),
                 const SizedBox(width: AppTheme.space16),
                 Expanded(
@@ -1481,7 +1469,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
                         ? DateFormat('EEEE, MMMM d, yyyy').format(_endDate!)
                         : 'No end date',
                     style: AppTheme.bodyLarge.copyWith(
-                      color: _endDate != null ? null : Colors.grey,
+                      color: _endDate != null ? null : AppTheme.textTertiaryColor(context),
                     ),
                   ),
                 ),
@@ -1493,7 +1481,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
                 else
                   Icon(
                     Icons.arrow_drop_down,
-                    color: Colors.grey,
+                    color: AppTheme.textTertiaryColor(context),
                   ),
               ],
             ),

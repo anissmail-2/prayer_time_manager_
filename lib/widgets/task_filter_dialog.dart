@@ -104,7 +104,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
                         Tab(text: 'Presets'),
                       ],
                       labelColor: AppTheme.primary,
-                      unselectedLabelColor: AppTheme.textSecondary,
+                      unselectedLabelColor: AppTheme.textSecondaryColor(context),
                     ),
                     Flexible(
                       child: TabBarView(
@@ -131,7 +131,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
       padding: const EdgeInsets.all(AppTheme.space20),
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: AppTheme.borderLight),
+          bottom: BorderSide(color: AppTheme.borderColor(context)),
         ),
       ),
       child: Row(
@@ -282,7 +282,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
         child: Container(
           padding: const EdgeInsets.all(AppTheme.space12),
           decoration: BoxDecoration(
-            border: Border.all(color: AppTheme.borderLight),
+            border: Border.all(color: AppTheme.borderColor(context)),
             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
           ),
           child: Row(
@@ -329,7 +329,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
                   color: _filters.startDate != null && _filters.endDate != null &&
                          _filters.startDate!.isAfter(_filters.endDate!)
                       ? AppTheme.error
-                      : AppTheme.borderLight,
+                      : AppTheme.borderColor(context),
                 ),
                 borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
               ),
@@ -376,7 +376,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
             child: Container(
               padding: const EdgeInsets.all(AppTheme.space12),
               decoration: BoxDecoration(
-                border: Border.all(color: AppTheme.borderLight),
+                border: Border.all(color: AppTheme.borderColor(context)),
                 borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
               ),
               child: Row(
@@ -823,7 +823,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
       padding: const EdgeInsets.all(AppTheme.space20),
       decoration: BoxDecoration(
         border: Border(
-          top: BorderSide(color: AppTheme.borderLight),
+          top: BorderSide(color: AppTheme.borderColor(context)),
         ),
       ),
       child: Row(
@@ -901,7 +901,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
       case TaskStatus.overdue:
         return AppTheme.warning;
       case TaskStatus.old:
-        return AppTheme.textSecondary;
+        return AppTheme.textSecondaryColor(context);
     }
   }
 

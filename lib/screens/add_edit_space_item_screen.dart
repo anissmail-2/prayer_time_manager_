@@ -89,7 +89,7 @@ class _AddEditSpaceItemScreenState extends State<AddEditSpaceItemScreen> with Si
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
-      backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.background,
+      backgroundColor: AppTheme.backgroundColor(context),
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,

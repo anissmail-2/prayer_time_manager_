@@ -70,7 +70,7 @@ class _ActivityFilterDialogState extends State<ActivityFilterDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: AppTheme.surfaceColor(context),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
       ),
@@ -84,7 +84,7 @@ class _ActivityFilterDialogState extends State<ActivityFilterDialog> {
               padding: const EdgeInsets.all(AppTheme.space24),
               decoration: BoxDecoration(
                 border: Border(
-                  bottom: BorderSide(color: AppTheme.borderLight),
+                  bottom: BorderSide(color: AppTheme.borderColor(context)),
                 ),
               ),
               child: Row(
@@ -93,7 +93,7 @@ class _ActivityFilterDialogState extends State<ActivityFilterDialog> {
                   Text(
                     'Filter Activities',
                     style: AppTheme.headlineSmall.copyWith(
-                      color: AppTheme.textPrimary,
+                      color: AppTheme.textPrimaryColor(context),
                     ),
                   ),
                   IconButton(
@@ -191,7 +191,7 @@ class _ActivityFilterDialogState extends State<ActivityFilterDialog> {
                           labelStyle: TextStyle(
                             color: _selectedTypes.contains(type)
                                 ? Colors.white
-                                : AppTheme.textPrimary,
+                                : AppTheme.textPrimaryColor(context),
                           ),
                           onSelected: (selected) {
                             setState(() {
@@ -256,7 +256,7 @@ class _ActivityFilterDialogState extends State<ActivityFilterDialog> {
               padding: const EdgeInsets.all(AppTheme.space16),
               decoration: BoxDecoration(
                 border: Border(
-                  top: BorderSide(color: AppTheme.borderLight),
+                  top: BorderSide(color: AppTheme.borderColor(context)),
                 ),
               ),
               child: Row(
@@ -309,7 +309,7 @@ class _ActivityFilterDialogState extends State<ActivityFilterDialog> {
     return Text(
       title,
       style: AppTheme.titleMedium.copyWith(
-        color: AppTheme.textSecondary,
+        color: AppTheme.textSecondaryColor(context),
         fontWeight: FontWeight.w600,
       ),
     );
@@ -325,18 +325,20 @@ class _ActivityFilterDialogState extends State<ActivityFilterDialog> {
       child: Container(
         padding: const EdgeInsets.all(AppTheme.space12),
         decoration: BoxDecoration(
-          border: Border.all(color: AppTheme.borderLight),
+          border: Border.all(color: AppTheme.borderColor(context)),
           borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
         ),
         child: Row(
           children: [
-            Icon(Icons.calendar_today, size: 20, color: AppTheme.textSecondary),
+            Icon(Icons.calendar_today, size: 20, color: AppTheme.textSecondaryColor(context)),
             const SizedBox(width: AppTheme.space8),
             Expanded(
               child: Text(
                 date != null ? DateFormat('MMM d').format(date) : label,
                 style: AppTheme.bodyMedium.copyWith(
-                  color: date != null ? AppTheme.textPrimary : AppTheme.textTertiary,
+                  color: date != null
+                      ? AppTheme.textPrimaryColor(context)
+                      : AppTheme.textTertiaryColor(context),
                 ),
               ),
             ),
@@ -351,7 +353,7 @@ class _ActivityFilterDialogState extends State<ActivityFilterDialog> {
                     }
                   });
                 },
-                child: Icon(Icons.clear, size: 18, color: AppTheme.textTertiary),
+                child: Icon(Icons.clear, size: 18, color: AppTheme.textTertiaryColor(context)),
               ),
           ],
         ),

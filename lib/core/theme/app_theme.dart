@@ -39,6 +39,66 @@ class AppTheme {
   /// Border colors
   static const Color borderLight = Color(0xFFCBD5E1);   // More visible borders
   static const Color borderMedium = Color(0xFF94A3B8);  // Even stronger for emphasis
+  static const Color borderDark = Color(0xFF334155);    // Border color for dark mode
+
+  /// Dark-mode text colors
+  static const Color textPrimaryDark = Color(0xFFF1F5F9);
+  static const Color textSecondaryDark = Color(0xFFCBD5E1);
+  static const Color textTertiaryDark = Color(0xFF94A3B8);
+
+  /// Elevated surface for dark mode (cards/inputs slightly above background)
+  static const Color surfaceVariantDark = Color(0xFF334155);
+
+  // ==================== Theme-aware helpers ====================
+  // Use these instead of hardcoded light-only constants so widgets adapt
+  // automatically to dark mode.
+
+  /// Whether the current theme is dark
+  static bool isDark(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark;
+
+  /// Scaffold/background color for the current theme
+  static Color backgroundColor(BuildContext context) =>
+      isDark(context) ? backgroundDark : backgroundLight;
+
+  /// Card/container surface color for the current theme
+  static Color surfaceColor(BuildContext context) =>
+      isDark(context) ? surfaceDark : surface;
+
+  /// Slightly elevated/variant surface (input fills, chips, subtle panels)
+  static Color surfaceVariantColor(BuildContext context) =>
+      isDark(context) ? surfaceVariantDark : surfaceVariant;
+
+  /// Primary text color for the current theme
+  static Color textPrimaryColor(BuildContext context) =>
+      isDark(context) ? textPrimaryDark : textPrimary;
+
+  /// Secondary text color for the current theme
+  static Color textSecondaryColor(BuildContext context) =>
+      isDark(context) ? textSecondaryDark : textSecondary;
+
+  /// Tertiary/hint text color for the current theme
+  static Color textTertiaryColor(BuildContext context) =>
+      isDark(context) ? textTertiaryDark : textTertiary;
+
+  /// Border/divider color for the current theme
+  static Color borderColor(BuildContext context) =>
+      isDark(context) ? borderDark : borderLight;
+
+  /// Theme-aware card decoration with subtle shadow
+  static BoxDecoration cardDecorationFor(
+    BuildContext context, {
+    Color? color,
+    double? radius,
+    List<BoxShadow>? boxShadow,
+  }) {
+    return BoxDecoration(
+      color: color ?? surfaceColor(context),
+      borderRadius: BorderRadius.circular(radius ?? radiusMedium),
+      boxShadow: boxShadow ?? (isDark(context) ? null : shadowMedium),
+      border: isDark(context) ? Border.all(color: borderDark) : null,
+    );
+  }
   
   /// Status colors
   static const Color success = Color(0xFF10B981);
@@ -295,7 +355,6 @@ class AppTheme {
         primary: primary,
         secondary: secondary,
         surface: surface,
-        background: background,
         error: error,
       ),
       scaffoldBackgroundColor: backgroundLight,
@@ -390,7 +449,6 @@ class AppTheme {
         primary: primaryLight,
         secondary: secondaryLight,
         surface: surfaceDark,
-        background: backgroundDark,
         error: error,
       ),
       scaffoldBackgroundColor: backgroundDark,

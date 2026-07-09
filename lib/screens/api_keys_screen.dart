@@ -144,7 +144,7 @@ class _ApiKeysScreenState extends State<ApiKeysScreen> {
         const SizedBox(height: AppTheme.space8),
         Text(
           helperText,
-          style: AppTheme.bodySmall.copyWith(color: AppTheme.textSecondary),
+          style: AppTheme.bodySmall.copyWith(color: AppTheme.textSecondaryColor(context)),
         ),
       ],
     );
@@ -165,7 +165,7 @@ class _ApiKeysScreenState extends State<ApiKeysScreen> {
               'Keys are stored on this device only and are never bundled '
               'with the app.',
               style: AppTheme.bodyMedium.copyWith(
-                color: AppTheme.textSecondary,
+                color: AppTheme.textSecondaryColor(context),
               ),
             ),
             const SizedBox(height: AppTheme.space24),

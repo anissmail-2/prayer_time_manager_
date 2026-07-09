@@ -53,7 +53,7 @@ class TaskDetailsDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final displayTask = task ?? enhancedTask!;
     final isEnhanced = enhancedTask != null;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = AppTheme.isDark(context);
     final screenSize = MediaQuery.of(context).size;
     
     return Dialog(
@@ -74,8 +74,8 @@ class TaskDetailsDialog extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  AppTheme.surface.withValues(alpha: 0.95),
-                  AppTheme.surface.withValues(alpha: 0.85),
+                  AppTheme.surfaceColor(context).withValues(alpha: 0.95),
+                  AppTheme.surfaceColor(context).withValues(alpha: 0.85),
                 ],
               ),
               borderRadius: BorderRadius.circular(24),
@@ -207,6 +207,7 @@ class TaskDetailsDialog extends StatelessWidget {
                           const SizedBox(height: 12),
                           // Priority Card full width
                           _buildInfoCard(
+                            context: context,
                             icon: _getPriorityIcon(displayTask.priority),
                             title: 'Priority',
                             value: displayTask.priority.name.toUpperCase(),
@@ -219,17 +220,19 @@ class TaskDetailsDialog extends StatelessWidget {
                               // Schedule Card
                               Expanded(
                                 child: _buildInfoCard(
+                                  context: context,
                                   icon: Icons.access_time_rounded,
                                   title: 'Schedule',
                                   value: _getScheduleDisplayText(displayTask),
                                   subtitle: _getScheduleSubtitle(displayTask),
-                                  color: Colors.blue,
+                                  color: AppTheme.info,
                                 ),
                               ),
                               const SizedBox(width: 12),
                               // Priority Card
                               Expanded(
                                 child: _buildInfoCard(
+                                  context: context,
                                   icon: _getPriorityIcon(displayTask.priority),
                                   title: 'Priority',
                                   value: displayTask.priority.name.toUpperCase(),
@@ -270,16 +273,15 @@ class TaskDetailsDialog extends StatelessWidget {
                                   const SizedBox(width: 8),
                                   Text(
                                     'Details',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppTheme.textPrimary,
+                                    style: AppTheme.titleMedium.copyWith(
+                                      color: AppTheme.textPrimaryColor(context),
                                     ),
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 12),
                               _buildDetailRow(
+                                context: context,
                                 icon: Icons.calendar_today_outlined,
                                 label: 'Created',
                                 value: _formatDate(displayTask.createdAt),
@@ -287,6 +289,7 @@ class TaskDetailsDialog extends StatelessWidget {
                               if (displayTask.completedDates.isNotEmpty) ...[
                                 const SizedBox(height: 8),
                                 _buildDetailRow(
+                                  context: context,
                                   icon: Icons.check_circle_outline,
                                   label: 'Completed',
                                   value: _formatDate(displayTask.completedDates.last),
@@ -295,6 +298,7 @@ class TaskDetailsDialog extends StatelessWidget {
                               if (displayTask.recurrence != TaskRecurrence.once) ...[
                                 const SizedBox(height: 8),
                                 _buildDetailRow(
+                                  context: context,
                                   icon: Icons.repeat_rounded,
                                   label: 'Repeats',
                                   value: _getRecurrenceText(displayTask.recurrence),
@@ -309,22 +313,23 @@ class TaskDetailsDialog extends StatelessWidget {
                       // Notes
                       if (enhancedTask!.notes != null && enhancedTask!.notes!.isNotEmpty)
                         _buildSection(
+                          context,
                           'Notes',
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.all(AppTheme.space16),
                             decoration: BoxDecoration(
-                              color: AppTheme.backgroundLight,
+                              color: AppTheme.surfaceVariantColor(context),
                               borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                               border: Border.all(
-                                color: AppTheme.borderMedium,
+                                color: AppTheme.borderColor(context),
                                 width: 1,
                               ),
                             ),
                             child: Text(
                               enhancedTask!.notes!,
                               style: AppTheme.bodyLarge.copyWith(
-                                color: AppTheme.textPrimary,
+                                color: AppTheme.textPrimaryColor(context),
                                 height: 1.5,
                               ),
                             ),
@@ -334,6 +339,7 @@ class TaskDetailsDialog extends StatelessWidget {
                       // Tags
                       if (enhancedTask!.tags.isNotEmpty)
                         _buildSection(
+                          context,
                           'Tags',
                           Wrap(
                             spacing: AppTheme.space8,
@@ -360,6 +366,7 @@ class TaskDetailsDialog extends StatelessWidget {
                       // Time estimates
                       if (enhancedTask!.estimatedMinutes != null || enhancedTask!.actualMinutes != null)
                         _buildSection(
+                          context,
                           'Time Tracking',
                           Row(
                             children: [
@@ -367,13 +374,13 @@ class TaskDetailsDialog extends StatelessWidget {
                                 Icon(
                                   Icons.timer_outlined,
                                   size: 16,
-                                  color: AppTheme.textTertiary,
+                                  color: AppTheme.textTertiaryColor(context),
                                 ),
                                 const SizedBox(width: AppTheme.space4),
                                 Text(
                                   'Est: ${enhancedTask!.estimatedMinutes} min',
                                   style: AppTheme.bodySmall.copyWith(
-                                    color: AppTheme.textSecondary,
+                                    color: AppTheme.textSecondaryColor(context),
                                   ),
                                 ),
                               ],
@@ -383,13 +390,13 @@ class TaskDetailsDialog extends StatelessWidget {
                                 Icon(
                                   Icons.timer,
                                   size: 16,
-                                  color: AppTheme.textTertiary,
+                                  color: AppTheme.textTertiaryColor(context),
                                 ),
                                 const SizedBox(width: AppTheme.space4),
                                 Text(
                                   'Actual: ${enhancedTask!.actualMinutes} min',
                                   style: AppTheme.bodySmall.copyWith(
-                                    color: AppTheme.textSecondary,
+                                    color: AppTheme.textSecondaryColor(context),
                                   ),
                                 ),
                               ],
@@ -482,8 +489,6 @@ class TaskDetailsDialog extends StatelessWidget {
 
   // Build special prayer schedule card
   Widget _buildPrayerScheduleCard(BuildContext context, Task task) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -530,9 +535,7 @@ class TaskDetailsDialog extends StatelessWidget {
                   children: [
                     Text(
                       "Today's Schedule",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                      style: AppTheme.titleMedium.copyWith(
                         color: AppTheme.primary,
                       ),
                     ),
@@ -541,7 +544,7 @@ class TaskDetailsDialog extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : AppTheme.textPrimary,
+                        color: AppTheme.textPrimaryColor(context),
                       ),
                     ),
                   ],
@@ -638,20 +641,16 @@ class TaskDetailsDialog extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppTheme.textTertiary,
-                  fontWeight: FontWeight.w500,
+                style: AppTheme.labelMedium.copyWith(
+                  color: AppTheme.textTertiaryColor(context),
                 ),
               ),
               const SizedBox(height: 2),
               if (minutes == 0) ...[
                 RichText(
                   text: TextSpan(
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: AppTheme.textPrimary,
-                      fontWeight: FontWeight.w600,
+                    style: AppTheme.titleMedium.copyWith(
+                      color: AppTheme.textPrimaryColor(context),
                     ),
                     children: [
                       const TextSpan(text: 'At '),
@@ -712,6 +711,7 @@ class TaskDetailsDialog extends StatelessWidget {
   
   // Helper method to build info cards
   Widget _buildInfoCard({
+    required BuildContext context,
     required IconData icon,
     required String title,
     required String value,
@@ -755,10 +755,8 @@ class TaskDetailsDialog extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 title,
-                style: TextStyle(
-                  fontSize: 12,
+                style: AppTheme.labelMedium.copyWith(
                   color: color,
-                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -766,10 +764,8 @@ class TaskDetailsDialog extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             value,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
+            style: AppTheme.titleSmall.copyWith(
+              color: AppTheme.textPrimaryColor(context),
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -780,7 +776,7 @@ class TaskDetailsDialog extends StatelessWidget {
               subtitle,
               style: TextStyle(
                 fontSize: 11,
-                color: AppTheme.textSecondary,
+                color: AppTheme.textSecondaryColor(context),
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -793,6 +789,7 @@ class TaskDetailsDialog extends StatelessWidget {
 
   // Helper method to build detail rows
   Widget _buildDetailRow({
+    required BuildContext context,
     required IconData icon,
     required String label,
     required String value,
@@ -802,14 +799,14 @@ class TaskDetailsDialog extends StatelessWidget {
         Icon(
           icon,
           size: 14,
-          color: AppTheme.textTertiary,
+          color: AppTheme.textTertiaryColor(context),
         ),
         const SizedBox(width: 8),
         Text(
           '$label: ',
           style: TextStyle(
             fontSize: 13,
-            color: AppTheme.textTertiary,
+            color: AppTheme.textTertiaryColor(context),
           ),
         ),
         Expanded(
@@ -817,7 +814,7 @@ class TaskDetailsDialog extends StatelessWidget {
             value,
             style: TextStyle(
               fontSize: 13,
-              color: AppTheme.textSecondary,
+              color: AppTheme.textSecondaryColor(context),
               fontWeight: FontWeight.w500,
             ),
             maxLines: 1,
@@ -897,7 +894,7 @@ class TaskDetailsDialog extends StatelessWidget {
     }
   }
 
-  Widget _buildSection(String title, Widget content) {
+  Widget _buildSection(BuildContext context, String title, Widget content) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppTheme.space20),
       child: Column(
@@ -906,7 +903,7 @@ class TaskDetailsDialog extends StatelessWidget {
           Text(
             title,
             style: AppTheme.titleSmall.copyWith(
-              color: AppTheme.textPrimary,
+              color: AppTheme.textPrimaryColor(context),
               fontWeight: FontWeight.w600,
               letterSpacing: 0.3,
             ),
@@ -937,40 +934,6 @@ class TaskDetailsDialog extends StatelessWidget {
         return Icons.remove_rounded;
       case TaskPriority.low:
         return Icons.arrow_downward_rounded;
-    }
-  }
-
-  Color _getStatusColor(TaskStatus status) {
-    switch (status) {
-      case TaskStatus.todo:
-        return AppTheme.textTertiary;
-      case TaskStatus.inProgress:
-        return AppTheme.primary;
-      case TaskStatus.blocked:
-        return AppTheme.error;
-      case TaskStatus.review:
-        return AppTheme.warning;
-      case TaskStatus.done:
-        return AppTheme.success;
-      case TaskStatus.cancelled:
-        return AppTheme.textTertiary;
-    }
-  }
-
-  String _getStatusText(TaskStatus status) {
-    switch (status) {
-      case TaskStatus.todo:
-        return 'To Do';
-      case TaskStatus.inProgress:
-        return 'In Progress';
-      case TaskStatus.blocked:
-        return 'Blocked';
-      case TaskStatus.review:
-        return 'Review';
-      case TaskStatus.done:
-        return 'Done';
-      case TaskStatus.cancelled:
-        return 'Cancelled';
     }
   }
 
@@ -1069,94 +1032,6 @@ class TaskDetailsDialog extends StatelessWidget {
     return 'No schedule';
   }
 
-  String _calculatePrayerRelativeTimes(Task task) {
-    // Use cached prayer times if available, otherwise show relative format
-    if (cachedPrayerTimes == null || cachedPrayerTimes!.isEmpty) {
-      // Fallback to relative format if prayer times not loaded
-      final prayer = task.relatedPrayer.toString().split('.').last;
-      final beforeAfter = task.isBeforePrayer == true ? 'before' : 'after';
-      final minutes = task.minutesOffset ?? 0;
-      
-      String text = '$minutes min $beforeAfter $prayer';
-      
-      if (task.endRelatedPrayer != null) {
-        final endPrayer = task.endRelatedPrayer.toString().split('.').last;
-        final endBeforeAfter = task.endIsBeforePrayer == true ? 'before' : 'after';
-        final endMinutes = task.endMinutesOffset ?? 0;
-        text += ' to $endMinutes min $endBeforeAfter $endPrayer';
-      }
-      
-      return text;
-    }
-    
-    // Calculate actual times using prayer times
-    try {
-      final startPrayer = task.relatedPrayer!;
-      final startPrayerName = startPrayer.toString().split('.').last;
-      final capitalizedPrayerName = startPrayerName[0].toUpperCase() + startPrayerName.substring(1);
-      final startPrayerTime = cachedPrayerTimes![capitalizedPrayerName];
-      
-      if (startPrayerTime != null) {
-        final timeParts = startPrayerTime.split(':');
-        final prayerHour = int.parse(timeParts[0]);
-        final prayerMinute = int.parse(timeParts[1]);
-        
-        // Calculate start time
-        final startDateTime = DateTime.now().copyWith(
-          hour: prayerHour,
-          minute: prayerMinute,
-          second: 0,
-          millisecond: 0,
-        );
-        
-        final offset = task.minutesOffset ?? 0;
-        final calculatedStartTime = task.isBeforePrayer == true
-            ? startDateTime.subtract(Duration(minutes: offset))
-            : startDateTime.add(Duration(minutes: offset));
-        
-        String result = '${calculatedStartTime.hour.toString().padLeft(2, '0')}:${calculatedStartTime.minute.toString().padLeft(2, '0')}';
-        
-        // Calculate end time if specified
-        if (task.endRelatedPrayer != null) {
-          final endPrayer = task.endRelatedPrayer!;
-          final endPrayerName = endPrayer.toString().split('.').last;
-          final capitalizedEndPrayerName = endPrayerName[0].toUpperCase() + endPrayerName.substring(1);
-          final endPrayerTime = cachedPrayerTimes![capitalizedEndPrayerName];
-          
-          if (endPrayerTime != null) {
-            final endTimeParts = endPrayerTime.split(':');
-            final endPrayerHour = int.parse(endTimeParts[0]);
-            final endPrayerMinute = int.parse(endTimeParts[1]);
-            
-            final endDateTime = DateTime.now().copyWith(
-              hour: endPrayerHour,
-              minute: endPrayerMinute,
-              second: 0,
-              millisecond: 0,
-            );
-            
-            final endOffset = task.endMinutesOffset ?? 0;
-            final calculatedEndTime = task.endIsBeforePrayer == true
-                ? endDateTime.subtract(Duration(minutes: endOffset))
-                : endDateTime.add(Duration(minutes: endOffset));
-            
-            result += ' - ${calculatedEndTime.hour.toString().padLeft(2, '0')}:${calculatedEndTime.minute.toString().padLeft(2, '0')}';
-          }
-        }
-        
-        return result;
-      }
-    } catch (e) {
-      // If calculation fails, fall back to relative format
-    }
-    
-    // Fallback to relative format
-    final prayer = task.relatedPrayer.toString().split('.').last;
-    final beforeAfter = task.isBeforePrayer == true ? 'before' : 'after';
-    final minutes = task.minutesOffset ?? 0;
-    return '$minutes min $beforeAfter $prayer';
-  }
-
   String _getRecurrenceText(TaskRecurrence recurrence) {
     switch (recurrence) {
       case TaskRecurrence.once:
@@ -1185,37 +1060,6 @@ class TaskDetailsDialog extends StatelessWidget {
     } else {
       return '${date.day}/${date.month}/${date.year}';
     }
-  }
-  
-  String _getPrayerRelativeDescription(Task task) {
-    if (task.relatedPrayer == null) return '';
-    
-    final prayer = task.relatedPrayer.toString().split('.').last.capitalize();
-    final beforeAfter = task.isBeforePrayer == true ? 'before' : 'after';
-    final minutes = task.minutesOffset ?? 0;
-    
-    // Format the start time
-    String text;
-    if (minutes == 0) {
-      text = 'At $prayer time';
-    } else {
-      text = '$minutes min $beforeAfter $prayer';
-    }
-    
-    if (task.endRelatedPrayer != null) {
-      final endPrayer = task.endRelatedPrayer.toString().split('.').last.capitalize();
-      final endBeforeAfter = task.endIsBeforePrayer == true ? 'before' : 'after';
-      final endMinutes = task.endMinutesOffset ?? 0;
-      
-      // Format the end time
-      if (endMinutes == 0) {
-        text += ' to $endPrayer time';
-      } else {
-        text += ' to $endMinutes min $endBeforeAfter $endPrayer';
-      }
-    }
-    
-    return text;
   }
 }
 

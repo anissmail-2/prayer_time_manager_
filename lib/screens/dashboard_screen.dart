@@ -162,14 +162,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Text(
           greeting,
           style: AppTheme.headlineLarge.copyWith(
-            color: AppTheme.textPrimary,
+            color: AppTheme.textPrimaryColor(context),
           ),
         ),
         const SizedBox(height: AppTheme.space8),
         Text(
           DateFormat('EEEE, MMMM d, yyyy').format(DateTime.now()),
           style: AppTheme.bodyLarge.copyWith(
-            color: AppTheme.textSecondary,
+            color: AppTheme.textSecondaryColor(context),
           ),
         ),
       ],
@@ -225,8 +225,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }) {
     return Container(
       padding: const EdgeInsets.all(AppTheme.space20),
-      decoration: AppTheme.cardDecoration(
-        boxShadow: AppTheme.shadowSmall,
+      decoration: AppTheme.cardDecorationFor(
+        context,
+        boxShadow: AppTheme.isDark(context) ? null : AppTheme.shadowSmall,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -247,7 +248,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text(
             value,
             style: AppTheme.headlineMedium.copyWith(
-              color: AppTheme.textPrimary,
+              color: AppTheme.textPrimaryColor(context),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -255,7 +256,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text(
             subtitle,
             style: AppTheme.bodySmall.copyWith(
-              color: AppTheme.textSecondary,
+              color: AppTheme.textSecondaryColor(context),
             ),
           ),
         ],
@@ -365,7 +366,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Text(
               'Today\'s Tasks',
               style: AppTheme.titleLarge.copyWith(
-                color: AppTheme.textPrimary,
+                color: AppTheme.textPrimaryColor(context),
               ),
             ),
             TextButton(
@@ -380,19 +381,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(AppTheme.space32),
-            decoration: AppTheme.cardDecoration(),
+            decoration: AppTheme.cardDecorationFor(context),
             child: Column(
               children: [
                 Icon(
                   Icons.task_alt,
                   size: 48,
-                  color: AppTheme.textTertiary,
+                  color: AppTheme.textTertiaryColor(context),
                 ),
                 const SizedBox(height: AppTheme.space16),
                 Text(
                   'No pending tasks',
                   style: AppTheme.bodyLarge.copyWith(
-                    color: AppTheme.textSecondary,
+                    color: AppTheme.textSecondaryColor(context),
                   ),
                 ),
               ],
@@ -410,7 +411,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.space12),
-      decoration: AppTheme.cardDecoration(),
+      decoration: AppTheme.cardDecorationFor(context),
       child: ListTile(
         onTap: () {
           showDialog(
@@ -467,13 +468,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: Text(
           task.title,
           style: AppTheme.titleMedium.copyWith(
-            color: AppTheme.textPrimary,
+            color: AppTheme.textPrimaryColor(context),
           ),
         ),
         subtitle: Text(
           DateFormat('h:mm a').format(time),
           style: AppTheme.bodySmall.copyWith(
-            color: AppTheme.textSecondary,
+            color: AppTheme.textSecondaryColor(context),
           ),
         ),
         trailing: Container(

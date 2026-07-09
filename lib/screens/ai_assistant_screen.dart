@@ -821,7 +821,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTheme.surface,
+      backgroundColor: AppTheme.surfaceColor(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppTheme.radiusLarge)),
       ),
@@ -871,7 +871,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                       child: Text(
                         'No saved conversations',
                         style: AppTheme.bodyMedium.copyWith(
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.textSecondaryColor(context),
                         ),
                       ),
                     )
@@ -986,32 +986,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     }
   }
   
-  // Handle quick action buttons
-  Future<void> _handleQuickAction(String action) async {
-    _messageController.text = action;
-    await _sendMessage();
-  }
-  
-  // The enhanced AI assistant now handles all operations directly
-  // These old methods are no longer needed as the AI executes everything
-  
-  Future<void> _showTaskStats() async {
-    // This is kept only for backward compatibility
-    // The AI now provides statistics directly
-    _messageController.text = "Show me my task statistics";
-    await _sendMessage();
-  }
-  
-  // Placeholder for any legacy code that might call this
-  Future<void> _showTasks(String scope) async {
-    _messageController.text = "Show me my $scope tasks";
-    await _sendMessage();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: AppTheme.backgroundColor(context),
       body: SafeArea(
         child: Column(
           children: [
@@ -1046,10 +1024,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         vertical: AppTheme.space12,
       ),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceColor(context),
         border: Border(
           bottom: BorderSide(
-            color: AppTheme.borderLight,
+            color: AppTheme.borderColor(context),
             width: 1,
           ),
         ),
@@ -1075,7 +1053,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             child: Text(
               'AI Assistant',
               style: AppTheme.titleMedium.copyWith(
-                color: AppTheme.textPrimary,
+                color: AppTheme.textPrimaryColor(context),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -1085,7 +1063,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             IconButton(
               onPressed: _copyChat,
               icon: const Icon(Icons.copy, size: 20),
-              color: AppTheme.textSecondary,
+              color: AppTheme.textSecondaryColor(context),
               tooltip: 'Copy chat',
               padding: const EdgeInsets.all(8),
               constraints: const BoxConstraints(
@@ -1095,7 +1073,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             ),
           // Conversation menu
           PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert, size: 20, color: AppTheme.textSecondary),
+            icon: Icon(Icons.more_vert, size: 20, color: AppTheme.textSecondaryColor(context)),
             tooltip: 'Conversation options',
             onSelected: _handleConversationMenu,
             itemBuilder: (context) => [
@@ -1135,7 +1113,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           // Model selector as icon button
           IconButton(
             onPressed: () => _showModelSelector(context),
-            icon: Icon(Icons.mic, size: 20, color: AppTheme.textSecondary),
+            icon: Icon(Icons.mic, size: 20, color: AppTheme.textSecondaryColor(context)),
             tooltip: 'Voice model: $_selectedModel',
             padding: const EdgeInsets.all(8),
             constraints: const BoxConstraints(
@@ -1151,7 +1129,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   void _showModelSelector(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppTheme.surface,
+      backgroundColor: AppTheme.surfaceColor(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppTheme.radiusLarge),
@@ -1186,7 +1164,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
               subtitle: Text(
                 entry.value,
                 style: AppTheme.bodySmall.copyWith(
-                  color: AppTheme.textSecondary,
+                  color: AppTheme.textSecondaryColor(context),
                 ),
               ),
               onTap: () {
@@ -1229,7 +1207,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             Text(
               'How can I help you today?',
               style: AppTheme.titleLarge.copyWith(
-                color: AppTheme.textPrimary,
+                color: AppTheme.textPrimaryColor(context),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -1237,7 +1215,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             Text(
               'I can help you manage tasks, create spaces,\nand optimize your schedule',
               style: AppTheme.bodyMedium.copyWith(
-                color: AppTheme.textSecondary,
+                color: AppTheme.textSecondaryColor(context),
               ),
               textAlign: TextAlign.center,
             ),
@@ -1278,7 +1256,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         Text(
           title,
           style: AppTheme.labelMedium.copyWith(
-            color: AppTheme.textSecondary,
+            color: AppTheme.textSecondaryColor(context),
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -1305,10 +1283,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           vertical: AppTheme.space8,
         ),
         decoration: BoxDecoration(
-          color: AppTheme.surfaceVariant,
+          color: AppTheme.surfaceVariantColor(context),
           borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
           border: Border.all(
-            color: AppTheme.borderLight,
+            color: AppTheme.borderColor(context),
             width: 1,
           ),
         ),
@@ -1318,13 +1296,13 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             Icon(
               icon,
               size: 16,
-              color: AppTheme.textSecondary,
+              color: AppTheme.textSecondaryColor(context),
             ),
             const SizedBox(width: AppTheme.space8),
             Text(
               text,
               style: AppTheme.bodySmall.copyWith(
-                color: AppTheme.textPrimary,
+                color: AppTheme.textPrimaryColor(context),
               ),
             ),
           ],
@@ -1333,20 +1311,6 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     );
   }
 
-  Widget _buildSuggestionChip(String text) {
-    return ActionChip(
-      label: Text(text),
-      onPressed: () {
-        _messageController.text = text;
-        _sendMessage();
-      },
-      backgroundColor: AppTheme.surfaceVariant,
-      labelStyle: AppTheme.bodyMedium.copyWith(
-        color: AppTheme.textPrimary,
-      ),
-    );
-  }
-  
   Widget _buildCompactTaskItem(TaskWithTime taskWithTime) {
     final isCompleted = taskWithTime.task.isCompletedToday();
     return Container(
@@ -1357,7 +1321,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: AppTheme.borderLight.withValues(alpha: 0.5),
+            color: AppTheme.borderColor(context).withValues(alpha: 0.5),
             width: 0.5,
           ),
         ),
@@ -1370,7 +1334,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: isCompleted ? AppTheme.success : AppTheme.borderLight,
+                color: isCompleted ? AppTheme.success : AppTheme.borderColor(context),
                 width: 2,
               ),
               color: isCompleted ? AppTheme.success : Colors.transparent,
@@ -1392,7 +1356,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                   taskWithTime.task.title,
                   style: AppTheme.bodySmall.copyWith(
                     decoration: isCompleted ? TextDecoration.lineThrough : null,
-                    color: isCompleted ? AppTheme.textSecondary : AppTheme.textPrimary,
+                    color: isCompleted ? AppTheme.textSecondaryColor(context) : AppTheme.textPrimaryColor(context),
                     fontSize: 13,
                   ),
                 ),
@@ -1400,7 +1364,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                 Text(
                   taskWithTime.task.getDisplayTimeString(_prayerTimes),
                   style: AppTheme.labelSmall.copyWith(
-                    color: AppTheme.textTertiary,
+                    color: AppTheme.textTertiaryColor(context),
                     fontSize: 11,
                   ),
                 ),
@@ -1429,7 +1393,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: AppTheme.borderLight.withValues(alpha: 0.5),
+            color: AppTheme.borderColor(context).withValues(alpha: 0.5),
             width: 0.5,
           ),
         ),
@@ -1466,7 +1430,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                   Text(
                     '${stats['pending']} pending, ${stats['completed']} completed',
                     style: AppTheme.labelSmall.copyWith(
-                      color: AppTheme.textTertiary,
+                      color: AppTheme.textTertiaryColor(context),
                       fontSize: 11,
                     ),
                   ),
@@ -1513,13 +1477,13 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                     Icon(
                       Icons.timer_outlined,
                       size: 12,
-                      color: AppTheme.textTertiary,
+                      color: AppTheme.textTertiaryColor(context),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       '${slot.durationMinutes} minutes',
                       style: AppTheme.labelSmall.copyWith(
-                        color: AppTheme.textTertiary,
+                        color: AppTheme.textTertiaryColor(context),
                         fontSize: 11,
                       ),
                     ),
@@ -1528,7 +1492,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                       Text(
                         '• ${slot.label}',
                         style: AppTheme.labelSmall.copyWith(
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.textSecondaryColor(context),
                           fontSize: 11,
                         ),
                       ),
@@ -1611,7 +1575,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                                 ? AppTheme.success.withValues(alpha: 0.1)
                                 : message.isSuggestionResponse
                                     ? Colors.transparent
-                                    : AppTheme.surfaceVariant,
+                                    : AppTheme.surfaceVariantColor(context),
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(message.isUser ? AppTheme.radiusMedium : AppTheme.space4),
                       topRight: Radius.circular(message.isUser ? AppTheme.space4 : AppTheme.radiusMedium),
@@ -1635,7 +1599,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                                     ? AppTheme.error
                                     : message.isSuccess
                                         ? AppTheme.success
-                                        : AppTheme.textPrimary,
+                                        : AppTheme.textPrimaryColor(context),
                             fontSize: 14,
                           ),
                         ),
@@ -1644,9 +1608,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                         const SizedBox(height: AppTheme.space12),
                         Container(
                           decoration: BoxDecoration(
-                            color: AppTheme.surface,
+                            color: AppTheme.surfaceColor(context),
                             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                            border: Border.all(color: AppTheme.borderLight),
+                            border: Border.all(color: AppTheme.borderColor(context)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1661,7 +1625,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                                     Icon(
                                       Icons.task_alt,
                                       size: 16,
-                                      color: AppTheme.textSecondary,
+                                      color: AppTheme.textSecondaryColor(context),
                                     ),
                                     const SizedBox(width: AppTheme.space8),
                                     Text(
@@ -1683,7 +1647,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                                   child: Text(
                                     '... and ${message.taskList!.length - 5} more',
                                     style: AppTheme.labelSmall.copyWith(
-                                      color: AppTheme.textSecondary,
+                                      color: AppTheme.textSecondaryColor(context),
                                     ),
                                   ),
                                 ),
@@ -1696,9 +1660,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                         const SizedBox(height: AppTheme.space12),
                         Container(
                           decoration: BoxDecoration(
-                            color: AppTheme.surface,
+                            color: AppTheme.surfaceColor(context),
                             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                            border: Border.all(color: AppTheme.borderLight),
+                            border: Border.all(color: AppTheme.borderColor(context)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1713,7 +1677,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                                     Icon(
                                       Icons.folder_special,
                                       size: 16,
-                                      color: AppTheme.textSecondary,
+                                      color: AppTheme.textSecondaryColor(context),
                                     ),
                                     const SizedBox(width: AppTheme.space8),
                                     Text(
@@ -1783,7 +1747,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                                   child: Text(
                                     '... and ${message.freeTimeSlots!.length - 4} more slots',
                                     style: AppTheme.labelSmall.copyWith(
-                                      color: AppTheme.textSecondary,
+                                      color: AppTheme.textSecondaryColor(context),
                                     ),
                                   ),
                                 ),
@@ -1838,7 +1802,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                     child: Text(
                       DateFormat('h:mm a').format(message.timestamp),
                       style: AppTheme.labelSmall.copyWith(
-                        color: AppTheme.textTertiary,
+                        color: AppTheme.textTertiaryColor(context),
                         fontSize: 11,
                       ),
                     ),
@@ -1892,7 +1856,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       decoration: BoxDecoration(
         color: AppTheme.info.withValues(alpha: 0.1),
         border: Border(
-          top: BorderSide(color: AppTheme.borderLight),
+          top: BorderSide(color: AppTheme.borderColor(context)),
         ),
       ),
       child: Row(
@@ -1909,7 +1873,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           IconButton(
             icon: const Icon(Icons.close, size: 18),
             onPressed: () => setState(() => _selectedFileName = null),
-            color: AppTheme.textSecondary,
+            color: AppTheme.textSecondaryColor(context),
           ),
         ],
       ),
@@ -1925,10 +1889,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         bottom: AppTheme.space8 + MediaQuery.of(context).padding.bottom,
       ),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceColor(context),
         border: Border(
           top: BorderSide(
-            color: AppTheme.borderLight,
+            color: AppTheme.borderColor(context),
             width: 1,
           ),
         ),
@@ -1940,7 +1904,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: AppTheme.surfaceVariant,
+                color: AppTheme.surfaceVariantColor(context),
                 borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
               ),
               child: Row(
@@ -1951,7 +1915,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                     IconButton(
                       onPressed: _isTranscribing ? null : _pickAudioFile,
                       icon: const Icon(Icons.attach_file, size: 20),
-                      color: AppTheme.textSecondary,
+                      color: AppTheme.textSecondaryColor(context),
                       tooltip: 'Attach file',
                       padding: const EdgeInsets.all(8),
                       constraints: const BoxConstraints(
@@ -1969,13 +1933,13 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                       textInputAction: TextInputAction.newline,
                       enableInteractiveSelection: true,
                       style: TextStyle(
-                        color: AppTheme.textPrimary,
+                        color: AppTheme.textPrimaryColor(context),
                         fontSize: 14,
                       ),
                       decoration: InputDecoration(
                         hintText: 'Ask me anything...',
                         hintStyle: TextStyle(
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.textSecondaryColor(context),
                           fontSize: 14,
                         ),
                         border: InputBorder.none,
@@ -1991,7 +1955,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                     IconButton(
                       onPressed: _startRecording,
                       icon: const Icon(Icons.mic, size: 20),
-                      color: AppTheme.textSecondary,
+                      color: AppTheme.textSecondaryColor(context),
                       tooltip: 'Voice input',
                       padding: const EdgeInsets.all(8),
                       constraints: const BoxConstraints(
@@ -2039,7 +2003,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                   height: 40,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isEmpty ? AppTheme.borderLight : AppTheme.primary,
+                    color: isEmpty ? AppTheme.borderColor(context) : AppTheme.primary,
                   ),
                   child: IconButton(
                     onPressed: isEmpty || _isLoading ? null : _sendMessage,
@@ -2055,7 +2019,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                         : Icon(
                             Icons.send,
                             size: 18,
-                            color: isEmpty ? AppTheme.textSecondary : Colors.white,
+                            color: isEmpty ? AppTheme.textSecondaryColor(context) : Colors.white,
                           ),
                     padding: EdgeInsets.zero,
                   ),
@@ -2078,21 +2042,6 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     }
   }
   
-  Widget _getPriorityIcon(TaskPriority priority) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: _getPriorityColor(priority).withValues(alpha: 0.1),
-        shape: BoxShape.circle,
-      ),
-      child: Icon(
-        Icons.flag,
-        size: 16,
-        color: _getPriorityColor(priority),
-      ),
-    );
-  }
-  
   Color _getSpaceColor(String colorName) {
     final colors = {
       'blue': Colors.blue,
@@ -2106,7 +2055,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     };
     return colors[colorName] ?? Colors.blue;
   }
-  
+
   String _formatStatistics(Map<String, dynamic> stats) {
     final parts = <String>[];
     if (stats['total'] != null) parts.add('Total: ${stats['total']}');
@@ -2280,9 +2229,9 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
     return Container(
       margin: const EdgeInsets.only(top: AppTheme.space8),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceColor(context),
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        border: Border.all(color: AppTheme.borderLight),
+        border: Border.all(color: AppTheme.borderColor(context)),
         boxShadow: AppTheme.shadowSmall,
       ),
       child: Column(
@@ -2308,7 +2257,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                           ? TextField(
                               controller: _titleController,
                               style: AppTheme.titleMedium.copyWith(
-                                color: AppTheme.textPrimary,
+                                color: AppTheme.textPrimaryColor(context),
                                 fontWeight: FontWeight.w600,
                               ),
                               decoration: const InputDecoration(
@@ -2320,7 +2269,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                           : Text(
                               _titleController.text,
                               style: AppTheme.titleMedium.copyWith(
-                                color: AppTheme.textPrimary,
+                                color: AppTheme.textPrimaryColor(context),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -2330,7 +2279,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                             ? TextField(
                                 controller: _descriptionController,
                                 style: AppTheme.bodySmall.copyWith(
-                                  color: AppTheme.textSecondary,
+                                  color: AppTheme.textSecondaryColor(context),
                                 ),
                                 decoration: InputDecoration(
                                   isDense: true,
@@ -2338,14 +2287,14 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                                   border: InputBorder.none,
                                   hintText: 'Add description...',
                                   hintStyle: AppTheme.bodySmall.copyWith(
-                                    color: AppTheme.textTertiary,
+                                    color: AppTheme.textTertiaryColor(context),
                                   ),
                                 ),
                               )
                             : Text(
                                 _descriptionController.text,
                                 style: AppTheme.bodySmall.copyWith(
-                                  color: AppTheme.textSecondary,
+                                  color: AppTheme.textSecondaryColor(context),
                                 ),
                               ),
                       ],
@@ -2358,7 +2307,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                     IconButton(
                       onPressed: _toggleEdit,
                       icon: Icon(_isEditing ? Icons.close : Icons.edit),
-                      color: AppTheme.textSecondary,
+                      color: AppTheme.textSecondaryColor(context),
                       tooltip: _isEditing ? 'Cancel Edit' : 'Edit',
                     ),
                     IconButton(
@@ -2408,14 +2357,14 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                           Text(
                             hasExactTime ? 'Scheduled Time' : 'Timing',
                             style: AppTheme.labelSmall.copyWith(
-                              color: AppTheme.textSecondary,
+                              color: AppTheme.textSecondaryColor(context),
                             ),
                           ),
                           _isEditing
                               ? TextField(
                                   controller: _timeController,
                                   style: AppTheme.titleMedium.copyWith(
-                                    color: hasExactTime ? AppTheme.success : AppTheme.textPrimary,
+                                    color: hasExactTime ? AppTheme.success : AppTheme.textPrimaryColor(context),
                                     fontWeight: FontWeight.w600,
                                   ),
                                   decoration: InputDecoration(
@@ -2424,14 +2373,14 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                                     border: InputBorder.none,
                                     hintText: 'e.g., 14:30 or 2:30 PM',
                                     hintStyle: AppTheme.bodySmall.copyWith(
-                                      color: AppTheme.textTertiary,
+                                      color: AppTheme.textTertiaryColor(context),
                                     ),
                                   ),
                                 )
                               : Text(
                                   _timeController.text.isEmpty ? displayTime : _timeController.text,
                                   style: AppTheme.titleMedium.copyWith(
-                                    color: hasExactTime ? AppTheme.success : AppTheme.textPrimary,
+                                    color: hasExactTime ? AppTheme.success : AppTheme.textPrimaryColor(context),
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -2636,7 +2585,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                     Text(
                       'Type',
                       style: AppTheme.labelMedium.copyWith(
-                        color: AppTheme.textSecondary,
+                        color: AppTheme.textSecondaryColor(context),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -2715,14 +2664,14 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                             Text(
                               'End Time',
                               style: AppTheme.labelSmall.copyWith(
-                                color: AppTheme.textSecondary,
+                                color: AppTheme.textSecondaryColor(context),
                               ),
                             ),
                             _isEditing
                                 ? TextField(
                                     controller: _endTimeController,
                                     style: AppTheme.bodyMedium.copyWith(
-                                      color: AppTheme.textPrimary,
+                                      color: AppTheme.textPrimaryColor(context),
                                     ),
                                     decoration: InputDecoration(
                                       isDense: true,
@@ -2730,14 +2679,14 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                                       border: InputBorder.none,
                                       hintText: 'Optional end time',
                                       hintStyle: AppTheme.bodySmall.copyWith(
-                                        color: AppTheme.textTertiary,
+                                        color: AppTheme.textTertiaryColor(context),
                                       ),
                                     ),
                                   )
                                 : Text(
                                     _endTimeController.text.isEmpty ? 'Not specified' : _endTimeController.text,
                                     style: AppTheme.bodyMedium.copyWith(
-                                      color: AppTheme.textPrimary,
+                                      color: AppTheme.textPrimaryColor(context),
                                     ),
                                   ),
                           ],
@@ -2755,7 +2704,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                     vertical: AppTheme.space8,
                   ),
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceVariant,
+                    color: AppTheme.surfaceVariantColor(context),
                     borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                   ),
                   child: Row(
@@ -2763,7 +2712,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                       Icon(
                         Icons.calendar_today,
                         size: 16,
-                        color: AppTheme.textSecondary,
+                        color: AppTheme.textSecondaryColor(context),
                       ),
                       const SizedBox(width: AppTheme.space8),
                       Expanded(
@@ -2772,7 +2721,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                               ? 'Today - ${DateFormat('EEEE, MMMM d, yyyy').format(_taskDate)}'
                               : DateFormat('EEEE, MMMM d, yyyy').format(_taskDate),
                           style: AppTheme.bodySmall.copyWith(
-                            color: AppTheme.textPrimary,
+                            color: AppTheme.textPrimaryColor(context),
                           ),
                         ),
                       ),
@@ -2790,7 +2739,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                               setState(() => _taskDate = picked);
                             }
                           },
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.textSecondaryColor(context),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                         ),
@@ -2823,13 +2772,13 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                             Text(
                               'Space',
                               style: AppTheme.labelSmall.copyWith(
-                                color: AppTheme.textSecondary,
+                                color: AppTheme.textSecondaryColor(context),
                               ),
                             ),
                             Text(
                               _selectedSpaceName ?? 'No space assigned',
                               style: AppTheme.bodyMedium.copyWith(
-                                color: _selectedSpaceName != null ? AppTheme.textPrimary : AppTheme.textTertiary,
+                                color: _selectedSpaceName != null ? AppTheme.textPrimaryColor(context) : AppTheme.textTertiaryColor(context),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -2917,7 +2866,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                                 ? 'Ends on ${DateFormat('MMM d, yyyy').format(_endDate!)}'
                                 : 'No end date',
                             style: AppTheme.bodySmall.copyWith(
-                              color: AppTheme.textPrimary,
+                              color: AppTheme.textPrimaryColor(context),
                             ),
                           ),
                         ),
@@ -2938,7 +2887,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                                 setState(() => _endDate = picked);
                               }
                             },
-                            color: AppTheme.textSecondary,
+                            color: AppTheme.textSecondaryColor(context),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                           ),
@@ -2967,12 +2916,12 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
         decoration: BoxDecoration(
           color: isSelected 
               ? AppTheme.primary.withValues(alpha: 0.1)
-              : AppTheme.surfaceVariant,
+              : AppTheme.surfaceVariantColor(context),
           borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
           border: Border.all(
             color: isSelected 
                 ? AppTheme.primary.withValues(alpha: 0.3)
-                : AppTheme.borderLight,
+                : AppTheme.borderColor(context),
           ),
         ),
         child: Row(
@@ -2981,13 +2930,13 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
             Icon(
               icon,
               size: 14,
-              color: isSelected ? AppTheme.primary : AppTheme.textSecondary,
+              color: isSelected ? AppTheme.primary : AppTheme.textSecondaryColor(context),
             ),
             const SizedBox(width: AppTheme.space4),
             Text(
               type.toUpperCase(),
               style: AppTheme.labelSmall.copyWith(
-                color: isSelected ? AppTheme.primary : AppTheme.textSecondary,
+                color: isSelected ? AppTheme.primary : AppTheme.textSecondaryColor(context),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -3123,9 +3072,9 @@ class _EditableSpaceSuggestionCardState extends State<EditableSpaceSuggestionCar
     return Container(
       margin: const EdgeInsets.only(top: AppTheme.space8),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceColor(context),
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        border: Border.all(color: AppTheme.borderLight),
+        border: Border.all(color: AppTheme.borderColor(context)),
         boxShadow: AppTheme.shadowSmall,
       ),
       child: Column(
@@ -3151,7 +3100,7 @@ class _EditableSpaceSuggestionCardState extends State<EditableSpaceSuggestionCar
                           ? TextField(
                               controller: _nameController,
                               style: AppTheme.titleMedium.copyWith(
-                                color: AppTheme.textPrimary,
+                                color: AppTheme.textPrimaryColor(context),
                                 fontWeight: FontWeight.w600,
                               ),
                               decoration: const InputDecoration(
@@ -3163,7 +3112,7 @@ class _EditableSpaceSuggestionCardState extends State<EditableSpaceSuggestionCar
                           : Text(
                               _nameController.text,
                               style: AppTheme.titleMedium.copyWith(
-                                color: AppTheme.textPrimary,
+                                color: AppTheme.textPrimaryColor(context),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -3173,7 +3122,7 @@ class _EditableSpaceSuggestionCardState extends State<EditableSpaceSuggestionCar
                             ? TextField(
                                 controller: _descriptionController,
                                 style: AppTheme.bodySmall.copyWith(
-                                  color: AppTheme.textSecondary,
+                                  color: AppTheme.textSecondaryColor(context),
                                 ),
                                 decoration: InputDecoration(
                                   isDense: true,
@@ -3181,14 +3130,14 @@ class _EditableSpaceSuggestionCardState extends State<EditableSpaceSuggestionCar
                                   border: InputBorder.none,
                                   hintText: 'Add description...',
                                   hintStyle: AppTheme.bodySmall.copyWith(
-                                    color: AppTheme.textTertiary,
+                                    color: AppTheme.textTertiaryColor(context),
                                   ),
                                 ),
                               )
                             : Text(
                                 _descriptionController.text,
                                 style: AppTheme.bodySmall.copyWith(
-                                  color: AppTheme.textSecondary,
+                                  color: AppTheme.textSecondaryColor(context),
                                 ),
                               ),
                       ],
@@ -3201,7 +3150,7 @@ class _EditableSpaceSuggestionCardState extends State<EditableSpaceSuggestionCar
                     IconButton(
                       onPressed: _toggleEdit,
                       icon: Icon(_isEditing ? Icons.close : Icons.edit),
-                      color: AppTheme.textSecondary,
+                      color: AppTheme.textSecondaryColor(context),
                       tooltip: _isEditing ? 'Cancel Edit' : 'Edit',
                     ),
                     IconButton(
@@ -3245,7 +3194,7 @@ class _EditableSpaceSuggestionCardState extends State<EditableSpaceSuggestionCar
                               borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                               border: Border.all(
                                 color: isSelected 
-                                    ? AppTheme.textPrimary 
+                                    ? AppTheme.textPrimaryColor(context) 
                                     : Colors.transparent,
                                 width: 3,
                               ),
@@ -3286,7 +3235,7 @@ class _EditableSpaceSuggestionCardState extends State<EditableSpaceSuggestionCar
                           Text(
                             'Space Color',
                             style: AppTheme.labelSmall.copyWith(
-                              color: AppTheme.textSecondary,
+                              color: AppTheme.textSecondaryColor(context),
                             ),
                           ),
                           Text(

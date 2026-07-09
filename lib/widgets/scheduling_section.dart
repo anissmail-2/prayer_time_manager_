@@ -559,15 +559,15 @@ class _SchedulingSectionState extends State<SchedulingSection> {
                   ? DateFormat('h:mm a').format(selectedTime)
                   : isStartTime ? 'Select start time' : 'Select end time',
               style: AppTheme.bodyLarge.copyWith(
-                color: selectedTime != null 
-                    ? (isDark ? Colors.white : Colors.black87)
-                    : Colors.grey,
+                color: selectedTime != null
+                    ? AppTheme.textPrimaryColor(context)
+                    : AppTheme.textTertiaryColor(context),
               ),
             ),
             const Spacer(),
             Icon(
               Icons.edit,
-              color: Colors.grey,
+              color: AppTheme.textSecondaryColor(context),
               size: 18,
             ),
           ],
@@ -608,7 +608,7 @@ class _SchedulingSectionState extends State<SchedulingSection> {
             ),
             initialValue: selectedPrayer,
             hint: const Text('Select prayer'),
-            dropdownColor: isDark ? AppTheme.surfaceDark : Colors.white,
+            dropdownColor: AppTheme.surfaceColor(context),
             items: PrayerName.values.map((prayer) {
               final prayerStr = prayer.toString().split('.').last;
               final displayName = prayerStr.substring(0, 1).toUpperCase() + 
@@ -742,7 +742,6 @@ class _SchedulingSectionState extends State<SchedulingSection> {
     required String label,
     required Color color,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final prayerStr = prayer.toString().split('.').last;
     final displayName = prayerStr.substring(0, 1).toUpperCase() + prayerStr.substring(1);
     
@@ -812,7 +811,7 @@ class _SchedulingSectionState extends State<SchedulingSection> {
           child: Icon(
             icon,
             size: 18,
-            color: isSelected ? AppTheme.primary : Colors.grey,
+            color: isSelected ? AppTheme.primary : AppTheme.textSecondaryColor(context),
           ),
         ),
       ),

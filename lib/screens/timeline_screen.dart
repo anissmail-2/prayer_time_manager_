@@ -199,7 +199,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
             description: '${pastDuration.inMinutes} minutes (past)',
             time: freeSlot.startTime,
             endTime: now,
-            color: AppTheme.textTertiary.withValues(alpha: 0.3),
+            color: AppTheme.textTertiaryColor(context).withValues(alpha: 0.3),
             icon: Icons.history_rounded,
             freeSlot: FreeTimeSlot(
               startTime: freeSlot.startTime,
@@ -235,8 +235,8 @@ class _TimelineScreenState extends State<TimelineScreen> {
                 : '${freeSlot.duration.inMinutes} minutes available',
             time: freeSlot.startTime,
             endTime: freeSlot.endTime,
-            color: isPast 
-                ? AppTheme.textTertiary.withValues(alpha: 0.3)
+            color: isPast
+                ? AppTheme.textTertiaryColor(context).withValues(alpha: 0.3)
                 : AppTheme.success.withValues(alpha: 0.3),
             icon: isPast ? Icons.history_rounded : Icons.add_circle_outline_rounded,
             freeSlot: freeSlot,
@@ -306,7 +306,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: AppTheme.backgroundColor(context),
       body: SafeArea(
         child: Column(
           children: [
@@ -326,7 +326,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
     final isToday = _isSameDay(_selectedDate, DateTime.now());
     
     return Container(
-      color: AppTheme.surface,
+      color: AppTheme.surfaceColor(context),
       child: Column(
         children: [
           // Date selector and filter button
@@ -340,10 +340,10 @@ class _TimelineScreenState extends State<TimelineScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                     decoration: BoxDecoration(
-                      color: isToday ? AppTheme.primary.withValues(alpha: 0.1) : AppTheme.backgroundLight,
+                      color: isToday ? AppTheme.primary.withValues(alpha: 0.1) : AppTheme.backgroundColor(context),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isToday ? AppTheme.primary : AppTheme.borderLight,
+                        color: isToday ? AppTheme.primary : AppTheme.borderColor(context),
                         width: isToday ? 2 : 1,
                       ),
                     ),
@@ -351,7 +351,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
                       children: [
                         Icon(
                           Icons.calendar_today_rounded,
-                          color: isToday ? AppTheme.primary : AppTheme.textSecondary,
+                          color: isToday ? AppTheme.primary : AppTheme.textSecondaryColor(context),
                           size: 24,
                         ),
                         const SizedBox(width: 16),
@@ -363,14 +363,14 @@ class _TimelineScreenState extends State<TimelineScreen> {
                                 isToday ? 'Today' : DateFormat('EEEE').format(_selectedDate),
                                 style: AppTheme.titleMedium.copyWith(
                                   fontWeight: FontWeight.bold,
-                                  color: isToday ? AppTheme.primary : AppTheme.textPrimary,
+                                  color: isToday ? AppTheme.primary : AppTheme.textPrimaryColor(context),
                                 ),
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 DateFormat('MMMM d, yyyy').format(_selectedDate),
                                 style: AppTheme.bodySmall.copyWith(
-                                  color: AppTheme.textSecondary,
+                                  color: AppTheme.textSecondaryColor(context),
                                 ),
                               ),
                             ],
@@ -378,7 +378,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
                         ),
                         Icon(
                           Icons.arrow_forward_ios_rounded,
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.textSecondaryColor(context),
                           size: 16,
                         ),
                       ],
@@ -403,9 +403,9 @@ class _TimelineScreenState extends State<TimelineScreen> {
                         ),
                         label: Text(_showPrayerTimes ? 'Hide Prayers' : 'Show Prayers'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: _showPrayerTimes ? AppTheme.primary : AppTheme.textSecondary,
+                          foregroundColor: _showPrayerTimes ? AppTheme.primary : AppTheme.textSecondaryColor(context),
                           side: BorderSide(
-                            color: _showPrayerTimes ? AppTheme.primary : AppTheme.borderLight,
+                            color: _showPrayerTimes ? AppTheme.primary : AppTheme.borderColor(context),
                           ),
                           minimumSize: const Size.fromHeight(44),
                           shape: RoundedRectangleBorder(
@@ -429,9 +429,9 @@ class _TimelineScreenState extends State<TimelineScreen> {
                         ),
                         label: Text(_showFreeTime ? 'Hide Free' : 'Show Free'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: _showFreeTime ? AppTheme.success : AppTheme.textSecondary,
+                          foregroundColor: _showFreeTime ? AppTheme.success : AppTheme.textSecondaryColor(context),
                           side: BorderSide(
-                            color: _showFreeTime ? AppTheme.success : AppTheme.borderLight,
+                            color: _showFreeTime ? AppTheme.success : AppTheme.borderColor(context),
                           ),
                           minimumSize: const Size.fromHeight(44),
                           shape: RoundedRectangleBorder(
@@ -460,7 +460,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
             Icon(
               Icons.event_available_rounded,
               size: 64,
-              color: AppTheme.textSecondary.withValues(alpha: 0.3),
+              color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.3),
             ),
             const SizedBox(height: 16),
             Text(
@@ -468,7 +468,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
                   ? 'No events today'
                   : 'No events on ${DateFormat('EEE, MMM d').format(_selectedDate)}',
               style: AppTheme.titleMedium.copyWith(
-                color: AppTheme.textSecondary,
+                color: AppTheme.textSecondaryColor(context),
               ),
             ),
           ],
@@ -507,13 +507,13 @@ class _TimelineScreenState extends State<TimelineScreen> {
       child: Text(
         item.title,
         style: AppTheme.headlineSmall.copyWith(
-          color: AppTheme.textPrimary,
+          color: AppTheme.textPrimaryColor(context),
           fontWeight: FontWeight.bold,
         ),
       ),
     );
   }
-  
+
   Widget _buildTimeMarker(TimelineItem item) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -524,7 +524,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
             child: Text(
               item.title,
               style: AppTheme.bodySmall.copyWith(
-                color: AppTheme.textSecondary,
+                color: AppTheme.textSecondaryColor(context),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -532,7 +532,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
           Expanded(
             child: Container(
               height: 1,
-              color: AppTheme.borderLight,
+              color: AppTheme.borderColor(context),
             ),
           ),
         ],
@@ -646,9 +646,9 @@ class _TimelineScreenState extends State<TimelineScreen> {
                       item.title,
                       style: AppTheme.titleSmall.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: isPast 
-                            ? AppTheme.textSecondary
-                            : AppTheme.textPrimary,
+                        color: isPast
+                            ? AppTheme.textSecondaryColor(context)
+                            : AppTheme.textPrimaryColor(context),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -657,15 +657,15 @@ class _TimelineScreenState extends State<TimelineScreen> {
                         Icon(
                           Icons.access_time,
                           size: 12,
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.textSecondaryColor(context),
                         ),
                         const SizedBox(width: 4),
                         Text(
                           '${DateFormat('h:mm a').format(item.time)} - ${DateFormat('h:mm a').format(item.endTime!)}',
                           style: AppTheme.bodySmall.copyWith(
-                            color: isPast 
-                                ? AppTheme.textSecondary.withValues(alpha: 0.7)
-                                : AppTheme.textSecondary,
+                            color: isPast
+                                ? AppTheme.textSecondaryColor(context).withValues(alpha: 0.7)
+                                : AppTheme.textSecondaryColor(context),
                           ),
                         ),
                       ],
@@ -675,7 +675,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
                       Text(
                         'Iqama: ${DateFormat('h:mm a').format(item.actualPrayerTime!)}',
                         style: AppTheme.bodySmall.copyWith(
-                          color: AppTheme.textSecondary.withValues(alpha: 0.8),
+                          color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.8),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -702,7 +702,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
               else if (isPast)
                 Icon(
                   Icons.check_circle_rounded,
-                  color: AppTheme.textSecondary.withValues(alpha: 0.5),
+                  color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.5),
                   size: 20,
                 ),
             ],
@@ -725,10 +725,10 @@ class _TimelineScreenState extends State<TimelineScreen> {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.surface,
+            color: AppTheme.surfaceColor(context),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: AppTheme.borderLight,
+              color: AppTheme.borderColor(context),
               width: 1,
             ),
           ),
@@ -757,8 +757,8 @@ class _TimelineScreenState extends State<TimelineScreen> {
                         fontWeight: FontWeight.w600,
                         decoration: isCompleted ? TextDecoration.lineThrough : null,
                         color: isCompleted || isPast
-                            ? AppTheme.textSecondary
-                            : AppTheme.textPrimary,
+                            ? AppTheme.textSecondaryColor(context)
+                            : AppTheme.textPrimaryColor(context),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -767,7 +767,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
                         Icon(
                           Icons.access_time,
                           size: 12,
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.textSecondaryColor(context),
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -775,7 +775,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
                               ? '${DateFormat('h:mm a').format(item.time)} - ${DateFormat('h:mm a').format(item.endTime!)}'
                               : DateFormat('h:mm a').format(item.time),
                           style: AppTheme.bodySmall.copyWith(
-                            color: AppTheme.textSecondary,
+                            color: AppTheme.textSecondaryColor(context),
                           ),
                         ),
                       ],
@@ -785,7 +785,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
                       Text(
                         item.description!,
                         style: AppTheme.bodySmall.copyWith(
-                          color: AppTheme.textSecondary.withValues(alpha: 0.8),
+                          color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.8),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -804,8 +804,8 @@ class _TimelineScreenState extends State<TimelineScreen> {
                   color: isCompleted
                       ? AppTheme.success
                       : isPast
-                          ? AppTheme.textSecondary.withValues(alpha: 0.5)
-                          : AppTheme.textSecondary,
+                          ? AppTheme.textSecondaryColor(context).withValues(alpha: 0.5)
+                          : AppTheme.textSecondaryColor(context),
                 ),
               ),
             ],
@@ -843,13 +843,13 @@ class _TimelineScreenState extends State<TimelineScreen> {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isPast 
-                ? AppTheme.surface.withValues(alpha: 0.5)
-                : AppTheme.surface,
+            color: isPast
+                ? AppTheme.surfaceColor(context).withValues(alpha: 0.5)
+                : AppTheme.surfaceColor(context),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isPast 
-                  ? AppTheme.textTertiary.withValues(alpha: 0.2)
+              color: isPast
+                  ? AppTheme.textTertiaryColor(context).withValues(alpha: 0.2)
                   : AppTheme.success.withValues(alpha: 0.3),
               width: 1,
               style: BorderStyle.solid,
@@ -860,15 +860,15 @@ class _TimelineScreenState extends State<TimelineScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: isPast 
-                      ? AppTheme.textTertiary.withValues(alpha: 0.1)
+                  color: isPast
+                      ? AppTheme.textTertiaryColor(context).withValues(alpha: 0.1)
                       : AppTheme.success.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   item.icon,
-                  color: isPast 
-                      ? AppTheme.textTertiary
+                  color: isPast
+                      ? AppTheme.textTertiaryColor(context)
                       : AppTheme.success,
                   size: 20,
                 ),
@@ -882,8 +882,8 @@ class _TimelineScreenState extends State<TimelineScreen> {
                       item.title,
                       style: AppTheme.titleSmall.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: isPast 
-                            ? AppTheme.textTertiary
+                        color: isPast
+                            ? AppTheme.textTertiaryColor(context)
                             : AppTheme.success,
                       ),
                     ),
@@ -893,13 +893,13 @@ class _TimelineScreenState extends State<TimelineScreen> {
                         Icon(
                           Icons.schedule,
                           size: 12,
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.textSecondaryColor(context),
                         ),
                         const SizedBox(width: 4),
                         Text(
                           '${DateFormat('h:mm a').format(item.time)} - ${DateFormat('h:mm a').format(item.endTime!)}',
                           style: AppTheme.bodySmall.copyWith(
-                            color: AppTheme.textSecondary,
+                            color: AppTheme.textSecondaryColor(context),
                           ),
                         ),
                       ],
@@ -909,7 +909,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
                       Text(
                         item.description!,
                         style: AppTheme.bodySmall.copyWith(
-                          color: AppTheme.textSecondary.withValues(alpha: 0.8),
+                          color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.8),
                         ),
                       ),
                     ],
@@ -918,7 +918,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
               ),
               Icon(
                 Icons.add_circle_outline_rounded,
-                color: isPast ? AppTheme.textSecondary.withValues(alpha: 0.5) : AppTheme.success,
+                color: isPast ? AppTheme.textSecondaryColor(context).withValues(alpha: 0.5) : AppTheme.success,
                 size: 24,
               ),
             ],
@@ -931,7 +931,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
   void _showPrayerDetails(TimelineItem item, {bool canEdit = true}) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppTheme.surface,
+      backgroundColor: AppTheme.surfaceColor(context),
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -967,14 +967,14 @@ class _TimelineScreenState extends State<TimelineScreen> {
                       Text(
                         item.title,
                         style: AppTheme.headlineSmall.copyWith(
-                          color: AppTheme.textPrimary,
+                          color: AppTheme.textPrimaryColor(context),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
                         'Prayer Time',
                         style: AppTheme.bodySmall.copyWith(
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.textSecondaryColor(context),
                         ),
                       ),
                     ],
@@ -1004,7 +1004,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
                         Text(
                           'Duration',
                           style: AppTheme.bodySmall.copyWith(
-                            color: AppTheme.textPrimary,
+                            color: AppTheme.textPrimaryColor(context),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -1031,7 +1031,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
                           Text(
                             'Iqama Time',
                             style: AppTheme.bodySmall.copyWith(
-                              color: AppTheme.textPrimary,
+                              color: AppTheme.textPrimaryColor(context),
                               fontWeight: FontWeight.w600,
                             ),
                           ),

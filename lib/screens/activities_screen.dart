@@ -240,7 +240,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: AppTheme.backgroundColor(context),
       body: Column(
         children: [
           _buildHeader(),
@@ -285,7 +285,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
               Text(
                 'Activities',
                 style: AppTheme.headlineLarge.copyWith(
-                  color: AppTheme.textPrimary,
+                  color: AppTheme.textPrimaryColor(context),
                 ),
               ),
               IconButton(
@@ -294,7 +294,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                   decoration: BoxDecoration(
                     color: _filterOptions.hasActiveFilters
                         ? AppTheme.primary.withValues(alpha: 0.1)
-                        : AppTheme.surfaceVariant,
+                        : AppTheme.surfaceVariantColor(context),
                     borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                   ),
                   child: Stack(
@@ -303,7 +303,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                         Icons.filter_list,
                         color: _filterOptions.hasActiveFilters
                             ? AppTheme.primary
-                            : AppTheme.textSecondary,
+                            : AppTheme.textSecondaryColor(context),
                       ),
                       if (_filterOptions.hasActiveFilters)
                         Positioned(
@@ -382,13 +382,13 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
             Icon(
               Icons.task_alt,
               size: 64,
-              color: AppTheme.textTertiary,
+              color: AppTheme.textTertiaryColor(context),
             ),
             const SizedBox(height: AppTheme.space16),
             Text(
               'No activities found',
               style: AppTheme.titleLarge.copyWith(
-                color: AppTheme.textSecondary,
+                color: AppTheme.textSecondaryColor(context),
               ),
             ),
             const SizedBox(height: AppTheme.space8),
@@ -397,7 +397,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                   ? 'Try adjusting your search'
                   : 'Create your first activity',
               style: AppTheme.bodyLarge.copyWith(
-                color: AppTheme.textTertiary,
+                color: AppTheme.textTertiaryColor(context),
               ),
             ),
           ],
@@ -422,7 +422,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
     
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.space12),
-      decoration: AppTheme.cardDecoration(),
+      decoration: AppTheme.cardDecorationFor(context),
       child: Dismissible(
         key: Key(task.id),
         direction: DismissDirection.endToStart,
@@ -509,8 +509,8 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                               task.title,
                               style: AppTheme.titleMedium.copyWith(
                                 color: isCompleted
-                                    ? AppTheme.textTertiary
-                                    : AppTheme.textPrimary,
+                                    ? AppTheme.textTertiaryColor(context)
+                                    : AppTheme.textPrimaryColor(context),
                                 decoration: isCompleted
                                     ? TextDecoration.lineThrough
                                     : null,
@@ -553,7 +553,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                         Text(
                           task.description!,
                           style: AppTheme.bodySmall.copyWith(
-                            color: AppTheme.textSecondary,
+                            color: AppTheme.textSecondaryColor(context),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -569,7 +569,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                               vertical: AppTheme.space4,
                             ),
                             decoration: BoxDecoration(
-                              color: AppTheme.surfaceVariant,
+                              color: AppTheme.surfaceVariantColor(context),
                               borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                             ),
                             child: Row(
@@ -578,13 +578,13 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                                 Icon(
                                   Icons.calendar_today,
                                   size: 14,
-                                  color: AppTheme.textSecondary,
+                                  color: AppTheme.textSecondaryColor(context),
                                 ),
                                 const SizedBox(width: AppTheme.space4),
                                 Text(
                                   DateFormat('MMM d, yyyy').format(time),
                                   style: AppTheme.bodySmall.copyWith(
-                                    color: AppTheme.textSecondary,
+                                    color: AppTheme.textSecondaryColor(context),
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -596,7 +596,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                           Icon(
                             Icons.schedule,
                             size: 16,
-                            color: AppTheme.textTertiary,
+                            color: AppTheme.textTertiaryColor(context),
                           ),
                           const SizedBox(width: AppTheme.space4),
                           Text(
@@ -604,7 +604,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                                     ? '${DateFormat('h:mm a').format(taskWithTime.scheduledTime)} - ${DateFormat('h:mm a').format(taskWithTime.endTime!)}'
                                     : DateFormat('h:mm a').format(time),
                             style: AppTheme.bodySmall.copyWith(
-                              color: AppTheme.textTertiary,
+                              color: AppTheme.textTertiaryColor(context),
                             ),
                           ),
                           const Spacer(),
@@ -612,13 +612,13 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                             Icon(
                               Icons.repeat,
                               size: 16,
-                              color: AppTheme.textTertiary,
+                              color: AppTheme.textTertiaryColor(context),
                             ),
                             const SizedBox(width: AppTheme.space4),
                             Text(
                               task.recurrence.name,
                               style: AppTheme.bodySmall.copyWith(
-                                color: AppTheme.textTertiary,
+                                color: AppTheme.textTertiaryColor(context),
                               ),
                             ),
                           ],

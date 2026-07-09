@@ -319,7 +319,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: AppTheme.backgroundColor(context),
       body: Column(
         children: [
           _buildHeader(),
@@ -360,7 +360,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
     return Container(
       padding: const EdgeInsets.all(AppTheme.space24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surfaceColor(context),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -381,14 +381,14 @@ class _AgendaScreenState extends State<AgendaScreen> {
                   Text(
                     'Agenda',
                     style: AppTheme.headlineLarge.copyWith(
-                      color: AppTheme.textPrimary,
+                      color: AppTheme.textPrimaryColor(context),
                     ),
                   ),
                   if (!hasActiveFilters)
                     Text(
                       DateFormat('EEEE, MMM d').format(DateTime.now()),
                       style: AppTheme.bodySmall.copyWith(
-                        color: AppTheme.textSecondary,
+                        color: AppTheme.textSecondaryColor(context),
                       ),
                     )
                   else
@@ -441,7 +441,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                       decoration: BoxDecoration(
                         color: hasActiveFilters
                             ? AppTheme.primary.withValues(alpha: 0.1)
-                            : AppTheme.surfaceVariant,
+                            : AppTheme.surfaceVariantColor(context),
                         borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                       ),
                       child: Stack(
@@ -450,7 +450,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                             Icons.filter_list,
                             color: hasActiveFilters
                                 ? AppTheme.primary
-                                : AppTheme.textSecondary,
+                                : AppTheme.textSecondaryColor(context),
                           ),
                           if (hasActiveFilters)
                             Positioned(
@@ -463,7 +463,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                                   color: AppTheme.primary,
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: Colors.white,
+                                    color: AppTheme.surfaceColor(context),
                                     width: 1.5,
                                   ),
                                 ),
@@ -495,7 +495,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                             Icons.tag,
                             color: _filterOptions.searchInTags
                                 ? AppTheme.primary
-                                : AppTheme.textTertiary,
+                                : AppTheme.textTertiaryColor(context),
                           ),
                           tooltip: 'Search in tags',
                           onPressed: () {
@@ -519,7 +519,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                     )
                   : null,
               filled: true,
-              fillColor: AppTheme.surfaceVariant.withValues(alpha: 0.5),
+              fillColor: AppTheme.surfaceVariantColor(context).withValues(alpha: 0.5),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                 borderSide: BorderSide.none,
@@ -592,13 +592,13 @@ class _AgendaScreenState extends State<AgendaScreen> {
             Icon(
               Icons.event_note,
               size: 64,
-              color: AppTheme.textTertiary,
+              color: AppTheme.textTertiaryColor(context),
             ),
             const SizedBox(height: AppTheme.space16),
             Text(
               'No items found',
               style: AppTheme.titleLarge.copyWith(
-                color: AppTheme.textSecondary,
+                color: AppTheme.textSecondaryColor(context),
               ),
             ),
             const SizedBox(height: AppTheme.space8),
@@ -609,7 +609,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                       ? 'Try adjusting your filters'
                       : 'Create your first item',
               style: AppTheme.bodyLarge.copyWith(
-                color: AppTheme.textTertiary,
+                color: AppTheme.textTertiaryColor(context),
               ),
             ),
             if (_filterOptions.hasActiveFilters) ...[
@@ -669,7 +669,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
     
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.space12),
-      decoration: AppTheme.cardDecoration(),
+      decoration: AppTheme.cardDecorationFor(context),
       child: Dismissible(
         key: Key(task.id),
         direction: DismissDirection.endToStart,
@@ -760,8 +760,8 @@ class _AgendaScreenState extends State<AgendaScreen> {
                         task.title,
                         style: AppTheme.titleMedium.copyWith(
                           color: isCompleted
-                              ? AppTheme.textTertiary
-                              : AppTheme.textPrimary,
+                              ? AppTheme.textTertiaryColor(context)
+                              : AppTheme.textPrimaryColor(context),
                           decoration: isCompleted
                               ? TextDecoration.lineThrough
                               : null,
@@ -772,7 +772,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                         Text(
                           task.description!.replaceAll(RegExp(r'#\w+'), '').trim(),
                           style: AppTheme.bodySmall.copyWith(
-                            color: AppTheme.textSecondary,
+                            color: AppTheme.textSecondaryColor(context),
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -787,7 +787,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                           _buildChip(
                             icon: Icons.calendar_today,
                             label: DateFormat('MMM d').format(time),
-                            color: AppTheme.textSecondary,
+                            color: AppTheme.textSecondaryColor(context),
                           ),
                           // Time display
                           _buildChip(
@@ -795,7 +795,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                             label: taskWithTime.endTime != null
                                     ? '${DateFormat('h:mm a').format(time)} - ${DateFormat('h:mm a').format(taskWithTime.endTime!)}'
                                     : DateFormat('h:mm a').format(time),
-                            color: AppTheme.textSecondary,
+                            color: AppTheme.textSecondaryColor(context),
                           ),
                           // Space indicator
                           if (space != null)

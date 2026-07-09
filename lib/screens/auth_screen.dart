@@ -158,7 +158,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                 ? 'Welcome back!'
                                 : 'Create your account',
                             style: AppTheme.bodyLarge.copyWith(
-                              color: AppTheme.textSecondary,
+                              color: AppTheme.textSecondaryColor(context),
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -348,7 +348,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                 child: Text(
                                   'OR',
                                   style: AppTheme.bodySmall.copyWith(
-                                    color: AppTheme.textSecondary,
+                                    color: AppTheme.textSecondaryColor(context),
                                   ),
                                 ),
                               ),
@@ -401,7 +401,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                     ? "Don't have an account?"
                                     : 'Already have an account?',
                                 style: AppTheme.bodyMedium.copyWith(
-                                  color: AppTheme.textSecondary,
+                                  color: AppTheme.textSecondaryColor(context),
                                 ),
                               ),
                               TextButton(
@@ -516,7 +516,7 @@ class _ForgotPasswordDialogState extends State<_ForgotPasswordDialog> {
           Text(
             'Enter your email address and we\'ll send you a link to reset your password.',
             style: AppTheme.bodyMedium.copyWith(
-              color: AppTheme.textSecondary,
+              color: AppTheme.textSecondaryColor(context),
             ),
           ),
           SizedBox(height: AppTheme.space16),

@@ -99,7 +99,7 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Data Sync Status'),
-        backgroundColor: AppTheme.surface,
+        backgroundColor: AppTheme.surfaceColor(context),
       ),
       body: Padding(
         padding: const EdgeInsets.all(AppTheme.space16),
@@ -117,7 +117,7 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
                       children: [
                         Icon(
                           isLoggedIn ? Icons.cloud_done : Icons.cloud_off,
-                          color: isLoggedIn ? AppTheme.success : AppTheme.textSecondary,
+                          color: isLoggedIn ? AppTheme.success : AppTheme.textSecondaryColor(context),
                         ),
                         const SizedBox(width: AppTheme.space8),
                         Text(
@@ -130,7 +130,7 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
                     Text(
                       _syncStatus,
                       style: AppTheme.bodyMedium.copyWith(
-                        color: AppTheme.textSecondary,
+                        color: AppTheme.textSecondaryColor(context),
                       ),
                     ),
                   ],
@@ -160,7 +160,7 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
                       Text(
                         'User ID: ${AuthService.userId ?? 'Unknown'}',
                         style: AppTheme.bodySmall.copyWith(
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.textSecondaryColor(context),
                         ),
                       ),
                     ],
@@ -196,7 +196,7 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
                         Text(
                           'Local tasks: ${_lastSyncResult!['localTaskCount']}',
                           style: AppTheme.bodySmall.copyWith(
-                            color: AppTheme.textSecondary,
+                            color: AppTheme.textSecondaryColor(context),
                           ),
                         ),
                     ],
@@ -234,7 +234,7 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
                     Icon(
                       Icons.info_outline,
                       size: 48,
-                      color: AppTheme.textSecondary,
+                      color: AppTheme.textSecondaryColor(context),
                     ),
                     const SizedBox(height: AppTheme.space16),
                     Text(
@@ -245,7 +245,7 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
                     Text(
                       'Your data is currently stored locally only',
                       style: AppTheme.bodyMedium.copyWith(
-                        color: AppTheme.textSecondary,
+                        color: AppTheme.textSecondaryColor(context),
                       ),
                     ),
                   ],
