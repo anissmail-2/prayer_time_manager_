@@ -7,6 +7,8 @@ import '../core/services/data_sync_service.dart';
 import 'prayer_settings_screen.dart';
 import 'location_settings_screen.dart';
 import 'auth_screen.dart';
+import 'api_keys_screen.dart';
+import 'sync_status_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -40,11 +42,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (confirm == true) {
       await AuthService.signOut();
       if (mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const AuthScreen()),
-          (route) => false,
-        );
+        // Return to the root route; AuthWrapper's auth-state StreamBuilder
+        // will show the AuthScreen once signed out.
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
     }
   }
@@ -76,11 +76,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       try {
         await AuthService.deleteAccount();
         if (mounted) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (_) => const AuthScreen()),
-            (route) => false,
-          );
+          // Return to the root route; AuthWrapper's auth-state StreamBuilder
+          // will show the AuthScreen once the account is gone.
+          Navigator.of(context).popUntil((route) => route.isFirst);
         }
       } catch (e) {
         if (mounted) {
@@ -156,6 +154,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   : null,
               ),
               _buildSettingsTile(
+                icon: Icons.cloud_outlined,
+                title: 'Sync Status',
+                subtitle: 'View cloud sync status and data summary',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SyncStatusScreen()),
+                  );
+                },
+              ),
+              _buildSettingsTile(
                 icon: Icons.logout,
                 title: 'Sign Out',
                 subtitle: 'Sign out of your account',
@@ -203,7 +212,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           const SizedBox(height: AppTheme.space16),
-          
+
+          // AI & API Configuration
+          _buildSectionHeader('AI & API Configuration'),
+          _buildSettingsTile(
+            icon: Icons.key_outlined,
+            title: 'API Keys',
+            subtitle: 'Configure AI and voice transcription API keys',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ApiKeysScreen()),
+              );
+            },
+          ),
+          const SizedBox(height: AppTheme.space16),
+
           // App Info
           _buildSectionHeader('About'),
           _buildSettingsTile(

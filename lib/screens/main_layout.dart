@@ -6,9 +6,15 @@ import 'timeline_screen.dart';
 import 'ai_assistant_screen.dart';
 import 'prayer_schedule_screen.dart';
 import 'mobile_spaces_screen.dart';
+import 'settings_screen.dart';
 import '../core/theme/app_theme.dart';
 import '../core/services/auth_service.dart';
 import '../core/services/data_migration_service.dart';
+import '../core/services/todo_service.dart';
+import '../core/services/space_service.dart';
+import '../models/task.dart';
+import '../models/space.dart';
+import '../widgets/task_details_dialog.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -20,14 +26,15 @@ class MainLayout extends StatefulWidget {
 class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMixin {
   int _selectedIndex = 0;
   bool _isCollapsed = false;
+  bool _migrationCheckDone = false;
   late AnimationController _animationController;
   late Animation<double> _widthAnimation;
-  
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Check for data migration on first load
+
+  void _scheduleMigrationCheck() {
+    if (_migrationCheckDone) return;
+    _migrationCheckDone = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
       if (await DataMigrationService.checkAndPromptMigration(context)) {
         if (mounted) {
           await DataMigrationService.showMigrationDialog(context);
@@ -35,7 +42,8 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
       }
     });
   }
-  
+
+
   void navigateTo(int index) {
     setState(() {
       _selectedIndex = index;
@@ -84,6 +92,7 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
   @override
   void initState() {
     super.initState();
+    _scheduleMigrationCheck();
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
@@ -127,7 +136,7 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
   Widget _buildContent() {
     switch (_selectedIndex) {
       case 0:
-        return const DashboardScreen();
+        return DashboardScreen(onNavigate: navigateTo);
       case 1:
         return const AgendaScreen();
       case 2:
@@ -141,8 +150,32 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
       case 5:
         return const PrayerScheduleScreen();
       default:
-        return const DashboardScreen();
+        return DashboardScreen(onNavigate: navigateTo);
     }
+  }
+
+  void _openSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+    );
+  }
+
+  void _openSearch() {
+    showSearch<void>(
+      context: context,
+      delegate: _AppSearchDelegate(
+        onSelectTask: _showTaskDetails,
+        onSelectSpace: () => navigateTo(2),
+      ),
+    );
+  }
+
+  void _showTaskDetails(Task task) {
+    showDialog(
+      context: context,
+      builder: (context) => TaskDetailsDialog(task: task),
+    );
   }
 
   @override
@@ -152,7 +185,7 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
     final bool showDrawer = !isDesktop && !isTablet;
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       drawer: showDrawer ? _buildMobileDrawer() : null,
       body: SafeArea(
         child: Row(
@@ -173,16 +206,17 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
   }
 
   Widget _buildTopBar(bool showMobileMenu) {
+    final surfaceColor = Theme.of(context).colorScheme.surface;
     return Material(
-      color: Colors.white,
+      color: surfaceColor,
       elevation: 0,
       child: Container(
         height: 64,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: surfaceColor,
           border: Border(
             bottom: BorderSide(
-              color: AppTheme.borderLight,
+              color: Theme.of(context).dividerColor,
               width: 1,
             ),
           ),
@@ -215,20 +249,8 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
               color: Colors.transparent,
               child: IconButton(
                 icon: const Icon(Icons.search),
-                onPressed: () {
-                  // TODO: Implement search
-                },
-                color: AppTheme.textSecondary,
-                splashRadius: 24,
-              ),
-            ),
-            Material(
-              color: Colors.transparent,
-              child: IconButton(
-                icon: const Icon(Icons.notifications_none),
-                onPressed: () {
-                  // TODO: Implement notifications
-                },
+                tooltip: 'Search tasks and spaces',
+                onPressed: _openSearch,
                 color: AppTheme.textSecondary,
                 splashRadius: 24,
               ),
@@ -241,30 +263,6 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
               ),
               itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: 'profile',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.person_outline, size: 20),
-                      const SizedBox(width: 12),
-                      Text(
-                        AuthService.currentUser?.displayName ?? 'User',
-                        style: AppTheme.bodyMedium,
-                      ),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 'subscription',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.star_outline, size: 20),
-                      const SizedBox(width: 12),
-                      Text('Subscription', style: AppTheme.bodyMedium),
-                    ],
-                  ),
-                ),
-                const PopupMenuDivider(),
                 PopupMenuItem(
                   value: 'settings',
                   child: Row(
@@ -288,14 +286,8 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
               ],
               onSelected: (value) async {
                 switch (value) {
-                  case 'profile':
-                    // TODO: Navigate to profile screen
-                    break;
-                  case 'subscription':
-                    // TODO: Navigate to subscription screen
-                    break;
                   case 'settings':
-                    // TODO: Navigate to settings screen
+                    _openSettings();
                     break;
                   case 'signout':
                     await AuthService.signOut();
@@ -414,7 +406,7 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
                   route: 'settings',
                 ),
                 isSelected: false,
-                onTap: () {},
+                onTap: _openSettings,
               ),
               const SizedBox(height: 16),
             ],
@@ -562,7 +554,7 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
                 title: Text('Settings', style: TextStyle(color: AppTheme.textPrimary)),
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Navigate to settings
+                  _openSettings();
                 },
               ),
             ),
@@ -587,4 +579,165 @@ class NavigationItem {
     required this.label,
     required this.route,
   });
+}
+
+/// Searches task titles/descriptions and space names.
+///
+/// Selecting a task opens [TaskDetailsDialog]; selecting a space switches
+/// to the Spaces tab.
+class _AppSearchDelegate extends SearchDelegate<void> {
+  final void Function(Task task) onSelectTask;
+  final VoidCallback onSelectSpace;
+
+  _AppSearchDelegate({
+    required this.onSelectTask,
+    required this.onSelectSpace,
+  }) : super(searchFieldLabel: 'Search tasks and spaces');
+
+  Future<(List<Task>, List<Space>)> _search(String query) async {
+    final lower = query.toLowerCase();
+    final tasks = await TodoService.getAllTasks();
+    final spaces = await SpaceService.getAllSpaces();
+
+    final matchedTasks = tasks.where((task) {
+      return task.title.toLowerCase().contains(lower) ||
+          (task.description?.toLowerCase().contains(lower) ?? false);
+    }).toList();
+
+    final matchedSpaces = spaces.where((space) {
+      return space.name.toLowerCase().contains(lower) ||
+          (space.description?.toLowerCase().contains(lower) ?? false);
+    }).toList();
+
+    return (matchedTasks, matchedSpaces);
+  }
+
+  @override
+  List<Widget> buildActions(BuildContext context) {
+    return [
+      if (query.isNotEmpty)
+        IconButton(
+          icon: const Icon(Icons.clear),
+          tooltip: 'Clear',
+          onPressed: () => query = '',
+        ),
+    ];
+  }
+
+  @override
+  Widget buildLeading(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.arrow_back),
+      tooltip: 'Back',
+      onPressed: () => close(context, null),
+    );
+  }
+
+  @override
+  Widget buildResults(BuildContext context) => _buildSearchBody(context);
+
+  @override
+  Widget buildSuggestions(BuildContext context) => _buildSearchBody(context);
+
+  Widget _buildSearchBody(BuildContext context) {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) {
+      return Center(
+        child: Text(
+          'Type to search tasks and spaces',
+          style: AppTheme.bodyLarge.copyWith(color: AppTheme.textSecondary),
+        ),
+      );
+    }
+
+    return FutureBuilder<(List<Task>, List<Space>)>(
+      future: _search(trimmed),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Search failed: ${snapshot.error}',
+              style: AppTheme.bodyMedium.copyWith(color: AppTheme.error),
+            ),
+          );
+        }
+
+        final (tasks, spaces) = snapshot.data ?? (<Task>[], <Space>[]);
+        if (tasks.isEmpty && spaces.isEmpty) {
+          return Center(
+            child: Text(
+              'No results for "$trimmed"',
+              style: AppTheme.bodyLarge.copyWith(color: AppTheme.textSecondary),
+            ),
+          );
+        }
+
+        return ListView(
+          padding: const EdgeInsets.symmetric(vertical: AppTheme.space8),
+          children: [
+            if (tasks.isNotEmpty) _buildSectionLabel('Tasks'),
+            ...tasks.map(
+              (task) => ListTile(
+                leading: Icon(Icons.task_alt, color: AppTheme.primary),
+                title: Text(task.title, style: AppTheme.bodyLarge),
+                subtitle: (task.description?.isNotEmpty ?? false)
+                    ? Text(
+                        task.description!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.bodySmall.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                      )
+                    : null,
+                onTap: () {
+                  close(context, null);
+                  onSelectTask(task);
+                },
+              ),
+            ),
+            if (spaces.isNotEmpty) _buildSectionLabel('Spaces'),
+            ...spaces.map(
+              (space) => ListTile(
+                leading: Icon(Icons.folder_outlined, color: AppTheme.secondary),
+                title: Text(space.name, style: AppTheme.bodyLarge),
+                subtitle: (space.description?.isNotEmpty ?? false)
+                    ? Text(
+                        space.description!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.bodySmall.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                      )
+                    : null,
+                onTap: () {
+                  close(context, null);
+                  onSelectSpace();
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildSectionLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.space16,
+        AppTheme.space16,
+        AppTheme.space16,
+        AppTheme.space8,
+      ),
+      child: Text(
+        label,
+        style: AppTheme.labelMedium.copyWith(color: AppTheme.textSecondary),
+      ),
+    );
+  }
 }

@@ -34,7 +34,8 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
     try {
       final tasks = await TodoService.getAllTasks();
       final spaces = await SpaceService.getAllSpaces();
-      
+
+      if (!mounted) return;
       setState(() {
         _syncStatus = 'Connected to cloud';
         _lastSyncResult = {
@@ -44,6 +45,7 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
         };
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _syncStatus = 'Error checking sync status';
       });
@@ -58,14 +60,15 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
 
     try {
       final result = await DataSyncService.manualSync();
-      
+
+      if (!mounted) return;
       setState(() {
         _isSyncing = false;
         _syncStatus = result['message'] ?? 'Sync completed';
         _lastSyncResult = result;
       });
 
-      if (mounted && result['success'] == true) {
+      if (result['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Data synced successfully'),
@@ -74,19 +77,18 @@ class _SyncStatusScreenState extends State<SyncStatusScreen> {
         );
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isSyncing = false;
         _syncStatus = 'Sync failed: $e';
       });
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Sync failed: $e'),
-            backgroundColor: AppTheme.error,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Sync failed: $e'),
+          backgroundColor: AppTheme.error,
+        ),
+      );
     }
   }
 

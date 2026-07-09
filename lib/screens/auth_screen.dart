@@ -367,13 +367,22 @@ class _AuthScreenState extends State<AuthScreen> {
                                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                               ),
                             ),
-                            icon: Image.network(
-                              'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
+                            icon: Container(
                               height: 20,
                               width: 20,
-                              errorBuilder: (context, error, stackTrace) {
-                                return const Icon(Icons.g_mobiledata, size: 20);
-                              },
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: AppTheme.primary.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Text(
+                                'G',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.primary,
+                                ),
+                              ),
                             ),
                             label: Text(
                               'Continue with Google',
@@ -429,79 +438,112 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   void _showForgotPasswordDialog() {
-    final emailController = TextEditingController(text: _emailController.text);
-
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Reset Password'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Enter your email address and we\'ll send you a link to reset your password.',
-              style: AppTheme.bodyMedium.copyWith(
-                color: AppTheme.textSecondary,
-              ),
-            ),
-            SizedBox(height: AppTheme.space16),
-            TextField(
-              controller: emailController,
-              decoration: InputDecoration(
-                labelText: 'Email',
-                prefixIcon: const Icon(Icons.email_outlined),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                ),
-              ),
-              keyboardType: TextInputType.emailAddress,
-              autocorrect: false,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final email = emailController.text.trim();
-              if (email.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please enter your email'),
-                  ),
-                );
-                return;
-              }
+      builder: (context) => _ForgotPasswordDialog(
+        initialEmail: _emailController.text,
+      ),
+    );
+  }
+}
 
-              try {
-                await AuthService.resetPassword(email);
-                if (context.mounted) {
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Password reset email sent to $email'),
-                      backgroundColor: AppTheme.success,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(e.toString()),
-                      backgroundColor: AppTheme.error,
-                    ),
-                  );
-                }
-              }
-            },
-            child: const Text('Send Reset Email'),
+/// Reset-password dialog. Owns (and disposes) its email controller.
+class _ForgotPasswordDialog extends StatefulWidget {
+  final String initialEmail;
+
+  const _ForgotPasswordDialog({required this.initialEmail});
+
+  @override
+  State<_ForgotPasswordDialog> createState() => _ForgotPasswordDialogState();
+}
+
+class _ForgotPasswordDialogState extends State<_ForgotPasswordDialog> {
+  late final TextEditingController _emailController;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController(text: widget.initialEmail);
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendResetEmail() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your email'),
+        ),
+      );
+      return;
+    }
+
+    try {
+      await AuthService.resetPassword(email);
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Password reset email sent to $email'),
+            backgroundColor: AppTheme.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Reset Password'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Enter your email address and we\'ll send you a link to reset your password.',
+            style: AppTheme.bodyMedium.copyWith(
+              color: AppTheme.textSecondary,
+            ),
+          ),
+          SizedBox(height: AppTheme.space16),
+          TextField(
+            controller: _emailController,
+            decoration: InputDecoration(
+              labelText: 'Email',
+              prefixIcon: const Icon(Icons.email_outlined),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+              ),
+            ),
+            keyboardType: TextInputType.emailAddress,
+            autocorrect: false,
           ),
         ],
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _sendResetEmail,
+          child: const Text('Send Reset Email'),
+        ),
+      ],
     );
   }
 }

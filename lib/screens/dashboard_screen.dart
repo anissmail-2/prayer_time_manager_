@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../core/services/todo_service.dart';
@@ -8,7 +10,11 @@ import '../widgets/task_details_dialog.dart';
 import 'add_edit_item_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  /// Called with the target tab index when the dashboard wants to switch
+  /// tabs in [MainLayout] (e.g. "View All" -> Agenda).
+  final void Function(int index)? onNavigate;
+
+  const DashboardScreen({super.key, this.onNavigate});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -21,26 +27,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String? _nextPrayer;
   String? _nextPrayerTime;
   Duration? _timeToNextPrayer;
+  Timer? _countdownTimer;
 
   @override
   void initState() {
     super.initState();
     _loadData();
-    // Update timer every minute
-    Future.delayed(Duration.zero, () {
-      if (mounted) {
-        _startTimer();
-      }
-    });
+    // Update the next-prayer countdown periodically
+    _countdownTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _updateNextPrayer(),
+    );
   }
 
-  void _startTimer() {
-    Future.doWhile(() async {
-      await Future.delayed(const Duration(seconds: 30));
-      if (!mounted) return false;
-      _updateNextPrayer();
-      return true;
-    });
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -67,80 +70,63 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _updateNextPrayer() {
-    if (_prayerTimes.isEmpty) return;
-    
+    if (!mounted || _prayerTimes.isEmpty) return;
+
     final now = DateTime.now();
-    final currentTime = TimeOfDay.now();
-    
-    String? nextPrayerName;
-    TimeOfDay? nextPrayerTimeOfDay;
-    
+
+    // Parse all prayer times into today's DateTimes and sort chronologically
+    // so the result doesn't depend on the map's iteration order.
+    final parsed = <MapEntry<String, DateTime>>[];
     for (final entry in _prayerTimes.entries) {
       if (entry.key == 'Sunrise') continue;
-      
+
       final parts = entry.value.split(':');
       if (parts.length != 2) continue;
-      
-      final prayerTime = TimeOfDay(
-        hour: int.parse(parts[0]),
-        minute: int.parse(parts[1]),
-      );
-      
-      if (_isTimeAfter(prayerTime, currentTime)) {
-        nextPrayerName = entry.key;
-        nextPrayerTimeOfDay = prayerTime;
+
+      final hour = int.tryParse(parts[0].trim());
+      final minute = int.tryParse(parts[1].trim());
+      if (hour == null || minute == null) continue;
+
+      parsed.add(MapEntry(
+        entry.key,
+        DateTime(now.year, now.month, now.day, hour, minute),
+      ));
+    }
+
+    if (parsed.isEmpty) return;
+    parsed.sort((a, b) => a.value.compareTo(b.value));
+
+    // First prayer still ahead today, otherwise the earliest prayer tomorrow.
+    MapEntry<String, DateTime>? next;
+    for (final entry in parsed) {
+      if (entry.value.isAfter(now)) {
+        next = entry;
         break;
       }
     }
-    
-    // If no prayer found today, get first prayer tomorrow
-    if (nextPrayerName == null) {
-      nextPrayerName = 'Fajr';
-      final fajrTime = _prayerTimes['Fajr']!.split(':');
-      nextPrayerTimeOfDay = TimeOfDay(
-        hour: int.parse(fajrTime[0]),
-        minute: int.parse(fajrTime[1]),
-      );
-    }
-    
-    if (nextPrayerTimeOfDay != null) {
-      final nextDateTime = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        nextPrayerTimeOfDay.hour,
-        nextPrayerTimeOfDay.minute,
-      );
-      
-      // If prayer time has passed today, add a day
-      Duration diff = nextDateTime.difference(now);
-      if (diff.isNegative) {
-        diff = nextDateTime.add(const Duration(days: 1)).difference(now);
-      }
-      
-      setState(() {
-        _nextPrayer = nextPrayerName;
-        _nextPrayerTime = _prayerTimes[nextPrayerName];
-        _timeToNextPrayer = diff;
-      });
-    }
-  }
+    next ??= MapEntry(
+      parsed.first.key,
+      parsed.first.value.add(const Duration(days: 1)),
+    );
 
-  bool _isTimeAfter(TimeOfDay time1, TimeOfDay time2) {
-    if (time1.hour > time2.hour) return true;
-    if (time1.hour == time2.hour && time1.minute > time2.minute) return true;
-    return false;
+    final nextEntry = next;
+    setState(() {
+      _nextPrayer = nextEntry.key;
+      _nextPrayerTime = _prayerTimes[nextEntry.key];
+      _timeToNextPrayer = nextEntry.value.difference(now);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadData,
               child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(AppTheme.space24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -383,9 +369,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             TextButton(
-              onPressed: () {
-                // Navigate to tasks screen
-              },
+              // Switch to the Agenda tab (index 1)
+              onPressed: () => widget.onNavigate?.call(1),
               child: const Text('View All'),
             ),
           ],
