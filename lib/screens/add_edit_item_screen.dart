@@ -111,6 +111,15 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
       _selectedEndTime = widget.initialEndTime;
       _recurrenceType = TaskRecurrence.once;
       _priority = TaskPriority.medium;
+      // Anchor the task date on the pre-filled time (e.g. a free slot picked
+      // on another date in the timeline) so the date flows through.
+      if (widget.initialTime != null) {
+        _startDate = DateTime(
+          widget.initialTime!.year,
+          widget.initialTime!.month,
+          widget.initialTime!.day,
+        );
+      }
     }
     
     _animationController.forward();
@@ -124,46 +133,6 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
     super.dispose();
   }
 
-  Future<void> _selectTime() async {
-    final time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(_selectedTime ?? DateTime.now()),
-    );
-    
-    if (time != null) {
-      setState(() {
-        final now = DateTime.now();
-        _selectedTime = DateTime(now.year, now.month, now.day, time.hour, time.minute);
-      });
-    }
-  }
-
-  Future<void> _selectEndTime() async {
-    final time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(
-        _selectedEndTime ?? _selectedTime?.add(const Duration(hours: 1)) ?? DateTime.now(),
-      ),
-    );
-    
-    if (time != null) {
-      setState(() {
-        final now = DateTime.now();
-        final newEndTime = DateTime(now.year, now.month, now.day, time.hour, time.minute);
-        
-        // Check if end time is after start time
-        if (_selectedTime != null && newEndTime.isBefore(_selectedTime!)) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('End time must be after start time')),
-          );
-          return;
-        }
-        
-        _selectedEndTime = newEndTime;
-      });
-    }
-  }
-
   Future<void> _selectEndDate() async {
     final date = await showDatePicker(
       context: context,
@@ -171,8 +140,8 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
-    
-    if (date != null) {
+
+    if (date != null && mounted) {
       setState(() {
         _endDate = date;
       });
@@ -226,7 +195,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
       return;
     }
     
-    if (_recurrenceType == RecurrenceType.weekly && _selectedWeekDays.isEmpty) {
+    if (_recurrenceType == TaskRecurrence.weekly && _selectedWeekDays.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select at least one day')),
       );
@@ -266,17 +235,15 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
       );
       
       if (widget.task != null) {
-        print('Updating task...');
         await TodoService.updateTask(task);
       } else {
-        print('Adding new task...');
         await TodoService.addTask(task);
       }
-      
-      print('Task saved successfully, navigating back...');
+
+      if (!mounted) return;
       Navigator.pop(context, true);
     } catch (e) {
-      print('Error saving task: $e');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error saving item: $e')),
       );
@@ -429,8 +396,8 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
               SchedulingSection(
                 isOptional: false, // Required for Agenda
                 initialHasSchedule: true,
-                hideDatePicker: true, // Hide date picker since it's handled in recurrence
-                initialTaskDate: _selectedTime ?? _startDate,
+                hideDatePicker: true, // Date is picked via the Task Date / Start Date field below
+                initialTaskDate: _startDate ?? _selectedTime,
                 initialStartScheduleType: _startScheduleType,
                 initialStartTime: _selectedTime,
                 initialStartPrayer: _selectedPrayer,
@@ -458,9 +425,46 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
                   });
                 },
               ),
-              
+
+              // Prayer-relative schedule rule with date preview
+              if (_startScheduleType == ScheduleType.prayerRelative &&
+                  _selectedPrayer != null) ...[
+                const SizedBox(height: AppTheme.space16),
+                Container(
+                  padding: const EdgeInsets.all(AppTheme.space16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                    border: Border.all(
+                      color: AppTheme.primary.withOpacity(0.2),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.schedule_rounded,
+                        color: AppTheme.primary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: AppTheme.space12),
+                      Expanded(
+                        child: Text(
+                          _buildRuleDescription(),
+                          style: AppTheme.labelMedium.copyWith(
+                            color: AppTheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: AppTheme.space8),
+                      _buildPreviewButton(context),
+                    ],
+                  ),
+                ),
+              ],
+
               const SizedBox(height: AppTheme.space32),
-            
+
               // Recurrence
               _buildSectionHeader('Repeat', Icons.repeat),
               const SizedBox(height: AppTheme.space16),
@@ -632,712 +636,9 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
     );
   }
   
-  Widget _buildScheduleTypeOption(
-    BuildContext context, {
-    required ScheduleType type,
-    required IconData icon,
-    required String label,
-    required bool isSelected,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    return InkWell(
-      onTap: () => setState(() => _startScheduleType = type),
-      borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: AppTheme.space16),
-        decoration: BoxDecoration(
-          color: isSelected 
-              ? AppTheme.primary.withOpacity(0.1)
-              : Colors.transparent,
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? AppTheme.primary : (isDark ? Colors.white54 : Colors.grey),
-              size: 24,
-            ),
-            const SizedBox(height: AppTheme.space4),
-            Text(
-              label,
-              style: AppTheme.labelMedium.copyWith(
-                color: isSelected ? AppTheme.primary : (isDark ? Colors.white54 : Colors.grey[600]),
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
   
-  Widget _buildAbsoluteTimeSection(BuildContext context, bool isDark) {
-    return Column(
-      key: const ValueKey('absolute'),
-      children: [
-        // Start Time
-        InkWell(
-          onTap: _selectTime,
-          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-          child: Container(
-            padding: const EdgeInsets.all(AppTheme.space16),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
-              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-              border: Border.all(
-                color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(AppTheme.space12),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primary.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.access_time,
-                    color: AppTheme.primary,
-                  ),
-                ),
-                const SizedBox(width: AppTheme.space16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            'Start Time',
-                            style: AppTheme.labelMedium.copyWith(
-                              color: isDark ? Colors.white70 : Colors.grey[700],
-                            ),
-                          ),
-                          Text(
-                            ' *',
-                            style: AppTheme.labelMedium.copyWith(
-                              color: AppTheme.error,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppTheme.space4),
-                      Text(
-                        _selectedTime != null 
-                            ? DateFormat('h:mm a').format(_selectedTime!)
-                            : 'Select time',
-                        style: AppTheme.titleMedium.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(
-                  Icons.chevron_right,
-                  color: isDark ? Colors.white54 : Colors.grey,
-                ),
-              ],
-            ),
-          ),
-        ),
-        
-        const SizedBox(height: AppTheme.space16),
-        
-        // End Time
-        InkWell(
-          onTap: _selectEndTime,
-          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-          child: Container(
-            padding: const EdgeInsets.all(AppTheme.space16),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
-              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-              border: Border.all(
-                color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(AppTheme.space12),
-                  decoration: BoxDecoration(
-                    color: AppTheme.secondary.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.access_time_filled,
-                    color: AppTheme.secondary,
-                  ),
-                ),
-                const SizedBox(width: AppTheme.space16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            'End Time',
-                            style: AppTheme.labelMedium.copyWith(
-                              color: isDark ? Colors.white70 : Colors.grey[700],
-                            ),
-                          ),
-                          Text(
-                            ' *',
-                            style: AppTheme.labelMedium.copyWith(
-                              color: AppTheme.error,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppTheme.space4),
-                      Text(
-                        _selectedEndTime != null 
-                            ? DateFormat('h:mm a').format(_selectedEndTime!)
-                            : 'Select end time',
-                        style: AppTheme.titleMedium.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: _selectedEndTime != null 
-                              ? null 
-                              : AppTheme.error,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(
-                  Icons.chevron_right,
-                  color: isDark ? Colors.white54 : Colors.grey,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
   
-  Widget _buildPrayerRelativeSection(BuildContext context, bool isDark) {
-    return Column(
-      key: const ValueKey('prayer'),
-      children: [
-        // Prayer selection
-        Container(
-          decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
-            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-            border: Border.all(
-              color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
-            ),
-          ),
-          child: DropdownButtonFormField<PrayerName>(
-            decoration: InputDecoration(
-              labelText: 'Select Prayer *',
-              prefixIcon: Icon(Icons.mosque, color: AppTheme.primary),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: AppTheme.space16,
-                vertical: AppTheme.space12,
-              ),
-            ),
-            initialValue: _selectedPrayer,
-            dropdownColor: isDark ? AppTheme.surfaceDark : Colors.white,
-            items: PrayerName.values.map((prayer) {
-              final prayerStr = prayer.toString().split('.').last;
-              final displayName = prayerStr.substring(0, 1).toUpperCase() + 
-                                prayerStr.substring(1);
-              final time = widget.prayerTimes[displayName] ?? '';
-              return DropdownMenuItem(
-                value: prayer,
-                child: Row(
-                  children: [
-                    Text(displayName),
-                    const Spacer(),
-                    if (time.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          time,
-                          style: AppTheme.labelSmall.copyWith(
-                            color: AppTheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              );
-            }).toList(),
-            onChanged: (value) {
-              setState(() {
-                _selectedPrayer = value;
-              });
-            },
-          ),
-        ),
-        
-        const SizedBox(height: AppTheme.space16),
-        
-        // Before/After toggle
-        Container(
-          decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
-            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: _buildBeforeAfterOption(
-                  context,
-                  label: 'Before',
-                  isSelected: _isBeforePrayer,
-                  onTap: () => setState(() => _isBeforePrayer = true),
-                ),
-              ),
-              Container(
-                width: 1,
-                height: 40,
-                color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
-              ),
-              Expanded(
-                child: _buildBeforeAfterOption(
-                  context,
-                  label: 'After',
-                  isSelected: !_isBeforePrayer,
-                  onTap: () => setState(() => _isBeforePrayer = false),
-                ),
-              ),
-            ],
-          ),
-        ),
-        
-        const SizedBox(height: AppTheme.space16),
-        
-        // Minutes offset
-        TextFormField(
-          decoration: InputDecoration(
-            labelText: 'Minutes',
-            hintText: 'Enter minutes',
-            helperText: 'How many minutes ${_isBeforePrayer ? "before" : "after"} the prayer',
-            prefixIcon: Icon(Icons.timer_outlined, color: AppTheme.primary),
-            filled: true,
-            fillColor: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-              borderSide: BorderSide(
-                color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-              borderSide: BorderSide(
-                color: AppTheme.primary,
-                width: 2,
-              ),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-              borderSide: BorderSide(
-                color: AppTheme.error,
-                width: 2,
-              ),
-            ),
-          ),
-          keyboardType: TextInputType.number,
-          initialValue: _minutesOffset.toString(),
-          onChanged: (value) {
-            final minutes = int.tryParse(value);
-            if (minutes != null && minutes >= 0) {
-              setState(() {
-                _minutesOffset = minutes;
-              });
-            }
-          },
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter minutes';
-            }
-            final minutes = int.tryParse(value);
-            if (minutes == null || minutes < 0) {
-              return 'Please enter a valid number';
-            }
-            return null;
-          },
-        ),
-        
-        // Show calculated time for prayer-relative selection
-        if (_selectedPrayer != null) ...[
-          const SizedBox(height: AppTheme.space12),
-          _buildCalculatedTimeDisplay(
-            prayer: _selectedPrayer!,
-            isBefore: _isBeforePrayer,
-            minutes: _minutesOffset,
-            label: 'Task will start at',
-            color: AppTheme.success,
-          ),
-        ],
-        
-        const SizedBox(height: AppTheme.space24),
-        
-        // End Time Section
-        _buildSectionHeader('End Time', Icons.access_time_filled),
-        const SizedBox(height: AppTheme.space16),
-        
-        // End Prayer selection
-        Container(
-          decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
-            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-            border: Border.all(
-              color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
-            ),
-          ),
-          child: DropdownButtonFormField<PrayerName>(
-            decoration: InputDecoration(
-              labelText: 'End at Prayer *',
-              prefixIcon: Icon(Icons.mosque, color: AppTheme.primary),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: AppTheme.space16,
-                vertical: AppTheme.space12,
-              ),
-            ),
-            initialValue: _endSelectedPrayer,
-            dropdownColor: isDark ? AppTheme.surfaceDark : Colors.white,
-            items: PrayerName.values.map((prayer) {
-              final prayerStr = prayer.toString().split('.').last;
-              final displayName = prayerStr.substring(0, 1).toUpperCase() + 
-                                prayerStr.substring(1);
-              final time = widget.prayerTimes[displayName] ?? '';
-              return DropdownMenuItem(
-                value: prayer,
-                child: Row(
-                  children: [
-                    Text(displayName),
-                    const Spacer(),
-                    if (time.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          time,
-                          style: AppTheme.labelSmall.copyWith(
-                            color: AppTheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              );
-            }).toList(),
-            onChanged: (value) {
-              setState(() {
-                _endSelectedPrayer = value;
-              });
-            },
-            validator: (value) {
-              if (value == null) {
-                return 'Please select an end prayer';
-              }
-              return null;
-            },
-          ),
-        ),
-        
-        const SizedBox(height: AppTheme.space16),
-        
-        // End Before/After toggle
-        Container(
-          decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
-            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: _buildBeforeAfterOption(
-                  context,
-                  label: 'Before',
-                  isSelected: _endIsBeforePrayer,
-                  onTap: () => setState(() => _endIsBeforePrayer = true),
-                ),
-              ),
-              Container(
-                width: 1,
-                height: 40,
-                color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
-              ),
-              Expanded(
-                child: _buildBeforeAfterOption(
-                  context,
-                  label: 'After',
-                  isSelected: !_endIsBeforePrayer,
-                  onTap: () => setState(() => _endIsBeforePrayer = false),
-                ),
-              ),
-            ],
-          ),
-        ),
-        
-        const SizedBox(height: AppTheme.space16),
-        
-        // End Minutes offset
-        TextFormField(
-          decoration: InputDecoration(
-            labelText: 'End Minutes',
-            hintText: 'Enter minutes',
-            helperText: 'How many minutes ${_endIsBeforePrayer ? "before" : "after"} the prayer to end',
-            prefixIcon: Icon(Icons.timer_off_outlined, color: AppTheme.primary),
-            filled: true,
-            fillColor: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-              borderSide: BorderSide(
-                color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-              borderSide: BorderSide(
-                color: AppTheme.primary,
-                width: 2,
-              ),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-              borderSide: BorderSide(
-                color: AppTheme.error,
-                width: 2,
-              ),
-            ),
-          ),
-          keyboardType: TextInputType.number,
-          initialValue: _endMinutesOffset.toString(),
-          onChanged: (value) {
-            final minutes = int.tryParse(value);
-            if (minutes != null && minutes >= 0) {
-              setState(() {
-                _endMinutesOffset = minutes;
-              });
-            }
-          },
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter end minutes';
-            }
-            final minutes = int.tryParse(value);
-            if (minutes == null || minutes < 0) {
-              return 'Please enter a valid number';
-            }
-            return null;
-          },
-        ),
-        
-        // Show calculated time for end prayer-relative selection
-        if (_endSelectedPrayer != null) ...[
-          const SizedBox(height: AppTheme.space12),
-          _buildCalculatedTimeDisplay(
-            prayer: _endSelectedPrayer!,
-            isBefore: _endIsBeforePrayer,
-            minutes: _endMinutesOffset,
-            label: 'Task will end at',
-            color: AppTheme.error,
-          ),
-        ],
-        
-        // Show schedule rule with beautiful UI
-        if (_selectedPrayer != null) ...[
-          const SizedBox(height: AppTheme.space24),
-          // Beautiful Schedule Rule Display
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppTheme.primary.withOpacity(0.08),
-                  AppTheme.primary.withOpacity(0.03),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-              border: Border.all(
-                color: AppTheme.primary.withOpacity(0.2),
-                width: 1.5,
-              ),
-            ),
-            child: Column(
-              children: [
-                // Header with icon and title
-                Container(
-                  padding: const EdgeInsets.all(AppTheme.space16),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primary.withOpacity(0.1),
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(AppTheme.radiusLarge - 1),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(AppTheme.space8),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primary.withOpacity(0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.schedule_rounded,
-                          color: AppTheme.primary,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: AppTheme.space12),
-                      Text(
-                        'Schedule Rule',
-                        style: AppTheme.titleMedium.copyWith(
-                          color: AppTheme.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const Spacer(),
-                      // Preview button
-                      _buildPreviewButton(context),
-                    ],
-                  ),
-                ),
-                // Rule display
-                Padding(
-                  padding: const EdgeInsets.all(AppTheme.space20),
-                  child: Column(
-                    children: [
-                      // Start time rule
-                      _buildTimeRuleRow(
-                        icon: Icons.play_arrow_rounded,
-                        label: 'Start',
-                        prayer: _selectedPrayer!,
-                        isBefore: _isBeforePrayer,
-                        minutes: _minutesOffset,
-                        color: AppTheme.success,
-                      ),
-                      if (_endSelectedPrayer != null) ...[
-                        const SizedBox(height: AppTheme.space16),
-                        Container(
-                          height: 1,
-                          margin: const EdgeInsets.symmetric(horizontal: AppTheme.space32),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.transparent,
-                                AppTheme.primary.withOpacity(0.2),
-                                Colors.transparent,
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: AppTheme.space16),
-                        // End time rule
-                        _buildTimeRuleRow(
-                          icon: Icons.stop_rounded,
-                          label: 'End',
-                          prayer: _endSelectedPrayer!,
-                          isBefore: _endIsBeforePrayer,
-                          minutes: _endMinutesOffset,
-                          color: AppTheme.error,
-                        ),
-                      ],
-                      const SizedBox(height: AppTheme.space20),
-                      // Info message
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppTheme.space12,
-                          vertical: AppTheme.space8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isDark 
-                              ? Colors.white.withOpacity(0.05)
-                              : AppTheme.primary.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.info_outline_rounded,
-                              size: 14,
-                              color: AppTheme.primary.withOpacity(0.7),
-                            ),
-                            const SizedBox(width: AppTheme.space8),
-                            Text(
-                              'Times adjust daily with prayer schedule',
-                              style: AppTheme.labelSmall.copyWith(
-                                color: AppTheme.primary.withOpacity(0.7),
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ],
-    );
-  }
   
-  Widget _buildBeforeAfterOption(
-    BuildContext context, {
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: AppTheme.space12),
-        decoration: BoxDecoration(
-          color: isSelected 
-              ? AppTheme.primary.withOpacity(0.1)
-              : Colors.transparent,
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: AppTheme.labelLarge.copyWith(
-              color: isSelected ? AppTheme.primary : (isDark ? Colors.white54 : Colors.grey[600]),
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
   
   Widget _buildRecurrenceOption(
     BuildContext context, {
@@ -1527,205 +828,6 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
     );
   }
   
-  Widget _buildCalculatedTimeDisplay({
-    required PrayerName prayer,
-    required bool isBefore,
-    required int minutes,
-    required String label,
-    required Color color,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final prayerStr = prayer.toString().split('.').last;
-    final displayName = prayerStr.substring(0, 1).toUpperCase() + prayerStr.substring(1);
-    
-    // Calculate the actual time
-    final calculatedTime = PrayerTimeService.calculatePrayerRelativeTime(
-      prayerTimes: widget.prayerTimes,
-      prayerName: displayName,
-      isBefore: isBefore,
-      minutesOffset: minutes,
-    );
-    
-    if (calculatedTime == null) return const SizedBox.shrink();
-    
-    return Container(
-      padding: const EdgeInsets.all(AppTheme.space16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        border: Border.all(
-          color: color.withOpacity(0.2),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(AppTheme.space8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.access_time,
-              color: color,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: AppTheme.space12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: AppTheme.labelSmall.copyWith(
-                    color: isDark ? Colors.white54 : AppTheme.textTertiary,
-                  ),
-                ),
-                const SizedBox(height: AppTheme.space4),
-                Text(
-                  DateFormat('EEEE, MMMM d • h:mm a').format(calculatedTime),
-                  style: AppTheme.bodyLarge.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTimeRuleRow({
-    required IconData icon,
-    required String label,
-    required PrayerName prayer,
-    required bool isBefore,
-    required int minutes,
-    required Color color,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final prayerStr = prayer.toString().split('.').last;
-    final displayName = prayerStr.substring(0, 1).toUpperCase() + prayerStr.substring(1);
-    
-    // Calculate the actual time
-    final calculatedTime = PrayerTimeService.calculatePrayerRelativeTime(
-      prayerTimes: widget.prayerTimes,
-      prayerName: displayName,
-      isBefore: isBefore,
-      minutesOffset: minutes,
-    );
-    
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(AppTheme.space8),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            icon,
-            color: color,
-            size: 20,
-          ),
-        ),
-        const SizedBox(width: AppTheme.space12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: AppTheme.labelSmall.copyWith(
-                  color: isDark ? Colors.white54 : AppTheme.textTertiary,
-                ),
-              ),
-              const SizedBox(height: AppTheme.space4),
-              RichText(
-                text: TextSpan(
-                  style: AppTheme.bodyLarge.copyWith(
-                    color: isDark ? Colors.white : AppTheme.textPrimary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  children: [
-                    TextSpan(
-                      text: '$minutes ',
-                      style: TextStyle(
-                        color: color,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    TextSpan(text: 'minutes '),
-                    TextSpan(
-                      text: isBefore ? 'before ' : 'after ',
-                      style: TextStyle(
-                        color: AppTheme.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    TextSpan(
-                      text: displayName,
-                      style: TextStyle(
-                        color: AppTheme.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (calculatedTime != null) ...[
-                const SizedBox(height: AppTheme.space4),
-                Text(
-                  'Today at ${DateFormat('h:mm a').format(calculatedTime)}',
-                  style: AppTheme.labelMedium.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-        // Prayer time display
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppTheme.space12,
-                vertical: AppTheme.space6,
-              ),
-              decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.mosque,
-                    size: 14,
-                    color: AppTheme.primary,
-                  ),
-                  const SizedBox(width: AppTheme.space4),
-                  Text(
-                    widget.prayerTimes[displayName] ?? '--:--',
-                    style: AppTheme.labelMedium.copyWith(
-                      color: AppTheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
   
   Widget _buildPreviewButton(BuildContext context) {
     return Material(
@@ -1790,14 +892,83 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
       },
     );
     
-    if (date != null && mounted) {
-      // Here you would fetch prayer times for the selected date
-      // For now, we'll show a dialog with the current calculation
-      _showPreviewDialog(date);
+    if (date == null || !mounted) return;
+
+    // Fetch prayer times for the selected date (falls back to cache offline)
+    Map<String, String> prayerTimesForDate = {};
+    try {
+      prayerTimesForDate = await PrayerTimeService.getPrayerTimes(date: date);
+    } catch (_) {
+      // Leave empty - the dialog shows a fallback message
     }
+
+    if (!mounted) return;
+    _showPreviewDialog(date, prayerTimesForDate);
   }
-  
-  void _showPreviewDialog(DateTime date) {
+
+  String _prayerDisplayName(PrayerName prayer) {
+    final prayerStr = prayer.toString().split('.').last;
+    return prayerStr.substring(0, 1).toUpperCase() + prayerStr.substring(1);
+  }
+
+  void _showPreviewDialog(DateTime date, Map<String, String> prayerTimesForDate) {
+    // Compute the actual start/end times for the chosen date
+    DateTime? startPreview;
+    DateTime? endPreview;
+    if (prayerTimesForDate.isNotEmpty && _selectedPrayer != null) {
+      startPreview = PrayerTimeService.calculatePrayerRelativeTime(
+        prayerTimes: prayerTimesForDate,
+        prayerName: _prayerDisplayName(_selectedPrayer!),
+        isBefore: _isBeforePrayer,
+        minutesOffset: _minutesOffset,
+        baseDate: date,
+      );
+      if (_endScheduleType == ScheduleType.prayerRelative &&
+          _endSelectedPrayer != null) {
+        endPreview = PrayerTimeService.calculatePrayerRelativeTime(
+          prayerTimes: prayerTimesForDate,
+          prayerName: _prayerDisplayName(_endSelectedPrayer!),
+          isBefore: _endIsBeforePrayer,
+          minutesOffset: _endMinutesOffset,
+          baseDate: date,
+        );
+      }
+    }
+    _showPreviewDialogContent(date, startPreview, endPreview);
+  }
+
+  Widget _buildPreviewTimeRow({
+    required String label,
+    required DateTime time,
+    required Color color,
+  }) {
+    return Row(
+      children: [
+        Icon(Icons.access_time, color: color, size: 18),
+        const SizedBox(width: AppTheme.space8),
+        Text(
+          label,
+          style: AppTheme.labelMedium.copyWith(
+            color: AppTheme.textSecondary,
+          ),
+        ),
+        const Spacer(),
+        Text(
+          DateFormat('h:mm a').format(time),
+          style: AppTheme.titleMedium.copyWith(
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showPreviewDialogContent(
+    DateTime date,
+    DateTime? startPreview,
+    DateTime? endPreview,
+  ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     showDialog(
@@ -1843,9 +1014,10 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
+              width: double.infinity,
               padding: const EdgeInsets.all(AppTheme.space16),
               decoration: BoxDecoration(
-                color: isDark 
+                color: isDark
                     ? Colors.white.withOpacity(0.05)
                     : AppTheme.primary.withOpacity(0.05),
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
@@ -1853,32 +1025,50 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
                   color: AppTheme.primary.withOpacity(0.2),
                 ),
               ),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.info_outline_rounded,
-                    color: AppTheme.primary,
-                    size: 48,
-                  ),
-                  const SizedBox(height: AppTheme.space12),
-                  Text(
-                    'Prayer times for ${DateFormat('MMM d').format(date)} are not available yet',
-                    style: AppTheme.bodyMedium.copyWith(
-                      color: AppTheme.textSecondary,
+              child: startPreview != null
+                  ? Column(
+                      children: [
+                        _buildPreviewTimeRow(
+                          label: 'Starts',
+                          time: startPreview,
+                          color: AppTheme.success,
+                        ),
+                        if (endPreview != null) ...[
+                          const SizedBox(height: AppTheme.space12),
+                          _buildPreviewTimeRow(
+                            label: 'Ends',
+                            time: endPreview,
+                            color: AppTheme.error,
+                          ),
+                        ],
+                      ],
+                    )
+                  : Column(
+                      children: [
+                        Icon(
+                          Icons.info_outline_rounded,
+                          color: AppTheme.primary,
+                          size: 48,
+                        ),
+                        const SizedBox(height: AppTheme.space12),
+                        Text(
+                          'Prayer times for ${DateFormat('MMM d').format(date)} are not available yet',
+                          style: AppTheme.bodyMedium.copyWith(
+                            color: AppTheme.textSecondary,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: AppTheme.space8),
+                        Text(
+                          'Times will be calculated automatically when the date arrives',
+                          style: AppTheme.labelSmall.copyWith(
+                            color: AppTheme.textTertiary,
+                            fontStyle: FontStyle.italic,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: AppTheme.space8),
-                  Text(
-                    'Times will be calculated automatically when the date arrives',
-                    style: AppTheme.labelSmall.copyWith(
-                      color: AppTheme.textTertiary,
-                      fontStyle: FontStyle.italic,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
             ),
             const SizedBox(height: AppTheme.space16),
             // Show the rule
@@ -1942,365 +1132,6 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
     return rule;
   }
   
-  String _calculatePrayerRelativeTimes() {
-    // Keep this method for backward compatibility if needed
-    return _buildRuleDescription();
-  }
-
-  Widget _buildTimeSection({
-    required BuildContext context,
-    required bool isDark,
-    required String title,
-    required IconData icon,
-    required ScheduleType scheduleType,
-    required Function(ScheduleType) onScheduleTypeChanged,
-    required DateTime? selectedTime,
-    required Function(DateTime) onTimeSelected,
-    required PrayerName? selectedPrayer,
-    required Function(PrayerName) onPrayerSelected,
-    required bool isBeforePrayer,
-    required Function(bool) onBeforeAfterChanged,
-    required int minutesOffset,
-    required Function(int) onMinutesChanged,
-    required bool isStartTime,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-        border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
-        ),
-      ),
-      padding: const EdgeInsets.all(AppTheme.space16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Section Header
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(AppTheme.space8),
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  icon,
-                  color: AppTheme.primary,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: AppTheme.space12),
-              Text(
-                title,
-                style: AppTheme.titleMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-              // Schedule Type Toggle
-              Container(
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.1) : AppTheme.surface,
-                  borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildMiniToggle(
-                      icon: Icons.access_time,
-                      isSelected: scheduleType == ScheduleType.absolute,
-                      onTap: () => onScheduleTypeChanged(ScheduleType.absolute),
-                      tooltip: 'Specific Time',
-                    ),
-                    Container(
-                      width: 1,
-                      height: 24,
-                      color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
-                    ),
-                    _buildMiniToggle(
-                      icon: Icons.mosque,
-                      isSelected: scheduleType == ScheduleType.prayerRelative,
-                      onTap: () => onScheduleTypeChanged(ScheduleType.prayerRelative),
-                      tooltip: 'Prayer Related',
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppTheme.space16),
-          
-          // Time Content
-          AnimatedSwitcher(
-            duration: AppTheme.animationFast,
-            child: scheduleType == ScheduleType.absolute
-                ? _buildAbsoluteTimeContent(
-                    context: context,
-                    isDark: isDark,
-                    selectedTime: selectedTime,
-                    onTimeSelected: onTimeSelected,
-                    isStartTime: isStartTime,
-                  )
-                : _buildPrayerRelativeContent(
-                    context: context,
-                    isDark: isDark,
-                    selectedPrayer: selectedPrayer,
-                    onPrayerSelected: onPrayerSelected,
-                    isBeforePrayer: isBeforePrayer,
-                    onBeforeAfterChanged: onBeforeAfterChanged,
-                    minutesOffset: minutesOffset,
-                    onMinutesChanged: onMinutesChanged,
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMiniToggle({
-    required IconData icon,
-    required bool isSelected,
-    required VoidCallback onTap,
-    required String tooltip,
-  }) {
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppTheme.space12,
-            vertical: AppTheme.space8,
-          ),
-          decoration: BoxDecoration(
-            color: isSelected ? AppTheme.primary.withOpacity(0.1) : Colors.transparent,
-          ),
-          child: Icon(
-            icon,
-            size: 18,
-            color: isSelected ? AppTheme.primary : Colors.grey,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAbsoluteTimeContent({
-    required BuildContext context,
-    required bool isDark,
-    required DateTime? selectedTime,
-    required Function(DateTime) onTimeSelected,
-    required bool isStartTime,
-  }) {
-    return InkWell(
-      onTap: () async {
-        final time = await showTimePicker(
-          context: context,
-          initialTime: TimeOfDay.fromDateTime(selectedTime ?? DateTime.now()),
-        );
-        
-        if (time != null) {
-          final now = DateTime.now();
-          onTimeSelected(DateTime(now.year, now.month, now.day, time.hour, time.minute));
-        }
-      },
-      borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppTheme.space16,
-          vertical: AppTheme.space12,
-        ),
-        decoration: BoxDecoration(
-          color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
-          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-          border: Border.all(
-            color: AppTheme.primary.withOpacity(0.3),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.access_time,
-              color: AppTheme.primary,
-              size: 20,
-            ),
-            const SizedBox(width: AppTheme.space12),
-            Text(
-              selectedTime != null
-                  ? DateFormat('hh:mm a').format(selectedTime)
-                  : isStartTime ? 'Select start time' : 'Select end time',
-              style: AppTheme.bodyLarge.copyWith(
-                color: selectedTime != null 
-                    ? (isDark ? Colors.white : Colors.black87)
-                    : Colors.grey,
-              ),
-            ),
-            const Spacer(),
-            Icon(
-              Icons.edit,
-              color: Colors.grey,
-              size: 18,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPrayerRelativeContent({
-    required BuildContext context,
-    required bool isDark,
-    required PrayerName? selectedPrayer,
-    required Function(PrayerName) onPrayerSelected,
-    required bool isBeforePrayer,
-    required Function(bool) onBeforeAfterChanged,
-    required int minutesOffset,
-    required Function(int) onMinutesChanged,
-  }) {
-    return Column(
-      children: [
-        // Prayer Selection
-        Container(
-          decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
-            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-            border: Border.all(
-              color: AppTheme.primary.withOpacity(0.3),
-            ),
-          ),
-          child: DropdownButtonFormField<PrayerName>(
-            decoration: InputDecoration(
-              prefixIcon: Icon(Icons.mosque, color: AppTheme.primary, size: 20),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: AppTheme.space16,
-                vertical: 0,
-              ),
-            ),
-            initialValue: selectedPrayer,
-            hint: const Text('Select prayer'),
-            dropdownColor: isDark ? AppTheme.surfaceDark : Colors.white,
-            items: PrayerName.values.map((prayer) {
-              final prayerStr = prayer.toString().split('.').last;
-              final displayName = prayerStr.substring(0, 1).toUpperCase() + 
-                                prayerStr.substring(1);
-              final time = widget.prayerTimes[displayName] ?? '';
-              return DropdownMenuItem(
-                value: prayer,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(displayName),
-                    if (time.isNotEmpty)
-                      Text(
-                        time,
-                        style: AppTheme.labelSmall.copyWith(
-                          color: AppTheme.primary,
-                        ),
-                      ),
-                  ],
-                ),
-              );
-            }).toList(),
-            onChanged: (value) {
-              if (value != null) onPrayerSelected(value);
-            },
-          ),
-        ),
-        
-        const SizedBox(height: AppTheme.space12),
-        
-        // Before/After and Minutes
-        Row(
-          children: [
-            // Before/After Toggle
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
-                  borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                  border: Border.all(
-                    color: AppTheme.primary.withOpacity(0.3),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _buildBeforeAfterOption(
-                        context,
-                        label: 'Before',
-                        isSelected: isBeforePrayer,
-                        onTap: () => onBeforeAfterChanged(true),
-                      ),
-                    ),
-                    Container(
-                      width: 1,
-                      height: 36,
-                      color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
-                    ),
-                    Expanded(
-                      child: _buildBeforeAfterOption(
-                        context,
-                        label: 'After',
-                        isSelected: !isBeforePrayer,
-                        onTap: () => onBeforeAfterChanged(false),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: AppTheme.space12),
-            // Minutes Input
-            Container(
-              width: 100,
-              decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
-                borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                border: Border.all(
-                  color: AppTheme.primary.withOpacity(0.3),
-                ),
-              ),
-              child: TextFormField(
-                textAlign: TextAlign.center,
-                decoration: InputDecoration(
-                  hintText: '0',
-                  suffixText: 'min',
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AppTheme.space12,
-                    vertical: AppTheme.space12,
-                  ),
-                ),
-                keyboardType: TextInputType.number,
-                initialValue: minutesOffset.toString(),
-                onChanged: (value) {
-                  final minutes = int.tryParse(value) ?? 0;
-                  onMinutesChanged(minutes);
-                },
-              ),
-            ),
-          ],
-        ),
-        
-        // Show calculated time
-        if (selectedPrayer != null) ...[
-          const SizedBox(height: AppTheme.space12),
-          _buildCalculatedTimeDisplay(
-            prayer: selectedPrayer,
-            isBefore: isBeforePrayer,
-            minutes: minutesOffset,
-            label: 'Scheduled for',
-            color: AppTheme.primary,
-          ),
-        ],
-      ],
-    );
-  }
-
   Future<void> _selectStartDate() async {
     final date = await showDatePicker(
       context: context,
@@ -2308,9 +1139,11 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
-    
-    if (date != null) {
+
+    if (date != null && mounted) {
       setState(() {
+        // The SchedulingSection picks this up via didUpdateWidget and
+        // rebases any picked start/end times onto the new date.
         _startDate = date;
       });
     }

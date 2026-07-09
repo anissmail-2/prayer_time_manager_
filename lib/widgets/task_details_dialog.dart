@@ -21,6 +21,10 @@ class TaskDetailsDialog extends StatelessWidget {
   final VoidCallback? onToggleComplete;
   final Map<String, String>? cachedPrayerTimes;
 
+  /// The occurrence date this dialog represents (used for per-date
+  /// completion of recurring tasks). Defaults to today.
+  final DateTime? completionDate;
+
   const TaskDetailsDialog({
     super.key,
     this.task,
@@ -29,7 +33,21 @@ class TaskDetailsDialog extends StatelessWidget {
     this.onDelete,
     this.onToggleComplete,
     this.cachedPrayerTimes,
+    this.completionDate,
   }) : assert(task != null || enhancedTask != null);
+
+  /// Completion state for the relevant date. One-time tasks use the global
+  /// flag; recurring tasks are completed per date.
+  bool get _isCompletedForRelevantDate {
+    if (enhancedTask != null) {
+      return enhancedTask!.status == TaskStatus.done;
+    }
+    final date = completionDate ?? DateTime.now();
+    if (task!.recurrence == TaskRecurrence.once) {
+      return task!.isCompleted || task!.isCompletedForDate(date);
+    }
+    return task!.isCompletedForDate(date);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -408,15 +426,15 @@ class TaskDetailsDialog extends StatelessWidget {
                               Navigator.pop(context);
                               onToggleComplete!();
                             },
-                            icon: displayTask.isCompleted || (isEnhanced && enhancedTask!.status == TaskStatus.done)
+                            icon: _isCompletedForRelevantDate
                                 ? Icons.undo_rounded
                                 : Icons.check_circle_rounded,
-                            label: displayTask.isCompleted || (isEnhanced && enhancedTask!.status == TaskStatus.done)
+                            label: _isCompletedForRelevantDate
                                 ? 'Incomplete'
                                 : 'Complete',
-                            color: displayTask.isCompleted || (isEnhanced && enhancedTask!.status == TaskStatus.done)
-                                ? Colors.orange
-                                : Colors.green,
+                            color: _isCompletedForRelevantDate
+                                ? AppTheme.warning
+                                : AppTheme.success,
                           ),
                         ),
                       

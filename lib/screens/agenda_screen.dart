@@ -50,9 +50,15 @@ class _AgendaScreenState extends State<AgendaScreen> {
   @override
   void initState() {
     super.initState();
-    _loadInitialData();
-    _loadLastFilter();
+    _initialize();
     _setupScrollListener();
+  }
+
+  Future<void> _initialize() async {
+    // Restore the last filter first, then load once - running these
+    // concurrently caused a double load with mismatched filters.
+    await _loadLastFilter();
+    await _loadInitialData();
   }
 
   @override
@@ -78,11 +84,11 @@ class _AgendaScreenState extends State<AgendaScreen> {
       setState(() {
         _filterOptions = lastFilter;
       });
-      await _loadData();
     }
   }
 
   Future<void> _loadInitialData() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     
     try {
@@ -107,34 +113,29 @@ class _AgendaScreenState extends State<AgendaScreen> {
     }
   }
 
-  Future<void> _loadData({bool resetPage = true}) async {
-    if (resetPage) {
-      setState(() {
-        _currentPage = 0;
-        _filteredTasks.clear();
-        _hasMore = true;
-      });
-    }
-    
+  Future<void> _loadData() async {
+    if (!mounted) return;
+    setState(() {
+      _currentPage = 0;
+      _filteredTasks.clear();
+      _hasMore = true;
+    });
+
     try {
       final result = await TaskFilterService.loadFilteredTasks(
         filters: _filterOptions,
         page: _currentPage,
         sortOption: _currentSort,
       );
-      
+
       if (mounted) {
         setState(() {
-          if (resetPage) {
-            _filteredTasks = result.tasks;
-          } else {
-            _filteredTasks.addAll(result.tasks);
-          }
+          _filteredTasks = result.tasks;
           _hasMore = result.hasMore;
           _errorMessage = result.error;
         });
       }
-      
+
       // Save filter for next time
       await TaskFilterService.saveLastFilter(_filterOptions);
     } catch (e) {
@@ -148,14 +149,38 @@ class _AgendaScreenState extends State<AgendaScreen> {
 
   Future<void> _loadMoreTasks() async {
     if (!_hasMore || _isLoadingMore) return;
-    
-    setState(() {
-      _isLoadingMore = true;
-      _currentPage++;
-    });
-    
-    await _loadData(resetPage: false);
-    
+
+    setState(() => _isLoadingMore = true);
+
+    // Only commit the page increment once the fetch succeeds, so a
+    // failed load can be retried for the same page.
+    final nextPage = _currentPage + 1;
+    try {
+      final result = await TaskFilterService.loadFilteredTasks(
+        filters: _filterOptions,
+        page: nextPage,
+        sortOption: _currentSort,
+      );
+
+      if (mounted) {
+        setState(() {
+          if (result.error == null) {
+            _currentPage = nextPage;
+            _filteredTasks.addAll(result.tasks);
+            _hasMore = result.hasMore;
+          } else {
+            _errorMessage = result.error;
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error loading tasks: $e';
+        });
+      }
+    }
+
     if (mounted) {
       setState(() {
         _isLoadingMore = false;
@@ -176,29 +201,48 @@ class _AgendaScreenState extends State<AgendaScreen> {
     });
   }
 
+  /// Completion state for the card's own scheduled date. One-time tasks
+  /// also honor the global flag; recurring tasks are completed per date.
+  bool _isTaskCompleted(TaskWithTime taskWithTime) {
+    final task = taskWithTime.task;
+    if (task.recurrence == TaskRecurrence.once) {
+      return task.isCompleted ||
+          task.isCompletedForDate(taskWithTime.scheduledTime);
+    }
+    return task.isCompletedForDate(taskWithTime.scheduledTime);
+  }
+
   Future<void> _toggleTaskCompletion(TaskWithTime taskWithTime) async {
     final task = taskWithTime.task;
-    final today = DateTime.now();
-    
+    // Use the card's own scheduled date so recurring tasks are completed
+    // per occurrence, not always for "today".
+    final date = taskWithTime.scheduledTime;
+
     try {
-      if (task.isCompletedForDate(today)) {
-        await TodoService.unmarkTaskCompleted(task.id, today);
+      final Task? result;
+      if (_isTaskCompleted(taskWithTime)) {
+        result = await TodoService.unmarkTaskCompleted(task.id, date);
       } else {
-        await TodoService.markTaskCompleted(task.id, today);
+        result = await TodoService.markTaskCompleted(task.id, date);
       }
-      
-      // Update task in list without full reload
-      final index = _filteredTasks.indexWhere((t) => t.task.id == task.id);
-      if (index != -1 && mounted) {
-        setState(() {
-          // Refresh the specific task
-          _filteredTasks[index] = TaskWithTime(
-            task: task,
-            scheduledTime: taskWithTime.scheduledTime,
-            endTime: taskWithTime.endTime,
-          );
-        });
-      }
+
+      if (!mounted || result == null) return;
+      final updatedTask = result;
+
+      // Swap in the updated task everywhere it appears in the list (the
+      // same recurring task can be shown on several dates) so the
+      // checkbox and strikethrough update immediately.
+      setState(() {
+        for (var i = 0; i < _filteredTasks.length; i++) {
+          if (_filteredTasks[i].task.id == updatedTask.id) {
+            _filteredTasks[i] = TaskWithTime(
+              task: updatedTask,
+              scheduledTime: _filteredTasks[i].scheduledTime,
+              endTime: _filteredTasks[i].endTime,
+            );
+          }
+        }
+      });
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -526,7 +570,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
       ),
     );
     
-    if (result != null) {
+    if (result != null && mounted) {
       if (result['export'] == true) {
         await _exportTasks();
       } else {
@@ -608,13 +652,20 @@ class _AgendaScreenState extends State<AgendaScreen> {
   Widget _buildTaskCard(TaskWithTime taskWithTime) {
     final task = taskWithTime.task;
     final time = taskWithTime.scheduledTime;
-    final isCompleted = task.isCompletedForDate(DateTime.now());
-    
-    // Extract space info
+    final isCompleted = _isTaskCompleted(taskWithTime);
+
+    // Extract space info. Hashtags that don't match a known space id
+    // (arbitrary #tags) resolve to null and the chip is hidden.
     final spaceId = _extractSpaceId(task.description ?? '');
-    final space = spaceId != null 
-        ? _spaces.firstWhere((s) => s.id == spaceId, orElse: () => _spaces.first)
-        : null;
+    Space? space;
+    if (spaceId != null) {
+      for (final s in _spaces) {
+        if (s.id == spaceId) {
+          space = s;
+          break;
+        }
+      }
+    }
     
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.space12),
@@ -663,6 +714,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
               builder: (context) => TaskDetailsDialog(
                 task: task,
                 cachedPrayerTimes: _prayerTimes,
+                completionDate: taskWithTime.scheduledTime,
                 onEdit: () async {
                   final result = await Navigator.push(
                     context,
@@ -894,17 +946,17 @@ class _AgendaScreenState extends State<AgendaScreen> {
       case ItemType.task:
         return AppTheme.primary;
       case ItemType.activity:
-        return Colors.orange;
+        return AppTheme.warning;
       case ItemType.event:
-        return Colors.purple;
+        return AppTheme.secondary;
       case ItemType.session:
-        return Colors.blue;
+        return AppTheme.info;
       case ItemType.routine:
-        return Colors.green;
+        return AppTheme.success;
       case ItemType.appointment:
-        return Colors.red;
+        return AppTheme.error;
       case ItemType.reminder:
-        return Colors.amber;
+        return AppTheme.sunriseColor;
     }
   }
 

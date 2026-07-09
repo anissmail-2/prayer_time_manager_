@@ -44,6 +44,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     
     try {
@@ -113,17 +114,21 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                 }
                 break;
               case TaskStatus.completed:
-                if (task.isCompletedForDate(today)) {
+                // Completed on the task's own scheduled date, not today
+                if (task.isCompletedForDate(taskDate)) {
                   matchesStatus = true;
                 }
                 break;
               case TaskStatus.missed:
-                if (taskDate.isBefore(today) &&
+                // Missed: the whole scheduled day has passed without completion
+                final startOfToday = DateTime(today.year, today.month, today.day);
+                if (taskDate.isBefore(startOfToday) &&
                     !task.isCompletedForDate(taskDate)) {
                   matchesStatus = true;
                 }
                 break;
               case TaskStatus.overdue:
+                // Overdue: due before now (including earlier today) and incomplete
                 if (taskDate.isBefore(today) &&
                     !task.isCompletedForDate(taskDate)) {
                   matchesStatus = true;
@@ -162,10 +167,9 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
       }).toList();
       
       // Sort by time
-      _filteredTasks.sort((a, b) {
-        if (a.scheduledTime == null && b.scheduledTime == null) return 0;
-        return a.scheduledTime.compareTo(b.scheduledTime);
-      });
+      _filteredTasks.sort(
+        (a, b) => a.scheduledTime.compareTo(b.scheduledTime),
+      );
     });
   }
 
@@ -175,15 +179,27 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
            date1.day == date2.day;
   }
 
+  /// Completion state for the card's own scheduled date. One-time tasks
+  /// also honor the global flag; recurring tasks are completed per date.
+  bool _isTaskCompleted(TaskWithTime taskWithTime) {
+    final task = taskWithTime.task;
+    if (task.recurrence == TaskRecurrence.once) {
+      return task.isCompleted ||
+          task.isCompletedForDate(taskWithTime.scheduledTime);
+    }
+    return task.isCompletedForDate(taskWithTime.scheduledTime);
+  }
+
   Future<void> _toggleTaskCompletion(TaskWithTime taskWithTime) async {
     final task = taskWithTime.task;
-    final today = DateTime.now();
-    
+    // Complete for the card's own scheduled date, not always today
+    final date = taskWithTime.scheduledTime;
+
     try {
-      if (task.isCompletedForDate(today)) {
-        await TodoService.unmarkTaskCompleted(task.id, today);
+      if (_isTaskCompleted(taskWithTime)) {
+        await TodoService.unmarkTaskCompleted(task.id, date);
       } else {
-        await TodoService.markTaskCompleted(task.id, today);
+        await TodoService.markTaskCompleted(task.id, date);
       }
       await _loadData();
     } catch (e) {
@@ -350,7 +366,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
       ),
     );
     
-    if (result != null) {
+    if (result != null && mounted) {
       setState(() {
         _filterOptions = result;
         _applyFilters();
@@ -403,7 +419,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
   Widget _buildTaskCard(TaskWithTime taskWithTime) {
     final task = taskWithTime.task;
     final time = taskWithTime.scheduledTime;
-    final isCompleted = task.isCompletedForDate(DateTime.now());
+    final isCompleted = _isTaskCompleted(taskWithTime);
     
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.space12),
@@ -452,6 +468,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
               builder: (context) => TaskDetailsDialog(
                 task: task,
                 cachedPrayerTimes: _prayerTimes,
+                completionDate: taskWithTime.scheduledTime,
                 onEdit: () async {
                   final result = await Navigator.push(
                     context,

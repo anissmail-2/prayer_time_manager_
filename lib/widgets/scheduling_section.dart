@@ -110,7 +110,45 @@ class _SchedulingSectionState extends State<SchedulingSection> {
     _startDate = widget.initialStartDate ?? DateTime.now();
     _endDate = widget.initialEndDate;
   }
-  
+
+  @override
+  void didUpdateWidget(SchedulingSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Keep the task date in sync when the parent picks a new date
+    // (e.g. the "Task Date" picker in AddEditItemScreen).
+    final newDate = widget.initialTaskDate;
+    if (newDate == null) return;
+    if (_taskDate != null && _isSameDate(newDate, _taskDate!)) return;
+
+    setState(() {
+      _taskDate = newDate;
+      // Rebase already-picked absolute times onto the new date so the
+      // saved absoluteTime carries the date the user actually chose.
+      _startTime = _rebaseOnTaskDate(_startTime);
+      _endTime = _rebaseOnTaskDate(_endTime);
+    });
+    // Notify the parent after this build frame (we may be mid-build).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _updateParent();
+    });
+  }
+
+  bool _isSameDate(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  /// Re-dates [time] onto the currently selected task date (keeps time of day).
+  DateTime? _rebaseOnTaskDate(DateTime? time) {
+    if (time == null || _taskDate == null) return time;
+    return DateTime(
+      _taskDate!.year,
+      _taskDate!.month,
+      _taskDate!.day,
+      time.hour,
+      time.minute,
+    );
+  }
+
   void _updateParent() {
     widget.onScheduleChanged(SchedulingData(
       hasSchedule: _hasSchedule,
@@ -178,6 +216,13 @@ class _SchedulingSectionState extends State<SchedulingSection> {
   Widget _buildSchedulingContent(bool isDark) {
     return Column(
       children: [
+        // Standalone date picker (when recurrence doesn't manage the date
+        // and the parent hasn't taken over date selection).
+        if (!widget.hideDatePicker && !widget.includeRecurrence) ...[
+          _buildDatePicker(isDark),
+          const SizedBox(height: AppTheme.space24),
+        ],
+
         // Start Time
         _buildTimeSection(
           context: context,
@@ -289,6 +334,8 @@ class _SchedulingSectionState extends State<SchedulingSection> {
         if (date != null) {
           setState(() {
             _taskDate = date;
+            _startTime = _rebaseOnTaskDate(_startTime);
+            _endTime = _rebaseOnTaskDate(_endTime);
             _updateParent();
           });
         }
@@ -475,11 +522,12 @@ class _SchedulingSectionState extends State<SchedulingSection> {
               : TimeOfDay.now(),
         );
         
-        if (time != null && _taskDate != null) {
+        if (time != null) {
+          final baseDate = _taskDate ?? DateTime.now();
           onTimeSelected(DateTime(
-            _taskDate!.year,
-            _taskDate!.month,
-            _taskDate!.day,
+            baseDate.year,
+            baseDate.month,
+            baseDate.day,
             time.hour,
             time.minute,
           ));
@@ -1007,6 +1055,8 @@ class _SchedulingSectionState extends State<SchedulingSection> {
                     setState(() {
                       _startDate = date;
                       _taskDate = date; // Update task date to start date
+                      _startTime = _rebaseOnTaskDate(_startTime);
+                      _endTime = _rebaseOnTaskDate(_endTime);
                       _updateParent();
                     });
                   }

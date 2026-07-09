@@ -186,7 +186,7 @@ class TaskFilterService {
               }
               break;
             case TaskStatus.completed:
-              if (task.isCompletedForDate(taskDate ?? now)) {
+              if (task.isCompletedForDate(taskDate)) {
                 matchesStatus = true;
               }
               break;
@@ -291,17 +291,13 @@ class TaskFilterService {
   ) {
     if (sortOption == null) {
       // Default sort by time
-      tasks.sort((a, b) {
-        if (a.scheduledTime == null && b.scheduledTime == null) return 0;
-        return a.scheduledTime.compareTo(b.scheduledTime);
-      });
+      tasks.sort((a, b) => a.scheduledTime.compareTo(b.scheduledTime));
       return tasks;
     }
-    
+
     switch (sortOption.field) {
       case SortField.time:
         tasks.sort((a, b) {
-          if (a.scheduledTime == null && b.scheduledTime == null) return 0;
           final comparison = a.scheduledTime.compareTo(b.scheduledTime);
           return sortOption.ascending ? comparison : -comparison;
         });
