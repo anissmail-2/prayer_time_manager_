@@ -8,12 +8,13 @@ This file provides comprehensive guidance to Claude Code (claude.ai/code) when w
 
 ### Core Identity
 - **Current Name**: TaskFlow Pro
-- **Legacy Name**: prayer_time_manager (still used in namespace)
+- **Legacy Name**: prayer_time_manager (still used as the repo/Dart package name)
 - **Package Name**: `taskflow_pro`
-- **Namespace**: `com.example.prayer_time_manager`
+- **Namespace / applicationId**: `com.awkati.taskflow`
 - **Flutter SDK**: ^3.8.1
 - **Min SDK**: 24 (Android 7.0)
-- **Target SDK**: 34 (Android 14)
+- **Target SDK**: 36
+- **Compile SDK**: 36
 
 ### Key Features
 1. **Prayer-Aware Scheduling**: Schedule tasks relative to prayer times (e.g., "15 minutes before Dhuhr")
@@ -141,14 +142,29 @@ Examples:
 ### AI Integration
 
 #### Gemini Configuration
-- **API Key**: `AIzaSyDuW4ld6jnO3SPocwJbUK1xTI3oMZs7lVI`
+- **API Key**: `<set via Settings → API Keys or --dart-define>` (never commit real keys)
 - **Model**: `gemini-2.5-flash-lite-preview-06-17`
 - **Temperature**: 0.7 for creativity
 
 #### Voice Input (Android Only)
-- **Deepgram API Key**: `17cf7c16bb088ca96a3ce9e0170b8c78d0f3d3a5`
-- **Platform Channel**: `com.example.prayer_time_manager/audio_recorder`
+- **Deepgram API Key**: `<set via Settings → API Keys or --dart-define>` (never commit real keys)
+- **Platform Channel**: `com.awkati.taskflow/audio_recorder`
 - **Custom Implementation**: `MainActivity.kt`
+
+#### API Key Management (IMPORTANT)
+API keys are NEVER stored in source code or bundled assets. Resolution order
+(implemented in `lib/core/config/config_loader.dart`):
+1. **Runtime key** entered by the user in the API Keys screen
+   (`lib/screens/api_keys_screen.dart`), persisted via `ApiConfigService`
+   (`lib/core/services/api_config_service.dart`, SharedPreferences-backed,
+   loaded at startup in `main.dart`)
+2. **Compile-time key** injected with
+   `--dart-define=GEMINI_API_KEY=...` / `--dart-define=DEEPGRAM_API_KEY=...`
+3. **Empty string** — the dependent feature stays disabled
+
+All consumers read keys synchronously through `ConfigLoader.geminiApiKey` /
+`ConfigLoader.deepgramApiKey`. Do not add new hardcoded keys, do not bundle
+`.env` as an asset, and do not commit `app_config.local.dart` (gitignored).
 
 #### AI Assistant Capabilities
 1. Natural language task creation
@@ -207,6 +223,7 @@ await Permission.camera.request(); // DO NOT USE
 - `location_settings` - Prayer location
 - `ai_conversations` - Chat history
 - `current_ai_conversation` - Active chat
+- `api_key_gemini` / `api_key_deepgram` - Runtime API keys (via ApiConfigService)
 
 #### Offline Strategy
 1. All API responses cached automatically
@@ -251,8 +268,8 @@ flutter pub upgrade        # Update dependencies
 #### Build Configuration
 ```xml
 minSdkVersion 24      // Android 7.0
-targetSdkVersion 34   // Android 14
-compileSdkVersion 34
+targetSdkVersion 36
+compileSdkVersion 36
 ```
 
 ## 🎨 UI/UX Conventions
@@ -408,14 +425,15 @@ try {
 - pickAudioFile()
 ```
 
-### Channel Name
-`com.example.prayer_time_manager/audio_recorder`
+### Channel Names
+- `com.awkati.taskflow/audio_recorder` (audio recording)
+- `com.awkati.taskflow/file_picker` (file picking)
 
 ## 🔐 Security Considerations
 
-1. **API Keys**: Currently hardcoded (move to environment variables in production)
+1. **API Keys**: Never hardcoded or bundled. Provided at runtime (Settings → API Keys, stored via `ApiConfigService` in SharedPreferences) or at build time via `--dart-define`. Keys previously committed to this repo remain in git history and MUST be rotated.
 2. **Permissions**: Always request minimum necessary
-3. **Storage**: No encryption on SharedPreferences
+3. **Storage**: No encryption on SharedPreferences (includes stored API keys — acceptable for on-device user keys, not for shipped secrets)
 4. **Network**: HTTPS only for API calls
 
 ## 📊 Performance Optimization
