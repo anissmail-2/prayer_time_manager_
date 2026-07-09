@@ -1,5 +1,9 @@
 import 'task.dart';
 
+// Sentinel used by copyWith to distinguish "not provided" from
+// an explicit null (which clears the field).
+const Object _unset = Object();
+
 // Enhanced task model that extends the base Task
 class EnhancedTask extends Task {
   final String? spaceId; // Optional space reference
@@ -233,7 +237,7 @@ class EnhancedTask extends Task {
     List<int>? monthlyDates,
     String? monthlyPattern,
     List<DateTime>? completedDates,
-    String? spaceId,
+    Object? spaceId = _unset,
     String? parentTaskId,
     List<String>? subtaskIds,
     List<String>? tags,
@@ -270,7 +274,10 @@ class EnhancedTask extends Task {
       monthlyPattern: monthlyPattern ?? this.monthlyPattern,
       completedDates: completedDates ?? this.completedDates,
       estimatedMinutes: estimatedMinutes ?? this.estimatedMinutes,
-      spaceId: spaceId ?? this.spaceId,
+      // Passing an explicit null clears the space reference;
+      // omitting the parameter keeps the current value.
+      spaceId:
+          identical(spaceId, _unset) ? this.spaceId : spaceId as String?,
       parentTaskId: parentTaskId ?? this.parentTaskId,
       subtaskIds: subtaskIds ?? this.subtaskIds,
       tags: tags ?? this.tags,

@@ -50,9 +50,15 @@ class _AgendaScreenState extends State<AgendaScreen> {
   @override
   void initState() {
     super.initState();
-    _loadInitialData();
-    _loadLastFilter();
+    _initialize();
     _setupScrollListener();
+  }
+
+  Future<void> _initialize() async {
+    // Restore the last filter first, then load once - running these
+    // concurrently caused a double load with mismatched filters.
+    await _loadLastFilter();
+    await _loadInitialData();
   }
 
   @override
@@ -78,11 +84,11 @@ class _AgendaScreenState extends State<AgendaScreen> {
       setState(() {
         _filterOptions = lastFilter;
       });
-      await _loadData();
     }
   }
 
   Future<void> _loadInitialData() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     
     try {
@@ -107,34 +113,29 @@ class _AgendaScreenState extends State<AgendaScreen> {
     }
   }
 
-  Future<void> _loadData({bool resetPage = true}) async {
-    if (resetPage) {
-      setState(() {
-        _currentPage = 0;
-        _filteredTasks.clear();
-        _hasMore = true;
-      });
-    }
-    
+  Future<void> _loadData() async {
+    if (!mounted) return;
+    setState(() {
+      _currentPage = 0;
+      _filteredTasks.clear();
+      _hasMore = true;
+    });
+
     try {
       final result = await TaskFilterService.loadFilteredTasks(
         filters: _filterOptions,
         page: _currentPage,
         sortOption: _currentSort,
       );
-      
+
       if (mounted) {
         setState(() {
-          if (resetPage) {
-            _filteredTasks = result.tasks;
-          } else {
-            _filteredTasks.addAll(result.tasks);
-          }
+          _filteredTasks = result.tasks;
           _hasMore = result.hasMore;
           _errorMessage = result.error;
         });
       }
-      
+
       // Save filter for next time
       await TaskFilterService.saveLastFilter(_filterOptions);
     } catch (e) {
@@ -148,14 +149,38 @@ class _AgendaScreenState extends State<AgendaScreen> {
 
   Future<void> _loadMoreTasks() async {
     if (!_hasMore || _isLoadingMore) return;
-    
-    setState(() {
-      _isLoadingMore = true;
-      _currentPage++;
-    });
-    
-    await _loadData(resetPage: false);
-    
+
+    setState(() => _isLoadingMore = true);
+
+    // Only commit the page increment once the fetch succeeds, so a
+    // failed load can be retried for the same page.
+    final nextPage = _currentPage + 1;
+    try {
+      final result = await TaskFilterService.loadFilteredTasks(
+        filters: _filterOptions,
+        page: nextPage,
+        sortOption: _currentSort,
+      );
+
+      if (mounted) {
+        setState(() {
+          if (result.error == null) {
+            _currentPage = nextPage;
+            _filteredTasks.addAll(result.tasks);
+            _hasMore = result.hasMore;
+          } else {
+            _errorMessage = result.error;
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error loading tasks: $e';
+        });
+      }
+    }
+
     if (mounted) {
       setState(() {
         _isLoadingMore = false;
@@ -176,29 +201,48 @@ class _AgendaScreenState extends State<AgendaScreen> {
     });
   }
 
+  /// Completion state for the card's own scheduled date. One-time tasks
+  /// also honor the global flag; recurring tasks are completed per date.
+  bool _isTaskCompleted(TaskWithTime taskWithTime) {
+    final task = taskWithTime.task;
+    if (task.recurrence == TaskRecurrence.once) {
+      return task.isCompleted ||
+          task.isCompletedForDate(taskWithTime.scheduledTime);
+    }
+    return task.isCompletedForDate(taskWithTime.scheduledTime);
+  }
+
   Future<void> _toggleTaskCompletion(TaskWithTime taskWithTime) async {
     final task = taskWithTime.task;
-    final today = DateTime.now();
-    
+    // Use the card's own scheduled date so recurring tasks are completed
+    // per occurrence, not always for "today".
+    final date = taskWithTime.scheduledTime;
+
     try {
-      if (task.isCompletedForDate(today)) {
-        await TodoService.unmarkTaskCompleted(task.id, today);
+      final Task? result;
+      if (_isTaskCompleted(taskWithTime)) {
+        result = await TodoService.unmarkTaskCompleted(task.id, date);
       } else {
-        await TodoService.markTaskCompleted(task.id, today);
+        result = await TodoService.markTaskCompleted(task.id, date);
       }
-      
-      // Update task in list without full reload
-      final index = _filteredTasks.indexWhere((t) => t.task.id == task.id);
-      if (index != -1 && mounted) {
-        setState(() {
-          // Refresh the specific task
-          _filteredTasks[index] = TaskWithTime(
-            task: task,
-            scheduledTime: taskWithTime.scheduledTime,
-            endTime: taskWithTime.endTime,
-          );
-        });
-      }
+
+      if (!mounted || result == null) return;
+      final updatedTask = result;
+
+      // Swap in the updated task everywhere it appears in the list (the
+      // same recurring task can be shown on several dates) so the
+      // checkbox and strikethrough update immediately.
+      setState(() {
+        for (var i = 0; i < _filteredTasks.length; i++) {
+          if (_filteredTasks[i].task.id == updatedTask.id) {
+            _filteredTasks[i] = TaskWithTime(
+              task: updatedTask,
+              scheduledTime: _filteredTasks[i].scheduledTime,
+              endTime: _filteredTasks[i].endTime,
+            );
+          }
+        }
+      });
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -275,7 +319,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: AppTheme.backgroundColor(context),
       body: Column(
         children: [
           _buildHeader(),
@@ -316,10 +360,10 @@ class _AgendaScreenState extends State<AgendaScreen> {
     return Container(
       padding: const EdgeInsets.all(AppTheme.space24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surfaceColor(context),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -337,14 +381,14 @@ class _AgendaScreenState extends State<AgendaScreen> {
                   Text(
                     'Agenda',
                     style: AppTheme.headlineLarge.copyWith(
-                      color: AppTheme.textPrimary,
+                      color: AppTheme.textPrimaryColor(context),
                     ),
                   ),
                   if (!hasActiveFilters)
                     Text(
                       DateFormat('EEEE, MMM d').format(DateTime.now()),
                       style: AppTheme.bodySmall.copyWith(
-                        color: AppTheme.textSecondary,
+                        color: AppTheme.textSecondaryColor(context),
                       ),
                     )
                   else
@@ -366,7 +410,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                         vertical: AppTheme.space4,
                       ),
                       decoration: BoxDecoration(
-                        color: AppTheme.primary.withOpacity(0.1),
+                        color: AppTheme.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                       ),
                       child: Row(
@@ -396,8 +440,8 @@ class _AgendaScreenState extends State<AgendaScreen> {
                       padding: const EdgeInsets.all(AppTheme.space8),
                       decoration: BoxDecoration(
                         color: hasActiveFilters
-                            ? AppTheme.primary.withOpacity(0.1)
-                            : AppTheme.surfaceVariant,
+                            ? AppTheme.primary.withValues(alpha: 0.1)
+                            : AppTheme.surfaceVariantColor(context),
                         borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                       ),
                       child: Stack(
@@ -406,7 +450,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                             Icons.filter_list,
                             color: hasActiveFilters
                                 ? AppTheme.primary
-                                : AppTheme.textSecondary,
+                                : AppTheme.textSecondaryColor(context),
                           ),
                           if (hasActiveFilters)
                             Positioned(
@@ -419,7 +463,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                                   color: AppTheme.primary,
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: Colors.white,
+                                    color: AppTheme.surfaceColor(context),
                                     width: 1.5,
                                   ),
                                 ),
@@ -451,7 +495,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                             Icons.tag,
                             color: _filterOptions.searchInTags
                                 ? AppTheme.primary
-                                : AppTheme.textTertiary,
+                                : AppTheme.textTertiaryColor(context),
                           ),
                           tooltip: 'Search in tags',
                           onPressed: () {
@@ -475,7 +519,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                     )
                   : null,
               filled: true,
-              fillColor: AppTheme.surfaceVariant.withOpacity(0.5),
+              fillColor: AppTheme.surfaceVariantColor(context).withValues(alpha: 0.5),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                 borderSide: BorderSide.none,
@@ -492,7 +536,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppTheme.space12),
-      color: AppTheme.error.withOpacity(0.1),
+      color: AppTheme.error.withValues(alpha: 0.1),
       child: Row(
         children: [
           const Icon(Icons.error_outline, color: AppTheme.error, size: 20),
@@ -526,7 +570,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
       ),
     );
     
-    if (result != null) {
+    if (result != null && mounted) {
       if (result['export'] == true) {
         await _exportTasks();
       } else {
@@ -548,13 +592,13 @@ class _AgendaScreenState extends State<AgendaScreen> {
             Icon(
               Icons.event_note,
               size: 64,
-              color: AppTheme.textTertiary,
+              color: AppTheme.textTertiaryColor(context),
             ),
             const SizedBox(height: AppTheme.space16),
             Text(
               'No items found',
               style: AppTheme.titleLarge.copyWith(
-                color: AppTheme.textSecondary,
+                color: AppTheme.textSecondaryColor(context),
               ),
             ),
             const SizedBox(height: AppTheme.space8),
@@ -565,7 +609,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                       ? 'Try adjusting your filters'
                       : 'Create your first item',
               style: AppTheme.bodyLarge.copyWith(
-                color: AppTheme.textTertiary,
+                color: AppTheme.textTertiaryColor(context),
               ),
             ),
             if (_filterOptions.hasActiveFilters) ...[
@@ -608,17 +652,24 @@ class _AgendaScreenState extends State<AgendaScreen> {
   Widget _buildTaskCard(TaskWithTime taskWithTime) {
     final task = taskWithTime.task;
     final time = taskWithTime.scheduledTime;
-    final isCompleted = task.isCompletedForDate(DateTime.now());
-    
-    // Extract space info
+    final isCompleted = _isTaskCompleted(taskWithTime);
+
+    // Extract space info. Hashtags that don't match a known space id
+    // (arbitrary #tags) resolve to null and the chip is hidden.
     final spaceId = _extractSpaceId(task.description ?? '');
-    final space = spaceId != null 
-        ? _spaces.firstWhere((s) => s.id == spaceId, orElse: () => _spaces.first)
-        : null;
+    Space? space;
+    if (spaceId != null) {
+      for (final s in _spaces) {
+        if (s.id == spaceId) {
+          space = s;
+          break;
+        }
+      }
+    }
     
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.space12),
-      decoration: AppTheme.cardDecoration(),
+      decoration: AppTheme.cardDecorationFor(context),
       child: Dismissible(
         key: Key(task.id),
         direction: DismissDirection.endToStart,
@@ -663,6 +714,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
               builder: (context) => TaskDetailsDialog(
                 task: task,
                 cachedPrayerTimes: _prayerTimes,
+                completionDate: taskWithTime.scheduledTime,
                 onEdit: () async {
                   final result = await Navigator.push(
                     context,
@@ -708,8 +760,8 @@ class _AgendaScreenState extends State<AgendaScreen> {
                         task.title,
                         style: AppTheme.titleMedium.copyWith(
                           color: isCompleted
-                              ? AppTheme.textTertiary
-                              : AppTheme.textPrimary,
+                              ? AppTheme.textTertiaryColor(context)
+                              : AppTheme.textPrimaryColor(context),
                           decoration: isCompleted
                               ? TextDecoration.lineThrough
                               : null,
@@ -720,7 +772,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                         Text(
                           task.description!.replaceAll(RegExp(r'#\w+'), '').trim(),
                           style: AppTheme.bodySmall.copyWith(
-                            color: AppTheme.textSecondary,
+                            color: AppTheme.textSecondaryColor(context),
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -735,7 +787,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                           _buildChip(
                             icon: Icons.calendar_today,
                             label: DateFormat('MMM d').format(time),
-                            color: AppTheme.textSecondary,
+                            color: AppTheme.textSecondaryColor(context),
                           ),
                           // Time display
                           _buildChip(
@@ -743,7 +795,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                             label: taskWithTime.endTime != null
                                     ? '${DateFormat('h:mm a').format(time)} - ${DateFormat('h:mm a').format(taskWithTime.endTime!)}'
                                     : DateFormat('h:mm a').format(time),
-                            color: AppTheme.textSecondary,
+                            color: AppTheme.textSecondaryColor(context),
                           ),
                           // Space indicator
                           if (space != null)
@@ -774,7 +826,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                     Container(
                       padding: const EdgeInsets.all(AppTheme.space6),
                       decoration: BoxDecoration(
-                        color: _getItemTypeColor(task.itemType).withOpacity(0.1),
+                        color: _getItemTypeColor(task.itemType).withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -788,7 +840,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                     Container(
                       padding: const EdgeInsets.all(AppTheme.space6),
                       decoration: BoxDecoration(
-                        color: _getPriorityColor(task.priority).withOpacity(0.1),
+                        color: _getPriorityColor(task.priority).withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -818,10 +870,10 @@ class _AgendaScreenState extends State<AgendaScreen> {
         vertical: AppTheme.space4,
       ),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
         border: Border.all(
-          color: color.withOpacity(0.2),
+          color: color.withValues(alpha: 0.2),
           width: 0.5,
         ),
       ),
@@ -894,17 +946,17 @@ class _AgendaScreenState extends State<AgendaScreen> {
       case ItemType.task:
         return AppTheme.primary;
       case ItemType.activity:
-        return Colors.orange;
+        return AppTheme.warning;
       case ItemType.event:
-        return Colors.purple;
+        return AppTheme.secondary;
       case ItemType.session:
-        return Colors.blue;
+        return AppTheme.info;
       case ItemType.routine:
-        return Colors.green;
+        return AppTheme.success;
       case ItemType.appointment:
-        return Colors.red;
+        return AppTheme.error;
       case ItemType.reminder:
-        return Colors.amber;
+        return AppTheme.sunriseColor;
     }
   }
 

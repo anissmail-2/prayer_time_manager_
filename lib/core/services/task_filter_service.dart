@@ -133,14 +133,18 @@ class TaskFilterService {
       if (_prayerTimesCache.containsKey(cacheKey)) {
         prayerTimes = _prayerTimesCache[cacheKey]!;
       } else {
-        // Load and cache prayer times
+        // Load and cache prayer times. Never cache an EMPTY map (a
+        // transient fetch failure) — that would pin the failure for the
+        // session; leaving it uncached retries on the next access.
         prayerTimes = await PrayerTimeService.getPrayerTimes(date: currentDate);
-        _prayerTimesCache[cacheKey] = prayerTimes;
-        
-        // Keep cache size reasonable (max 60 days)
-        if (_prayerTimesCache.length > 60) {
-          final oldestKey = _prayerTimesCache.keys.first;
-          _prayerTimesCache.remove(oldestKey);
+        if (prayerTimes.isNotEmpty) {
+          _prayerTimesCache[cacheKey] = prayerTimes;
+
+          // Keep cache size reasonable (max 60 days)
+          if (_prayerTimesCache.length > 60) {
+            final oldestKey = _prayerTimesCache.keys.first;
+            _prayerTimesCache.remove(oldestKey);
+          }
         }
       }
       
@@ -186,7 +190,7 @@ class TaskFilterService {
               }
               break;
             case TaskStatus.completed:
-              if (task.isCompletedForDate(taskDate ?? now)) {
+              if (task.isCompletedForDate(taskDate)) {
                 matchesStatus = true;
               }
               break;
@@ -291,17 +295,13 @@ class TaskFilterService {
   ) {
     if (sortOption == null) {
       // Default sort by time
-      tasks.sort((a, b) {
-        if (a.scheduledTime == null && b.scheduledTime == null) return 0;
-        return a.scheduledTime.compareTo(b.scheduledTime);
-      });
+      tasks.sort((a, b) => a.scheduledTime.compareTo(b.scheduledTime));
       return tasks;
     }
-    
+
     switch (sortOption.field) {
       case SortField.time:
         tasks.sort((a, b) {
-          if (a.scheduledTime == null && b.scheduledTime == null) return 0;
           final comparison = a.scheduledTime.compareTo(b.scheduledTime);
           return sortOption.ascending ? comparison : -comparison;
         });

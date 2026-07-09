@@ -104,7 +104,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
                         Tab(text: 'Presets'),
                       ],
                       labelColor: AppTheme.primary,
-                      unselectedLabelColor: AppTheme.textSecondary,
+                      unselectedLabelColor: AppTheme.textSecondaryColor(context),
                     ),
                     Flexible(
                       child: TabBarView(
@@ -131,7 +131,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
       padding: const EdgeInsets.all(AppTheme.space20),
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: AppTheme.borderLight),
+          bottom: BorderSide(color: AppTheme.borderColor(context)),
         ),
       ),
       child: Row(
@@ -282,7 +282,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
         child: Container(
           padding: const EdgeInsets.all(AppTheme.space12),
           decoration: BoxDecoration(
-            border: Border.all(color: AppTheme.borderLight),
+            border: Border.all(color: AppTheme.borderColor(context)),
             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
           ),
           child: Row(
@@ -329,7 +329,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
                   color: _filters.startDate != null && _filters.endDate != null &&
                          _filters.startDate!.isAfter(_filters.endDate!)
                       ? AppTheme.error
-                      : AppTheme.borderLight,
+                      : AppTheme.borderColor(context),
                 ),
                 borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
               ),
@@ -376,7 +376,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
             child: Container(
               padding: const EdgeInsets.all(AppTheme.space12),
               decoration: BoxDecoration(
-                border: Border.all(color: AppTheme.borderLight),
+                border: Border.all(color: AppTheme.borderColor(context)),
                 borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
               ),
               child: Row(
@@ -425,7 +425,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
                 vertical: AppTheme.space4,
               ),
               decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.1),
+                color: AppTheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
               ),
               child: Text(
@@ -453,7 +453,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
                   }
                 });
               },
-              selectedColor: _getStatusColor(status).withOpacity(0.2),
+              selectedColor: _getStatusColor(status).withValues(alpha: 0.2),
               checkmarkColor: _getStatusColor(status),
             );
           }).toList(),
@@ -481,7 +481,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
                 vertical: AppTheme.space4,
               ),
               decoration: BoxDecoration(
-                color: AppTheme.secondary.withOpacity(0.1),
+                color: AppTheme.secondary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
               ),
               child: Text(
@@ -520,7 +520,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
                   }
                 });
               },
-              selectedColor: _getSpaceColor(space.color).withOpacity(0.2),
+              selectedColor: _getSpaceColor(space.color).withValues(alpha: 0.2),
               checkmarkColor: _getSpaceColor(space.color),
             );
           }).toList(),
@@ -566,7 +566,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
                   }
                 });
               },
-              selectedColor: _getPriorityColor(priority).withOpacity(0.2),
+              selectedColor: _getPriorityColor(priority).withValues(alpha: 0.2),
               checkmarkColor: _getPriorityColor(priority),
             );
           }).toList(),
@@ -612,7 +612,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
                   }
                 });
               },
-              selectedColor: _getItemTypeColor(type).withOpacity(0.2),
+              selectedColor: _getItemTypeColor(type).withValues(alpha: 0.2),
               checkmarkColor: _getItemTypeColor(type),
             );
           }).toList(),
@@ -823,7 +823,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
       padding: const EdgeInsets.all(AppTheme.space20),
       decoration: BoxDecoration(
         border: Border(
-          top: BorderSide(color: AppTheme.borderLight),
+          top: BorderSide(color: AppTheme.borderColor(context)),
         ),
       ),
       child: Row(
@@ -901,7 +901,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
       case TaskStatus.overdue:
         return AppTheme.warning;
       case TaskStatus.old:
-        return AppTheme.textSecondary;
+        return AppTheme.textSecondaryColor(context);
     }
   }
 

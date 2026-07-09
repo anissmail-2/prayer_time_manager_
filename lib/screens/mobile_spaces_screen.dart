@@ -59,14 +59,22 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
       }
       
       // Don't create default inbox space - let user create their own spaces
-      
+
+      if (!mounted) return;
       setState(() {
         _spaces = spaces;
         _allIdeas = ideas;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading spaces: $e'),
+          backgroundColor: AppTheme.error,
+        ),
+      );
     }
   }
   
@@ -98,14 +106,14 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
     if (_showSpacesList || _selectedSpace == null) {
       // Show spaces list
       return Scaffold(
-        backgroundColor: AppTheme.backgroundLight,
+        backgroundColor: AppTheme.backgroundColor(context),
         appBar: AppBar(
-          backgroundColor: AppTheme.surface,
+          backgroundColor: AppTheme.surfaceColor(context),
           elevation: 0,
           title: Text(
             'Spaces',
             style: AppTheme.headlineSmall.copyWith(
-              color: AppTheme.textPrimary,
+              color: AppTheme.textPrimaryColor(context),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -121,12 +129,12 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
     } else {
       // Show selected space content
       return Scaffold(
-        backgroundColor: AppTheme.backgroundLight,
+        backgroundColor: AppTheme.backgroundColor(context),
         appBar: AppBar(
-          backgroundColor: AppTheme.surface,
+          backgroundColor: AppTheme.surfaceColor(context),
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+            icon: Icon(Icons.arrow_back, color: AppTheme.textPrimaryColor(context)),
             onPressed: () {
               setState(() {
                 // If viewing a sub-space, go back to parent
@@ -147,7 +155,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
           title: Text(
             _selectedSpace?.name ?? 'Space',
             style: AppTheme.headlineSmall.copyWith(
-              color: AppTheme.textPrimary,
+              color: AppTheme.textPrimaryColor(context),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -199,16 +207,16 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
   
   Widget _buildTabletLayout() {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: AppTheme.backgroundColor(context),
       body: Row(
         children: [
           // Space list sidebar
           Container(
             width: 300,
             decoration: BoxDecoration(
-              color: AppTheme.surface,
+              color: AppTheme.surfaceColor(context),
               border: Border(
-                right: BorderSide(color: AppTheme.borderLight),
+                right: BorderSide(color: AppTheme.borderColor(context)),
               ),
             ),
             child: Column(
@@ -229,13 +237,13 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                         Icon(
                           Icons.folder_outlined,
                           size: 64,
-                          color: AppTheme.textTertiary,
+                          color: AppTheme.textTertiaryColor(context),
                         ),
                         const SizedBox(height: AppTheme.space16),
                         Text(
                           'Select a space to view items',
                           style: AppTheme.bodyLarge.copyWith(
-                            color: AppTheme.textSecondary,
+                            color: AppTheme.textSecondaryColor(context),
                           ),
                         ),
                       ],
@@ -251,9 +259,9 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
     return Container(
       padding: const EdgeInsets.all(AppTheme.space16),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceColor(context),
         border: Border(
-          bottom: BorderSide(color: AppTheme.borderLight),
+          bottom: BorderSide(color: AppTheme.borderColor(context)),
         ),
       ),
       child: Row(
@@ -261,7 +269,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
           Text(
             'Spaces',
             style: AppTheme.headlineMedium.copyWith(
-              color: AppTheme.textPrimary,
+              color: AppTheme.textPrimaryColor(context),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -290,13 +298,13 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
             Icon(
               Icons.folder_outlined,
               size: 64,
-              color: AppTheme.textTertiary,
+              color: AppTheme.textTertiaryColor(context),
             ),
             const SizedBox(height: AppTheme.space16),
             Text(
               'No spaces yet',
               style: AppTheme.bodyLarge.copyWith(
-                color: AppTheme.textSecondary,
+                color: AppTheme.textSecondaryColor(context),
               ),
             ),
             const SizedBox(height: AppTheme.space8),
@@ -333,7 +341,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
             bottom: AppTheme.space12,
           ),
           child: Material(
-            color: AppTheme.surface,
+            color: AppTheme.surfaceColor(context),
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
             elevation: 2,
             child: InkWell(
@@ -355,12 +363,12 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: _getSpaceColor(space.color ?? 'blue').withValues(alpha: 0.1),
+                        color: _getSpaceColor(space.color).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                       ),
                       child: Icon(
                         Icons.folder,
-                        color: _getSpaceColor(space.color ?? 'blue'),
+                        color: _getSpaceColor(space.color),
                         size: 24,
                       ),
                     ),
@@ -372,7 +380,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                           Text(
                             space.name,
                             style: AppTheme.bodyLarge.copyWith(
-                              color: AppTheme.textPrimary,
+                              color: AppTheme.textPrimaryColor(context),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -381,7 +389,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                             Text(
                               space.description!,
                               style: AppTheme.bodySmall.copyWith(
-                                color: AppTheme.textSecondary,
+                                color: AppTheme.textSecondaryColor(context),
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -397,15 +405,15 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                                   Icon(
                                     Icons.list,
                                     size: 16,
-                                    color: AppTheme.textTertiary,
+                                    color: AppTheme.textTertiaryColor(context),
                                   ),
                                   const SizedBox(width: AppTheme.space4),
                                   Text(
-                                    totalItems == ideaCount 
+                                    totalItems == ideaCount
                                         ? '$ideaCount items'
                                         : '$ideaCount items ($totalItems total)',
                                     style: AppTheme.bodySmall.copyWith(
-                                      color: AppTheme.textTertiary,
+                                      color: AppTheme.textTertiaryColor(context),
                                     ),
                                   ),
                                   if (subSpaces.isNotEmpty) ...[
@@ -413,13 +421,13 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                                     Icon(
                                       Icons.folder_open,
                                       size: 16,
-                                      color: AppTheme.textTertiary,
+                                      color: AppTheme.textTertiaryColor(context),
                                     ),
                                     const SizedBox(width: AppTheme.space4),
                                     Text(
                                       '${subSpaces.length} sub-spaces',
                                       style: AppTheme.bodySmall.copyWith(
-                                        color: AppTheme.textTertiary,
+                                        color: AppTheme.textTertiaryColor(context),
                                       ),
                                     ),
                                   ],
@@ -431,7 +439,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                       ),
                     ),
                     PopupMenuButton<String>(
-                      icon: Icon(Icons.more_vert, color: AppTheme.textSecondary),
+                      icon: Icon(Icons.more_vert, color: AppTheme.textSecondaryColor(context)),
                       onSelected: (value) => _handleSpaceMenuAction(value, space),
                       itemBuilder: (context) => [
                         const PopupMenuItem(
@@ -492,9 +500,9 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
         // Space info header with breadcrumb and sub-spaces
         Container(
           decoration: BoxDecoration(
-            color: AppTheme.surface,
+            color: AppTheme.surfaceColor(context),
             border: Border(
-              bottom: BorderSide(color: AppTheme.borderLight),
+              bottom: BorderSide(color: AppTheme.borderColor(context)),
             ),
           ),
           child: Column(
@@ -524,7 +532,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                       Text(
                         'Sub-spaces',
                         style: AppTheme.bodyMedium.copyWith(
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.textSecondaryColor(context),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -538,14 +546,14 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                             avatar: Icon(
                               Icons.folder_outlined,
                               size: 16,
-                              color: _getSpaceColor(subSpace.color ?? 'blue'),
+                              color: _getSpaceColor(subSpace.color),
                             ),
                             onPressed: () {
                               setState(() {
                                 _selectedSpace = subSpace;
                               });
                             },
-                            backgroundColor: _getSpaceColor(subSpace.color ?? 'blue').withValues(alpha: 0.1),
+                            backgroundColor: _getSpaceColor(subSpace.color).withValues(alpha: 0.1),
                           );
                         }).toList(),
                       ),
@@ -560,9 +568,9 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
         Container(
           padding: const EdgeInsets.all(AppTheme.space16),
           decoration: BoxDecoration(
-            color: AppTheme.surface,
+            color: AppTheme.surfaceColor(context),
             border: Border(
-              bottom: BorderSide(color: AppTheme.borderLight),
+              bottom: BorderSide(color: AppTheme.borderColor(context)),
             ),
           ),
           child: Row(
@@ -571,18 +579,18 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
               Expanded(
                 child: TextField(
                   controller: _quickAddController,
-                  style: const TextStyle(
-                    color: Colors.black,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 16,
                   ),
                   decoration: InputDecoration(
                     hintText: 'Quick add item...',
                     hintStyle: TextStyle(
-                      color: Colors.grey[600],
+                      color: Theme.of(context).hintColor,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                      borderSide: BorderSide(color: AppTheme.borderLight),
+                      borderSide: BorderSide(color: AppTheme.borderColor(context)),
                     ),
                     suffixIcon: IconButton(
                       icon: Icon(Icons.add, color: AppTheme.primary),
@@ -616,19 +624,19 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.lightbulb_outline, size: 48, color: AppTheme.textTertiary),
+                      Icon(Icons.lightbulb_outline, size: 48, color: AppTheme.textTertiaryColor(context)),
                       const SizedBox(height: AppTheme.space16),
                       Text(
                         'No items in this space',
                         style: AppTheme.bodyLarge.copyWith(
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.textSecondaryColor(context),
                         ),
                       ),
                       const SizedBox(height: AppTheme.space8),
                       Text(
                         'Add items quickly with just a name!',
                         style: AppTheme.bodySmall.copyWith(
-                          color: AppTheme.textTertiary,
+                          color: AppTheme.textTertiaryColor(context),
                         ),
                       ),
                     ],
@@ -653,7 +661,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.space12),
       child: Material(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceColor(context),
         borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
         elevation: 1,
         child: InkWell(
@@ -687,7 +695,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                                 child: Text(
                                   idea.title,
                                   style: AppTheme.bodyLarge.copyWith(
-                                    color: AppTheme.textPrimary,
+                                    color: AppTheme.textPrimaryColor(context),
                                     fontWeight: FontWeight.w500,
                                     decoration: idea.status == TaskStatus.done 
                                         ? TextDecoration.lineThrough 
@@ -708,7 +716,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                             Text(
                               idea.description!,
                               style: AppTheme.bodySmall.copyWith(
-                                color: AppTheme.textSecondary,
+                                color: AppTheme.textSecondaryColor(context),
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
@@ -719,7 +727,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                             Text(
                               _getScheduleDisplayText(idea),
                               style: AppTheme.bodySmall.copyWith(
-                                color: AppTheme.textTertiary,
+                                color: AppTheme.textTertiaryColor(context),
                                 fontStyle: FontStyle.italic,
                               ),
                             ),
@@ -752,7 +760,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                     
                     // Actions
                     PopupMenuButton<String>(
-                      icon: Icon(Icons.more_vert, color: AppTheme.textSecondary),
+                      icon: Icon(Icons.more_vert, color: AppTheme.textSecondaryColor(context)),
                       onSelected: (value) {
                         switch (value) {
                           case 'push':
@@ -841,12 +849,36 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
     }
   }
   
-  Color _getSpaceColor(String colorHex) {
-    try {
-      return Color(int.parse(colorHex, radix: 16));
-    } catch (_) {
+  // Single robust space-color parser for this screen. Accepts named colors
+  // ('blue', 'green', ...), '#RRGGBB', 'RRGGBB', and 'AARRGGBB' (including
+  // the 'FFxxxxxx' format written on space creation). Falls back cleanly to
+  // the app primary color.
+  Color _getSpaceColor(String? colorValue) {
+    if (colorValue == null || colorValue.trim().isEmpty) {
       return AppTheme.primary;
     }
+    final value = colorValue.trim();
+
+    const namedColors = <String, Color>{
+      'blue': Colors.blue,
+      'green': Colors.green,
+      'purple': Colors.purple,
+      'orange': Colors.orange,
+      'pink': Colors.pink,
+      'teal': Colors.teal,
+      'red': Colors.red,
+      'indigo': Colors.indigo,
+    };
+    final named = namedColors[value.toLowerCase()];
+    if (named != null) return named;
+
+    var hex = value.startsWith('#') ? value.substring(1) : value;
+    if (hex.length == 6) hex = 'FF$hex'; // Assume fully opaque
+    if (hex.length == 8) {
+      final parsed = int.tryParse(hex, radix: 16);
+      if (parsed != null) return Color(parsed);
+    }
+    return AppTheme.primary;
   }
   
   void _showCreateSpaceDialog({String? parentSpaceId}) {
@@ -855,7 +887,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
     
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text(parentSpaceId != null ? 'Create Sub-space' : 'Create New Space'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -881,7 +913,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
@@ -890,27 +922,33 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                 final newSpace = Space(
                   id: DateTime.now().millisecondsSinceEpoch.toString(),
                   name: nameController.text,
-                  description: descriptionController.text.isNotEmpty 
-                      ? descriptionController.text 
+                  description: descriptionController.text.isNotEmpty
+                      ? descriptionController.text
                       : null,
-                  color: 'FF${Colors.primaries[_spaces.length % Colors.primaries.length].value.toRadixString(16).padLeft(8, '0').substring(2)}',
+                  color: 'FF${Colors.primaries[_spaces.length % Colors.primaries.length].toARGB32().toRadixString(16).padLeft(8, '0').substring(2)}',
                   createdAt: DateTime.now(),
                   parentSpaceId: parentSpaceId,
                 );
-                
+
+                // Close the dialog before any async work so its context is
+                // never used after an await.
+                Navigator.pop(dialogContext);
+
                 await SpaceService.createSpace(newSpace);
-                
+
                 // Update parent space if it's a sub-space
                 if (parentSpaceId != null) {
-                  final parentSpace = _spaces.firstWhere((s) => s.id == parentSpaceId);
-                  await SpaceService.updateSpace(parentSpace.copyWith(
-                    subSpaceIds: [...parentSpace.subSpaceIds, newSpace.id],
-                  ));
+                  final parentSpace = _spaces
+                      .where((s) => s.id == parentSpaceId)
+                      .toList();
+                  if (parentSpace.isNotEmpty) {
+                    await SpaceService.updateSpace(parentSpace.first.copyWith(
+                      subSpaceIds: [...parentSpace.first.subSpaceIds, newSpace.id],
+                    ));
+                  }
                 }
-                
+
                 await _loadData();
-                
-                Navigator.pop(context);
               }
             },
             child: const Text('Create'),
@@ -959,7 +997,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
         builder: (context) => AddEditSpaceItemScreen(
           spaceId: idea.spaceId ?? _selectedSpace!.id,
           spaceName: space.name,
-          spaceColor: _getSpaceColor(space.color ?? 'blue'),
+          spaceColor: _getSpaceColor(space.color),
           editingItem: idea,
         ),
       ),
@@ -1005,16 +1043,32 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
         builder: (context) => AddEditSpaceItemScreen(
           spaceId: _selectedSpace!.id,
           spaceName: _selectedSpace!.name,
-          spaceColor: _getSpaceColor(_selectedSpace!.color ?? 'blue'),
+          spaceColor: _getSpaceColor(_selectedSpace!.color),
         ),
       ),
     );
     
     if (result == true) {
       await _loadData();
-    } else if (result is Map && result['pushToTimeline'] == true && result['item'] != null) {
+    } else if (result is Map && result['item'] != null) {
       await _loadData();
-      _pushToTimeline(result['item'] as EnhancedTask);
+      final item = result['item'] as EnhancedTask;
+      if (result['pushToTimeline'] == true) {
+        _pushToTimeline(item);
+      } else if (result['offerPushToTimeline'] == true) {
+        // The add screen has already popped; offer the push action from this
+        // screen so the SnackBar action never touches a dead route.
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Created "${item.title}"'),
+            action: SnackBarAction(
+              label: 'Push to Timeline',
+              onPressed: () => _pushToTimeline(item),
+            ),
+          ),
+        );
+      }
     }
   }
   
@@ -1121,7 +1175,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
       // Show timing dialog
       showDialog(
         context: context,
-        builder: (context) => Dialog(
+        builder: (dialogContext) => Dialog(
           child: Container(
             constraints: const BoxConstraints(maxWidth: 600),
             child: SingleChildScrollView(
@@ -1141,7 +1195,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                     Text(
                       'This item needs both start and end times to be pushed to the timeline.',
                       style: AppTheme.bodyMedium.copyWith(
-                        color: AppTheme.textSecondary,
+                        color: AppTheme.textSecondaryColor(dialogContext),
                       ),
                     ),
                     const SizedBox(height: AppTheme.space24),
@@ -1149,9 +1203,12 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                       spaceId: idea.spaceId ?? _selectedSpace!.id,
                       editingItem: idea,
                       onSubmit: (updatedItem) async {
+                        // Pop the dialog before awaiting so its context is
+                        // never used after the async gap.
+                        Navigator.pop(dialogContext);
                         await SpaceService.updateEnhancedTask(updatedItem);
-                        Navigator.pop(context);
-                        
+                        if (!mounted) return;
+
                         if (updatedItem.hasTimeBlock) {
                           // Now push to timeline
                           _pushToTimeline(updatedItem);
@@ -1188,18 +1245,26 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
     );
     
     await SpaceService.addTask(task);
-    
-    // Update the idea status to indicate it's been pushed
-    final updatedIdea = idea.copyWith(status: TaskStatus.done);
-    
+
+    // Mark the source idea as scheduled (in progress) rather than done —
+    // pushing to the timeline schedules the idea, it doesn't complete it.
+    // Keep a reference to the created timeline task for traceability.
+    final updatedIdea = idea.copyWith(
+      status: TaskStatus.inProgress,
+      customFields: {
+        ...?idea.customFields,
+        'timelineTaskId': task.id,
+      },
+    );
+
     await SpaceService.updateEnhancedTask(updatedIdea);
     await _loadData();
-    
+
     if (!mounted) return;
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Pushed "${idea.title}" to timeline'),
+        content: Text('Scheduled "${idea.title}" on the timeline'),
         action: SnackBarAction(
           label: 'View Tasks',
           onPressed: () {
@@ -1270,7 +1335,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
     
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Edit Space'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1296,7 +1361,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
@@ -1304,17 +1369,20 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
               if (nameController.text.isNotEmpty) {
                 final updatedSpace = space.copyWith(
                   name: nameController.text,
-                  description: descriptionController.text.isNotEmpty 
-                      ? descriptionController.text 
+                  description: descriptionController.text.isNotEmpty
+                      ? descriptionController.text
                       : null,
                 );
-                
+
+                // Pop the dialog and capture the screen's messenger BEFORE
+                // any async gap so no deactivated context is used later.
+                Navigator.pop(dialogContext);
+                final messenger = ScaffoldMessenger.of(context);
+
                 await SpaceService.updateSpace(updatedSpace);
                 await _loadData();
-                
-                Navigator.pop(context);
-                
-                ScaffoldMessenger.of(context).showSnackBar(
+
+                messenger.showSnackBar(
                   SnackBar(
                     content: Text('Updated "${updatedSpace.name}"'),
                   ),
@@ -1331,10 +1399,11 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
   void _confirmDeleteSpace(Space space) async {
     final subSpaces = _getSubSpaces(space.id);
     final itemCount = await SpaceService.getSpaceItemCount(space.id, includeSubSpaces: true);
-    
+
+    if (!mounted) return;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Space'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1371,12 +1440,12 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                 padding: const EdgeInsets.only(left: AppTheme.space16, bottom: AppTheme.space4),
                 child: Row(
                   children: [
-                    Icon(Icons.folder_outlined, size: 16, color: AppTheme.textSecondary),
+                    Icon(Icons.folder_outlined, size: 16, color: AppTheme.textSecondaryColor(dialogContext)),
                     const SizedBox(width: AppTheme.space8),
                     Text(
                       subSpace.name,
                       style: AppTheme.bodySmall.copyWith(
-                        color: AppTheme.textSecondary,
+                        color: AppTheme.textSecondaryColor(dialogContext),
                       ),
                     ),
                   ],
@@ -1388,7 +1457,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                   child: Text(
                     '...and ${subSpaces.length - 3} more',
                     style: AppTheme.bodySmall.copyWith(
-                      color: AppTheme.textTertiary,
+                      color: AppTheme.textTertiaryColor(dialogContext),
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -1398,17 +1467,20 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           if (subSpaces.isNotEmpty)
             TextButton(
               onPressed: () async {
-                Navigator.pop(context);
+                // Pop the dialog and capture the screen's messenger BEFORE
+                // the async gap; the dialog context must not be used after.
+                Navigator.pop(dialogContext);
+                final messenger = ScaffoldMessenger.of(context);
                 await SpaceService.deleteSpace(space.id, deleteSubSpaces: false);
                 await _loadData();
-                
-                ScaffoldMessenger.of(context).showSnackBar(
+
+                messenger.showSnackBar(
                   SnackBar(
                     content: Text('Deleted "${space.name}" (sub-spaces preserved)'),
                   ),
@@ -1418,22 +1490,25 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
             ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
+              // Pop the dialog and capture the screen's messenger BEFORE
+              // the async gap; the dialog context must not be used after.
+              Navigator.pop(dialogContext);
+              final messenger = ScaffoldMessenger.of(context);
               await SpaceService.deleteSpace(space.id, deleteSubSpaces: true);
               await _loadData();
-              
+
               // If we deleted the selected space, reset selection
-              if (_selectedSpace?.id == space.id) {
+              if (mounted && _selectedSpace?.id == space.id) {
                 setState(() {
                   _selectedSpace = null;
                   _showSpacesList = true;
                 });
               }
-              
-              ScaffoldMessenger.of(context).showSnackBar(
+
+              messenger.showSnackBar(
                 SnackBar(
                   content: Text(
-                    subSpaces.isEmpty 
+                    subSpaces.isEmpty
                         ? 'Deleted "${space.name}"'
                         : 'Deleted "${space.name}" and ${subSpaces.length} sub-space${subSpaces.length > 1 ? 's' : ''}'
                   ),
@@ -1492,13 +1567,13 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
                 Icon(
                   Icons.folder,
                   size: 16,
-                  color: isLast ? AppTheme.primary : AppTheme.textSecondary,
+                  color: isLast ? AppTheme.primary : AppTheme.textSecondaryColor(context),
                 ),
                 const SizedBox(width: AppTheme.space4),
                 Text(
                   space.name,
                   style: AppTheme.bodySmall.copyWith(
-                    color: isLast ? AppTheme.primary : AppTheme.textSecondary,
+                    color: isLast ? AppTheme.primary : AppTheme.textSecondaryColor(context),
                     fontWeight: isLast ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),
@@ -1513,7 +1588,7 @@ class _MobileSpacesScreenState extends State<MobileSpacesScreen> {
           Icon(
             Icons.chevron_right,
             size: 16,
-            color: AppTheme.textTertiary,
+            color: AppTheme.textTertiaryColor(context),
           ),
         );
       }

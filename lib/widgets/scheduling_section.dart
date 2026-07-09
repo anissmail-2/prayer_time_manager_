@@ -110,7 +110,45 @@ class _SchedulingSectionState extends State<SchedulingSection> {
     _startDate = widget.initialStartDate ?? DateTime.now();
     _endDate = widget.initialEndDate;
   }
-  
+
+  @override
+  void didUpdateWidget(SchedulingSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Keep the task date in sync when the parent picks a new date
+    // (e.g. the "Task Date" picker in AddEditItemScreen).
+    final newDate = widget.initialTaskDate;
+    if (newDate == null) return;
+    if (_taskDate != null && _isSameDate(newDate, _taskDate!)) return;
+
+    setState(() {
+      _taskDate = newDate;
+      // Rebase already-picked absolute times onto the new date so the
+      // saved absoluteTime carries the date the user actually chose.
+      _startTime = _rebaseOnTaskDate(_startTime);
+      _endTime = _rebaseOnTaskDate(_endTime);
+    });
+    // Notify the parent after this build frame (we may be mid-build).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _updateParent();
+    });
+  }
+
+  bool _isSameDate(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  /// Re-dates [time] onto the currently selected task date (keeps time of day).
+  DateTime? _rebaseOnTaskDate(DateTime? time) {
+    if (time == null || _taskDate == null) return time;
+    return DateTime(
+      _taskDate!.year,
+      _taskDate!.month,
+      _taskDate!.day,
+      time.hour,
+      time.minute,
+    );
+  }
+
   void _updateParent() {
     widget.onScheduleChanged(SchedulingData(
       hasSchedule: _hasSchedule,
@@ -178,6 +216,13 @@ class _SchedulingSectionState extends State<SchedulingSection> {
   Widget _buildSchedulingContent(bool isDark) {
     return Column(
       children: [
+        // Standalone date picker (when recurrence doesn't manage the date
+        // and the parent hasn't taken over date selection).
+        if (!widget.hideDatePicker && !widget.includeRecurrence) ...[
+          _buildDatePicker(isDark),
+          const SizedBox(height: AppTheme.space24),
+        ],
+
         // Start Time
         _buildTimeSection(
           context: context,
@@ -289,6 +334,8 @@ class _SchedulingSectionState extends State<SchedulingSection> {
         if (date != null) {
           setState(() {
             _taskDate = date;
+            _startTime = _rebaseOnTaskDate(_startTime);
+            _endTime = _rebaseOnTaskDate(_endTime);
             _updateParent();
           });
         }
@@ -297,10 +344,10 @@ class _SchedulingSectionState extends State<SchedulingSection> {
       child: Container(
         padding: const EdgeInsets.all(AppTheme.space16),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
           borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           border: Border.all(
-            color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+            color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
           ),
         ),
         child: Row(
@@ -308,7 +355,7 @@ class _SchedulingSectionState extends State<SchedulingSection> {
             Container(
               padding: const EdgeInsets.all(AppTheme.space12),
               decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.1),
+                color: AppTheme.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -366,10 +413,10 @@ class _SchedulingSectionState extends State<SchedulingSection> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
         borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+          color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
         ),
       ),
       padding: const EdgeInsets.all(AppTheme.space16),
@@ -382,7 +429,7 @@ class _SchedulingSectionState extends State<SchedulingSection> {
               Container(
                 padding: const EdgeInsets.all(AppTheme.space8),
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withOpacity(0.1),
+                  color: AppTheme.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -402,7 +449,7 @@ class _SchedulingSectionState extends State<SchedulingSection> {
               // Schedule Type Toggle
               Container(
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.1) : AppTheme.surface,
+                  color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.surface,
                   borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                 ),
                 child: Row(
@@ -417,7 +464,7 @@ class _SchedulingSectionState extends State<SchedulingSection> {
                     Container(
                       width: 1,
                       height: 24,
-                      color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
+                      color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.2),
                     ),
                     _buildMiniToggle(
                       icon: Icons.mosque,
@@ -475,11 +522,12 @@ class _SchedulingSectionState extends State<SchedulingSection> {
               : TimeOfDay.now(),
         );
         
-        if (time != null && _taskDate != null) {
+        if (time != null) {
+          final baseDate = _taskDate ?? DateTime.now();
           onTimeSelected(DateTime(
-            _taskDate!.year,
-            _taskDate!.month,
-            _taskDate!.day,
+            baseDate.year,
+            baseDate.month,
+            baseDate.day,
             time.hour,
             time.minute,
           ));
@@ -492,10 +540,10 @@ class _SchedulingSectionState extends State<SchedulingSection> {
           vertical: AppTheme.space12,
         ),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
           borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           border: Border.all(
-            color: AppTheme.primary.withOpacity(0.3),
+            color: AppTheme.primary.withValues(alpha: 0.3),
           ),
         ),
         child: Row(
@@ -511,15 +559,15 @@ class _SchedulingSectionState extends State<SchedulingSection> {
                   ? DateFormat('h:mm a').format(selectedTime)
                   : isStartTime ? 'Select start time' : 'Select end time',
               style: AppTheme.bodyLarge.copyWith(
-                color: selectedTime != null 
-                    ? (isDark ? Colors.white : Colors.black87)
-                    : Colors.grey,
+                color: selectedTime != null
+                    ? AppTheme.textPrimaryColor(context)
+                    : AppTheme.textTertiaryColor(context),
               ),
             ),
             const Spacer(),
             Icon(
               Icons.edit,
-              color: Colors.grey,
+              color: AppTheme.textSecondaryColor(context),
               size: 18,
             ),
           ],
@@ -543,10 +591,10 @@ class _SchedulingSectionState extends State<SchedulingSection> {
         // Prayer Selection
         Container(
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
             border: Border.all(
-              color: AppTheme.primary.withOpacity(0.3),
+              color: AppTheme.primary.withValues(alpha: 0.3),
             ),
           ),
           child: DropdownButtonFormField<PrayerName>(
@@ -560,7 +608,7 @@ class _SchedulingSectionState extends State<SchedulingSection> {
             ),
             initialValue: selectedPrayer,
             hint: const Text('Select prayer'),
-            dropdownColor: isDark ? AppTheme.surfaceDark : Colors.white,
+            dropdownColor: AppTheme.surfaceColor(context),
             items: PrayerName.values.map((prayer) {
               final prayerStr = prayer.toString().split('.').last;
               final displayName = prayerStr.substring(0, 1).toUpperCase() + 
@@ -576,7 +624,7 @@ class _SchedulingSectionState extends State<SchedulingSection> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: AppTheme.primary.withOpacity(0.1),
+                          color: AppTheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -606,10 +654,10 @@ class _SchedulingSectionState extends State<SchedulingSection> {
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+                  color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
                   borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                   border: Border.all(
-                    color: AppTheme.primary.withOpacity(0.3),
+                    color: AppTheme.primary.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(
@@ -625,7 +673,7 @@ class _SchedulingSectionState extends State<SchedulingSection> {
                     Container(
                       width: 1,
                       height: 36,
-                      color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
+                      color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.2),
                     ),
                     Expanded(
                       child: _buildBeforeAfterOption(
@@ -644,10 +692,10 @@ class _SchedulingSectionState extends State<SchedulingSection> {
             Container(
               width: 100,
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                 border: Border.all(
-                  color: AppTheme.primary.withOpacity(0.3),
+                  color: AppTheme.primary.withValues(alpha: 0.3),
                 ),
               ),
               child: TextFormField(
@@ -694,7 +742,6 @@ class _SchedulingSectionState extends State<SchedulingSection> {
     required String label,
     required Color color,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final prayerStr = prayer.toString().split('.').last;
     final displayName = prayerStr.substring(0, 1).toUpperCase() + prayerStr.substring(1);
     
@@ -714,10 +761,10 @@ class _SchedulingSectionState extends State<SchedulingSection> {
     return Container(
       padding: const EdgeInsets.all(AppTheme.space12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
+        color: color.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
         border: Border.all(
-          color: color.withOpacity(0.2),
+          color: color.withValues(alpha: 0.2),
         ),
       ),
       child: Row(
@@ -759,12 +806,12 @@ class _SchedulingSectionState extends State<SchedulingSection> {
             vertical: AppTheme.space8,
           ),
           decoration: BoxDecoration(
-            color: isSelected ? AppTheme.primary.withOpacity(0.1) : Colors.transparent,
+            color: isSelected ? AppTheme.primary.withValues(alpha: 0.1) : Colors.transparent,
           ),
           child: Icon(
             icon,
             size: 18,
-            color: isSelected ? AppTheme.primary : Colors.grey,
+            color: isSelected ? AppTheme.primary : AppTheme.textSecondaryColor(context),
           ),
         ),
       ),
@@ -786,7 +833,7 @@ class _SchedulingSectionState extends State<SchedulingSection> {
         padding: const EdgeInsets.symmetric(vertical: AppTheme.space12),
         decoration: BoxDecoration(
           color: isSelected 
-              ? AppTheme.primary.withOpacity(0.1)
+              ? AppTheme.primary.withValues(alpha: 0.1)
               : Colors.transparent,
         ),
         child: Center(
@@ -810,7 +857,7 @@ class _SchedulingSectionState extends State<SchedulingSection> {
         Container(
           padding: const EdgeInsets.all(AppTheme.space8),
           decoration: BoxDecoration(
-            color: AppTheme.primary.withOpacity(0.1),
+            color: AppTheme.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
           ),
           child: Icon(icon, color: AppTheme.primary, size: 20),
@@ -857,7 +904,7 @@ class _SchedulingSectionState extends State<SchedulingSection> {
         // Recurrence type selector
         Container(
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           ),
           padding: const EdgeInsets.all(AppTheme.space4),
@@ -916,6 +963,12 @@ class _SchedulingSectionState extends State<SchedulingSection> {
           ),
         ),
         
+        // Weekday selection for weekly recurrence
+        if (_recurrenceType == TaskRecurrence.weekly) ...[
+          const SizedBox(height: AppTheme.space16),
+          _buildWeekDaySelector(isDark),
+        ],
+
         // Show date picker for once or date range for recurring tasks
         if (_recurrenceType == TaskRecurrence.once) ...[
           const SizedBox(height: AppTheme.space16),
@@ -939,6 +992,13 @@ class _SchedulingSectionState extends State<SchedulingSection> {
       onTap: () {
         setState(() {
           _recurrenceType = type;
+          // Weekly recurrence needs at least one weekday; default to the
+          // task date's weekday so the selection is always satisfiable.
+          if (type == TaskRecurrence.weekly && _selectedWeekDays.isEmpty) {
+            _selectedWeekDays = [
+              (_startDate ?? _taskDate ?? DateTime.now()).weekday,
+            ];
+          }
           _updateParent();
         });
       },
@@ -949,7 +1009,7 @@ class _SchedulingSectionState extends State<SchedulingSection> {
           vertical: AppTheme.space12,
         ),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primary.withOpacity(0.1) : Colors.transparent,
+          color: isSelected ? AppTheme.primary.withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
         ),
         child: Center(
@@ -965,6 +1025,76 @@ class _SchedulingSectionState extends State<SchedulingSection> {
     );
   }
   
+  Widget _buildWeekDaySelector(bool isDark) {
+    const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Repeat On',
+          style: AppTheme.labelLarge.copyWith(
+            color: isDark ? Colors.white70 : Colors.grey[700],
+          ),
+        ),
+        const SizedBox(height: AppTheme.space8),
+        Wrap(
+          spacing: AppTheme.space8,
+          runSpacing: AppTheme.space8,
+          children: List.generate(7, (index) {
+            final day = index + 1; // 1-7 for Mon-Sun (DateTime.weekday)
+            final isSelected = _selectedWeekDays.contains(day);
+
+            return InkWell(
+              onTap: () {
+                setState(() {
+                  if (isSelected) {
+                    _selectedWeekDays.remove(day);
+                  } else {
+                    _selectedWeekDays.add(day);
+                  }
+                  _updateParent();
+                });
+              },
+              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.space12,
+                  vertical: AppTheme.space8,
+                ),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppTheme.primary.withValues(alpha: 0.1)
+                      : (isDark
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : AppTheme.surface),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                  border: Border.all(
+                    color: isSelected
+                        ? AppTheme.primary
+                        : (isDark
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : Colors.grey.withValues(alpha: 0.3)),
+                  ),
+                ),
+                child: Text(
+                  dayLabels[index],
+                  style: AppTheme.labelMedium.copyWith(
+                    color: isSelected
+                        ? AppTheme.primary
+                        : (isDark ? Colors.white70 : Colors.grey[700]),
+                    fontWeight:
+                        isSelected ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+
   String _getRecurrenceLabel(TaskRecurrence type) {
     switch (type) {
       case TaskRecurrence.once:
@@ -1007,6 +1137,8 @@ class _SchedulingSectionState extends State<SchedulingSection> {
                     setState(() {
                       _startDate = date;
                       _taskDate = date; // Update task date to start date
+                      _startTime = _rebaseOnTaskDate(_startTime);
+                      _endTime = _rebaseOnTaskDate(_endTime);
                       _updateParent();
                     });
                   }
@@ -1015,10 +1147,10 @@ class _SchedulingSectionState extends State<SchedulingSection> {
                 child: Container(
                   padding: const EdgeInsets.all(AppTheme.space12),
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+                    color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
                     borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                     border: Border.all(
-                      color: AppTheme.primary.withOpacity(0.3),
+                      color: AppTheme.primary.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Column(
@@ -1066,10 +1198,10 @@ class _SchedulingSectionState extends State<SchedulingSection> {
                 child: Container(
                   padding: const EdgeInsets.all(AppTheme.space12),
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+                    color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
                     borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                     border: Border.all(
-                      color: AppTheme.primary.withOpacity(0.3),
+                      color: AppTheme.primary.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Column(

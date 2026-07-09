@@ -8,25 +8,41 @@ class AIConversationService {
   static const String _currentConversationKey = 'current_ai_conversation';
   static const int _maxConversations = 10;
 
-  /// Save the current conversation
+  /// Save the current conversation.
+  /// Reuses the current conversation's id so repeated saves update ONE
+  /// history entry instead of filling the history with snapshots.
   static Future<void> saveCurrentConversation(List<ChatMessage> messages) async {
     if (messages.isEmpty) return;
-    
+
     final prefs = await SharedPreferences.getInstance();
-    
+
+    // Reuse the existing conversation id if there is one; only mint a
+    // new id when a fresh conversation is started.
+    String? conversationId;
+    final existingData = prefs.getString(_currentConversationKey);
+    if (existingData != null) {
+      try {
+        conversationId = (jsonDecode(existingData)
+            as Map<String, dynamic>)['id'] as String?;
+      } catch (e) {
+        conversationId = null;
+      }
+    }
+    conversationId ??= DateTime.now().millisecondsSinceEpoch.toString();
+
     // Convert messages to JSON-serializable format
     final conversationData = {
-      'id': DateTime.now().millisecondsSinceEpoch.toString(),
+      'id': conversationId,
       'timestamp': DateTime.now().toIso8601String(),
       'title': _generateTitle(messages),
       'messageCount': messages.length,
       'messages': messages.map((msg) => _messageToJson(msg)).toList(),
     };
-    
+
     // Save as current conversation
     await prefs.setString(_currentConversationKey, jsonEncode(conversationData));
-    
-    // Also add to conversation history
+
+    // Also upsert into conversation history
     await _addToHistory(conversationData);
   }
 
@@ -64,17 +80,22 @@ class AIConversationService {
     }
   }
 
-  /// Load a specific conversation by ID
+  /// Load a specific conversation by ID and make it the current one,
+  /// so subsequent saves continue that conversation instead of another.
   static Future<List<ChatMessage>> loadConversation(String conversationId) async {
     final conversations = await getAllConversations();
-    
+
     final conversation = conversations.firstWhere(
       (conv) => conv['id'] == conversationId,
       orElse: () => {},
     );
-    
+
     if (conversation.isEmpty) return [];
-    
+
+    // Mark this conversation as current so its id is reused on save
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_currentConversationKey, jsonEncode(conversation));
+
     final List<dynamic> messagesJson = conversation['messages'] ?? [];
     return messagesJson.map((json) => _messageFromJson(json)).toList();
   }
@@ -107,15 +128,17 @@ class AIConversationService {
   static Future<void> _addToHistory(Map<String, dynamic> conversationData) async {
     final prefs = await SharedPreferences.getInstance();
     List<Map<String, dynamic>> conversations = await getAllConversations();
-    
-    // Add new conversation at the beginning
+
+    // Upsert by id: replace an existing entry rather than inserting a
+    // duplicate snapshot of the same conversation.
+    conversations.removeWhere((conv) => conv['id'] == conversationData['id']);
     conversations.insert(0, conversationData);
-    
+
     // Keep only the most recent conversations
     if (conversations.length > _maxConversations) {
       conversations = conversations.take(_maxConversations).toList();
     }
-    
+
     await prefs.setString(_conversationsKey, jsonEncode(conversations));
   }
 

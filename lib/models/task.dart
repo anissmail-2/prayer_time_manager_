@@ -273,34 +273,120 @@ class Task {
   }
 
 
-  // Check if task should show today
-  bool shouldShowToday(DateTime today) {
+  // Check if task should show today (thin delegate to shouldShowOnDate)
+  bool shouldShowToday([DateTime? date]) {
+    return shouldShowOnDate(date ?? DateTime.now());
+  }
+
+  /// Authoritative recurrence check: should this task appear on [date]?
+  /// All comparisons are date-only (time of day is ignored) and
+  /// [endDate] is INCLUSIVE — a task still shows on its final day.
+  bool shouldShowOnDate(DateTime date) {
+    final day = DateTime(date.year, date.month, date.day);
+
+    // End date is inclusive (date-only comparison)
+    if (endDate != null) {
+      final end = DateTime(endDate!.year, endDate!.month, endDate!.day);
+      if (day.isAfter(end)) return false;
+    }
+
+    // Effective start date (date-only)
+    final effectiveStart = startDate ?? createdAt;
+    final start = DateTime(
+      effectiveStart.year,
+      effectiveStart.month,
+      effectiveStart.day,
+    );
+
     switch (recurrence) {
       case TaskRecurrence.once:
-        if (scheduleType == ScheduleType.absolute) {
-          return absoluteTime != null && 
-                 isSameDay(absoluteTime!, today);
-        }
-        return true; // Prayer relative tasks show every day until completed
-        
+        // One-time tasks show on exactly one day:
+        // absoluteTime's date, else startDate's date, else createdAt's date.
+        // (This also covers once + prayer-relative tasks.)
+        final anchor = absoluteTime ?? startDate ?? createdAt;
+        return isSameDay(anchor, day);
+
       case TaskRecurrence.daily:
-        return true;
-        
+        return !day.isBefore(start);
+
       case TaskRecurrence.weekly:
-        return weeklyDays?.contains(today.weekday) ?? false;
-        
+        if (day.isBefore(start)) return false;
+        // Honor weeklyInterval (every N weeks), anchored on the week
+        // containing the start date (weeks begin on Monday).
+        final interval = weeklyInterval ?? 1;
+        if (interval > 1) {
+          final startWeek = start.subtract(Duration(days: start.weekday - 1));
+          final weeksDiff = day.difference(startWeek).inDays ~/ 7;
+          if (weeksDiff % interval != 0) return false;
+        }
+        if (weeklyDays != null && weeklyDays!.isNotEmpty) {
+          return weeklyDays!.contains(day.weekday);
+        }
+        // Fall back to the start date's weekday
+        return day.weekday == start.weekday;
+
       case TaskRecurrence.monthly:
-        if (scheduleType == ScheduleType.absolute && absoluteTime != null) {
-          return absoluteTime!.day == today.day;
+        if (day.isBefore(start)) return false;
+        final lastDayOfMonth = DateTime(day.year, day.month + 1, 0).day;
+        // Specific dates in the month (clamped to short months)
+        if (monthlyDates != null && monthlyDates!.isNotEmpty) {
+          return monthlyDates!
+              .any((d) => (d > lastDayOfMonth ? lastDayOfMonth : d) == day.day);
         }
-        return true;
-        
+        // Pattern like "first_monday" / "last friday"
+        if (monthlyPattern != null && monthlyPattern!.isNotEmpty) {
+          return _matchesMonthlyPattern(day);
+        }
+        // Default: same day of month as start date, clamped so a task on
+        // the 31st still shows on the last day of shorter months.
+        final target =
+            start.day > lastDayOfMonth ? lastDayOfMonth : start.day;
+        return day.day == target;
+
       case TaskRecurrence.yearly:
-        if (scheduleType == ScheduleType.absolute && absoluteTime != null) {
-          return absoluteTime!.month == today.month && absoluteTime!.day == today.day;
-        }
-        return true;
+        if (day.isBefore(start)) return false;
+        if (day.month != start.month) return false;
+        // Clamp for Feb 29 anniversaries in non-leap years
+        final lastDayOfMonth = DateTime(day.year, start.month + 1, 0).day;
+        final target =
+            start.day > lastDayOfMonth ? lastDayOfMonth : start.day;
+        return day.day == target;
     }
+  }
+
+  /// Matches patterns like "first_monday", "second tuesday", "last_friday".
+  bool _matchesMonthlyPattern(DateTime day) {
+    final parts =
+        monthlyPattern!.toLowerCase().trim().split(RegExp(r'[_\s]+'));
+    if (parts.length != 2) return false;
+
+    const weekdayNames = {
+      'monday': DateTime.monday,
+      'tuesday': DateTime.tuesday,
+      'wednesday': DateTime.wednesday,
+      'thursday': DateTime.thursday,
+      'friday': DateTime.friday,
+      'saturday': DateTime.saturday,
+      'sunday': DateTime.sunday,
+    };
+    final weekday = weekdayNames[parts[1]];
+    if (weekday == null || day.weekday != weekday) return false;
+
+    if (parts[0] == 'last') {
+      final lastDayOfMonth = DateTime(day.year, day.month + 1, 0).day;
+      return day.day > lastDayOfMonth - 7;
+    }
+
+    const ordinals = {
+      'first': 1,
+      'second': 2,
+      'third': 3,
+      'fourth': 4,
+      'fifth': 5,
+    };
+    final ordinal = ordinals[parts[0]];
+    if (ordinal == null) return false;
+    return ((day.day - 1) ~/ 7) + 1 == ordinal;
   }
 
   // Check if task is completed for a specific date

@@ -18,6 +18,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
   app_models.LocationSettings _settings = app_models.LocationSettings();
   bool _isLoading = true;
   bool _isDetectingLocation = false;
+  bool _isDirty = false;
   
   final _cityController = TextEditingController();
   final _countryController = TextEditingController();
@@ -47,6 +48,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
   
   Future<void> _loadSettings() async {
     final settings = await LocationService.getLocationSettings();
+    if (!mounted) return;
     setState(() {
       _settings = settings;
       _cityController.text = settings.customCity ?? '';
@@ -54,10 +56,11 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
       _isLoading = false;
     });
   }
-  
+
   Future<void> _saveSettings() async {
     await LocationService.saveLocationSettings(_settings);
     if (mounted) {
+      setState(() => _isDirty = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Location settings saved'),
@@ -106,7 +109,8 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
     
     try {
       final updatedSettings = await LocationService.updateLocationAutomatically();
-      
+      if (!mounted) return;
+
       if (updatedSettings != null) {
         // Auto-detect calculation method based on coordinates
         final autoMethod = _getCalculationMethodForLocation(
@@ -162,7 +166,49 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
         );
       }
     } finally {
-      setState(() => _isDetectingLocation = false);
+      if (mounted) {
+        setState(() => _isDetectingLocation = false);
+      }
+    }
+  }
+
+  // Handle back navigation: if there are unsaved edits, ask the user
+  // whether to save or discard them instead of silently dropping them.
+  Future<void> _handleBack() async {
+    if (!_isDirty) {
+      Navigator.pop(context);
+      return;
+    }
+
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Unsaved Changes'),
+        content: const Text('You have unsaved location changes. Save them before leaving?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, 'cancel'),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, 'discard'),
+            child: Text('Discard', style: TextStyle(color: AppTheme.error)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, 'save'),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) return;
+    if (choice == 'save') {
+      await _saveSettings();
+      if (!mounted) return;
+      Navigator.pop(context);
+    } else if (choice == 'discard') {
+      Navigator.pop(context);
     }
   }
   
@@ -179,7 +225,14 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
       );
     }
     
-    return Scaffold(
+    return PopScope(
+      canPop: !_isDirty,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          _handleBack();
+        }
+      },
+      child: Scaffold(
       backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.background,
       appBar: AppBar(
         elevation: 0,
@@ -194,7 +247,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
           icon: Container(
             padding: const EdgeInsets.all(AppTheme.space8),
             decoration: BoxDecoration(
-              color: (isDark ? Colors.white : AppTheme.primary).withOpacity(0.1),
+              color: (isDark ? Colors.white : AppTheme.primary).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
             ),
             child: Icon(
@@ -202,7 +255,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
               color: isDark ? Colors.white : AppTheme.primary,
             ),
           ),
-          onPressed: () => Navigator.pop(context),
+          onPressed: _handleBack,
         ),
         actions: [
           TextButton(
@@ -225,10 +278,10 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
             // GPS Toggle Section
             Container(
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                 border: Border.all(
-                  color: isDark ? Colors.white.withOpacity(0.1) : AppTheme.borderLight,
+                  color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.borderLight,
                 ),
               ),
               child: Column(
@@ -248,6 +301,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                     onChanged: (value) {
                       setState(() {
                         _settings = _settings.copyWith(useGPS: value);
+                        _isDirty = true;
                       });
                     },
                     activeThumbColor: AppTheme.primary,
@@ -264,7 +318,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                               padding: const EdgeInsets.all(AppTheme.space12),
                               decoration: BoxDecoration(
                                 color: isDark 
-                                    ? Colors.white.withOpacity(0.05)
+                                    ? Colors.white.withValues(alpha: 0.05)
                                     : AppTheme.backgroundLight,
                                 borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                               ),
@@ -345,6 +399,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                             width: double.infinity,
                             child: OutlinedButton.icon(
                               onPressed: () async {
+                                final messenger = ScaffoldMessenger.of(context);
                                 final result = await Navigator.push<Map<String, dynamic>>(
                                   context,
                                   MaterialPageRoute(
@@ -354,7 +409,8 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                                     ),
                                   ),
                                 );
-                                
+                                if (!mounted) return;
+
                                 if (result != null) {
                                   // Auto-detect calculation method based on selected coordinates
                                   final autoMethod = _getCalculationMethodForLocation(
@@ -379,19 +435,17 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                                   });
                                   
                                   await _saveSettings();
-                                  
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Location selected: ${result['name']}'),
-                                        backgroundColor: AppTheme.success,
-                                        behavior: SnackBarBehavior.floating,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                                        ),
+
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text('Location selected: ${result['name']}'),
+                                      backgroundColor: AppTheme.success,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                                       ),
-                                    );
-                                  }
+                                    ),
+                                  );
                                 }
                               },
                               style: OutlinedButton.styleFrom(
@@ -424,10 +478,10 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
             // Manual Location Section
             Container(
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                 border: Border.all(
-                  color: isDark ? Colors.white.withOpacity(0.1) : AppTheme.borderLight,
+                  color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.borderLight,
                 ),
               ),
               padding: const EdgeInsets.all(AppTheme.space16),
@@ -439,7 +493,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                       Container(
                         padding: const EdgeInsets.all(AppTheme.space8),
                         decoration: BoxDecoration(
-                          color: AppTheme.primary.withOpacity(0.1),
+                          color: AppTheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                         ),
                         child: Icon(
@@ -466,7 +520,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                       hintText: 'Enter your city',
                       prefixIcon: Icon(Icons.location_city, color: AppTheme.primary),
                       filled: true,
-                      fillColor: isDark ? Colors.white.withOpacity(0.05) : AppTheme.backgroundLight,
+                      fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.backgroundLight,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                         borderSide: BorderSide.none,
@@ -474,7 +528,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                         borderSide: BorderSide(
-                          color: isDark ? Colors.white.withOpacity(0.1) : AppTheme.borderLight,
+                          color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.borderLight,
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
@@ -487,6 +541,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                     ),
                     onChanged: (value) {
                       _settings = _settings.copyWith(customCity: value);
+                      setState(() => _isDirty = true);
                     },
                   ),
                   
@@ -499,7 +554,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                       hintText: 'Enter your country',
                       prefixIcon: Icon(Icons.flag, color: AppTheme.primary),
                       filled: true,
-                      fillColor: isDark ? Colors.white.withOpacity(0.05) : AppTheme.backgroundLight,
+                      fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.backgroundLight,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                         borderSide: BorderSide.none,
@@ -507,7 +562,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                         borderSide: BorderSide(
-                          color: isDark ? Colors.white.withOpacity(0.1) : AppTheme.borderLight,
+                          color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.borderLight,
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
@@ -520,6 +575,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                     ),
                     onChanged: (value) {
                       _settings = _settings.copyWith(customCountry: value);
+                      setState(() => _isDirty = true);
                     },
                   ),
                 ],
@@ -531,10 +587,10 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
             // Common Cities
             Container(
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                 border: Border.all(
-                  color: isDark ? Colors.white.withOpacity(0.1) : AppTheme.borderLight,
+                  color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.borderLight,
                 ),
               ),
               padding: const EdgeInsets.all(AppTheme.space16),
@@ -546,7 +602,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                       Container(
                         padding: const EdgeInsets.all(AppTheme.space8),
                         decoration: BoxDecoration(
-                          color: AppTheme.primary.withOpacity(0.1),
+                          color: AppTheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                         ),
                         child: Icon(
@@ -590,6 +646,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                                 timezone: cityData['timezone'],
                                 calculationMethod: autoMethod,
                               );
+                              _isDirty = true;
                             });
                           },
                           borderRadius: BorderRadius.circular(AppTheme.radiusCircular),
@@ -600,12 +657,12 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                             ),
                             decoration: BoxDecoration(
                               color: isDark 
-                                  ? Colors.white.withOpacity(0.05)
+                                  ? Colors.white.withValues(alpha: 0.05)
                                   : AppTheme.backgroundLight,
                               borderRadius: BorderRadius.circular(AppTheme.radiusCircular),
                               border: Border.all(
                                 color: isDark 
-                                    ? Colors.white.withOpacity(0.1)
+                                    ? Colors.white.withValues(alpha: 0.1)
                                     : AppTheme.borderLight,
                               ),
                             ),
@@ -632,10 +689,11 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
             
             // Prayer Time Adjustments
             _buildPrayerAdjustmentsSection(isDark),
-            
+
             const SizedBox(height: AppTheme.space32),
           ],
         ),
+      ),
       ),
     );
   }
@@ -643,10 +701,10 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
   Widget _buildCalculationMethodSection(bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.1) : AppTheme.borderLight,
+          color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.borderLight,
         ),
       ),
       padding: const EdgeInsets.all(AppTheme.space16),
@@ -658,7 +716,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
               Container(
                 padding: const EdgeInsets.all(AppTheme.space8),
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withOpacity(0.1),
+                  color: AppTheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                 ),
                 child: Icon(
@@ -680,10 +738,10 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
           
           Container(
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.backgroundLight,
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.backgroundLight,
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
               border: Border.all(
-                color: isDark ? Colors.white.withOpacity(0.1) : AppTheme.borderLight,
+                color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.borderLight,
               ),
             ),
             child: DropdownButtonFormField<int>(
@@ -721,6 +779,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                 if (value != null) {
                   setState(() {
                     _settings = _settings.copyWith(calculationMethod: value);
+                    _isDirty = true;
                   });
                 }
               },
@@ -734,10 +793,10 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
   Widget _buildPrayerAdjustmentsSection(bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.1) : AppTheme.borderLight,
+          color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.borderLight,
         ),
       ),
       padding: const EdgeInsets.all(AppTheme.space16),
@@ -749,7 +808,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
               Container(
                 padding: const EdgeInsets.all(AppTheme.space8),
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withOpacity(0.1),
+                  color: AppTheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                 ),
                 child: Icon(
@@ -808,12 +867,13 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                               final newAdjustments = Map<String, int>.from(_settings.prayerAdjustments);
                               newAdjustments[adjustmentKey] = currentValue - 1;
                               _settings = _settings.copyWith(prayerAdjustments: newAdjustments);
+                              _isDirty = true;
                             });
                           },
                           icon: Container(
                             padding: const EdgeInsets.all(AppTheme.space4),
                             decoration: BoxDecoration(
-                              color: AppTheme.error.withOpacity(0.1),
+                              color: AppTheme.error.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
@@ -828,7 +888,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                             padding: const EdgeInsets.symmetric(vertical: AppTheme.space8),
                             decoration: BoxDecoration(
                               color: isDark 
-                                  ? Colors.white.withOpacity(0.05)
+                                  ? Colors.white.withValues(alpha: 0.05)
                                   : AppTheme.backgroundLight,
                               borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                             ),
@@ -853,12 +913,13 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                               final newAdjustments = Map<String, int>.from(_settings.prayerAdjustments);
                               newAdjustments[adjustmentKey] = currentValue + 1;
                               _settings = _settings.copyWith(prayerAdjustments: newAdjustments);
+                              _isDirty = true;
                             });
                           },
                           icon: Container(
                             padding: const EdgeInsets.all(AppTheme.space4),
                             decoration: BoxDecoration(
-                              color: AppTheme.success.withOpacity(0.1),
+                              color: AppTheme.success.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(

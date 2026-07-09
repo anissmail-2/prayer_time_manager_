@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/prayer_duration.dart';
 import '../models/task.dart';
 import '../core/services/prayer_duration_service.dart';
@@ -103,9 +105,10 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> with Single
       );
     }
     
+    if (!mounted) return;
     setState(() => _isLoading = false);
     _animationController.forward();
-    
+
     // Scroll to initial prayer if provided
     if (widget.initialPrayer != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -132,32 +135,80 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> with Single
     }
   }
 
+  // PrayerDurationService exposes no API to delete a day override, so this
+  // mirrors its storage format ('prayer_duration_day_overrides') to remove
+  // the entry, letting the day fall back to the global setting.
+  static const String _dayOverridesKey = 'prayer_duration_day_overrides';
+
+  Future<void> _removeDayOverride(PrayerName prayer, DateTime date) async {
+    final prefs = await SharedPreferences.getInstance();
+    final overridesJson = prefs.getString(_dayOverridesKey);
+    if (overridesJson == null) return;
+
+    final Map<String, dynamic> overrides = json.decode(overridesJson);
+    final dateKey = '${date.year}-${date.month}-${date.day}';
+    final dayOverrides = overrides[dateKey];
+    if (dayOverrides is Map) {
+      dayOverrides.remove(prayer.index.toString());
+      if (dayOverrides.isEmpty) {
+        overrides.remove(dateKey);
+      }
+      await prefs.setString(_dayOverridesKey, json.encode(overrides));
+    }
+  }
+
   Future<void> _resetToDefault(PrayerName prayer) async {
+    final prayerName = prayer.toString().split('.').last;
+
+    if (widget.singlePrayerMode && widget.specificDate != null) {
+      // Day-specific mode: REMOVE the override so this day falls back to
+      // the global setting (previously this wrote the default back as an
+      // override, permanently detaching the day from global changes).
+      await _removeDayOverride(prayer, widget.specificDate!);
+
+      final effective = _globalDurations[prayer] ??
+          PrayerDuration(
+            prayer: prayer,
+            minutesBefore: _getDefaultMinutesBefore(prayer),
+            minutesAfter: _getDefaultMinutesAfter(prayer),
+          );
+
+      if (!mounted) return;
+      setState(() {
+        _durations[prayer] = effective;
+        _beforeControllers[prayer]?.text = effective.minutesBefore.toString();
+        _afterControllers[prayer]?.text = effective.minutesAfter.toString();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Removed override for $prayerName — using the global setting'),
+          backgroundColor: AppTheme.success,
+        ),
+      );
+      return;
+    }
+
     final defaultDuration = PrayerDuration(
       prayer: prayer,
       minutesBefore: _getDefaultMinutesBefore(prayer),
       minutesAfter: _getDefaultMinutesAfter(prayer),
     );
-    
+
     setState(() {
       _durations[prayer] = defaultDuration;
       // Update the text controllers to reflect the new values
       _beforeControllers[prayer]?.text = defaultDuration.minutesBefore.toString();
       _afterControllers[prayer]?.text = defaultDuration.minutesAfter.toString();
     });
-    
-    if (widget.singlePrayerMode && widget.specificDate != null) {
-      // Clear the day-specific override by saving the default value
-      await PrayerDurationService.saveDayOverride(prayer, widget.specificDate!, defaultDuration);
-    } else {
-      // Save globally
-      await PrayerDurationService.updateDuration(defaultDuration);
-    }
-    
+
+    // Save globally
+    await PrayerDurationService.updateDuration(defaultDuration);
+
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Reset ${prayer.toString().split('.').last} to default values'),
+        content: Text('Reset $prayerName to default values'),
         backgroundColor: AppTheme.success,
       ),
     );
@@ -222,10 +273,15 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> with Single
   }
 
   String _formatDate(DateTime date) {
+    // Compare date-only values so 'tomorrow' works across month/year
+    // boundaries (e.g., Jan 31 -> Feb 1).
     final now = DateTime.now();
-    if (date.year == now.year && date.month == now.month && date.day == now.day) {
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(date.year, date.month, date.day);
+
+    if (target == today) {
       return 'today';
-    } else if (date.year == now.year && date.month == now.month && date.day == now.day + 1) {
+    } else if (target == today.add(const Duration(days: 1))) {
       return 'tomorrow';
     } else {
       return '${date.day}/${date.month}/${date.year}';

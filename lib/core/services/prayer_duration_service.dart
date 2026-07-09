@@ -118,7 +118,9 @@ class PrayerDurationService {
   
   // Get prayer time blocks for a specific date
   static Future<List<PrayerTimeBlock>> getPrayerBlocksForDate(DateTime date) async {
-    final prayerTimes = await PrayerTimeService.getPrayerTimes();
+    // Pass the date through so blocks use that date's prayer times,
+    // not today's
+    final prayerTimes = await PrayerTimeService.getPrayerTimes(date: date);
     final blocks = <PrayerTimeBlock>[];
     
     for (final prayer in PrayerName.values) {
@@ -171,15 +173,24 @@ class PrayerDurationService {
     return total;
   }
   
-  // Get free time slots between prayer blocks and tasks
+  // Get free time slots between prayer blocks and tasks for today.
+  // Kept for existing callers; delegates to the date-aware variant.
   static Future<List<FreeTimeSlot>> getFreeTimes(List<TaskWithTime> tasks) async {
-    final prayerBlocks = await getTodayPrayerBlocks();
-    final freeSlots = <FreeTimeSlot>[];
-    final today = DateTime.now();
-    
+    return getFreeTimesForDate(DateTime.now(), tasks);
+  }
+
+  // Get free time slots between prayer blocks and tasks for a specific date.
+  // Uses that date's prayer blocks and date-anchored day bounds so viewing
+  // another day doesn't mix in today's prayer times.
+  static Future<List<FreeTimeSlot>> getFreeTimesForDate(
+    DateTime date,
+    List<TaskWithTime> tasks,
+  ) async {
+    final prayerBlocks = await getPrayerBlocksForDate(date);
+
     // Create a list of all time blocks (prayers and tasks)
     final allBlocks = <TimeBlock>[];
-    
+
     // Add prayer blocks
     for (final prayer in prayerBlocks) {
       allBlocks.add(TimeBlock(
@@ -189,7 +200,7 @@ class PrayerDurationService {
         title: prayer.prayer.toString().split('.').last,
       ));
     }
-    
+
     // Add task blocks (assuming tasks take 30 minutes by default)
     for (final taskWithTime in tasks) {
       allBlocks.add(TimeBlock(
@@ -199,15 +210,28 @@ class PrayerDurationService {
         title: taskWithTime.task.title,
       ));
     }
-    
+
+    final dayStart = DateTime(date.year, date.month, date.day, 5, 0); // Start from 5 AM
+    final endOfDay = DateTime(date.year, date.month, date.day, 23, 59); // End at 11:59 PM
+
+    return computeFreeSlots(allBlocks, dayStart, endOfDay);
+  }
+
+  // Compute free slots between blocks within [dayStart, dayEnd].
+  // Pure function (no I/O), public so it can be unit tested.
+  static List<FreeTimeSlot> computeFreeSlots(
+    List<TimeBlock> blocks,
+    DateTime dayStart,
+    DateTime dayEnd,
+  ) {
     // Sort blocks by start time
-    allBlocks.sort((a, b) => a.startTime.compareTo(b.startTime));
-    
-    // Find free slots between blocks
-    DateTime currentTime = DateTime(today.year, today.month, today.day, 5, 0); // Start from 5 AM
-    final endOfDay = DateTime(today.year, today.month, today.day, 23, 59); // End at 11:59 PM
-    
-    for (final block in allBlocks) {
+    final sortedBlocks = List<TimeBlock>.from(blocks)
+      ..sort((a, b) => a.startTime.compareTo(b.startTime));
+
+    final freeSlots = <FreeTimeSlot>[];
+    DateTime currentTime = dayStart;
+
+    for (final block in sortedBlocks) {
       if (block.startTime.isAfter(currentTime)) {
         // There's a gap between current time and next block
         final duration = block.startTime.difference(currentTime);
@@ -219,21 +243,26 @@ class PrayerDurationService {
           ));
         }
       }
-      currentTime = block.endTime;
+      // Only advance currentTime: a block nested inside (or overlapping) a
+      // previous block must never move it backwards, which would create
+      // phantom free slots inside already-occupied time.
+      if (block.endTime.isAfter(currentTime)) {
+        currentTime = block.endTime;
+      }
     }
-    
+
     // Check for free time after last block
-    if (currentTime.isBefore(endOfDay)) {
-      final duration = endOfDay.difference(currentTime);
+    if (currentTime.isBefore(dayEnd)) {
+      final duration = dayEnd.difference(currentTime);
       if (duration.inMinutes >= 15) {
         freeSlots.add(FreeTimeSlot(
           startTime: currentTime,
-          endTime: endOfDay,
+          endTime: dayEnd,
           duration: duration,
         ));
       }
     }
-    
+
     return freeSlots;
   }
 }

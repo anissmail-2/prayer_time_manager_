@@ -4,9 +4,12 @@ import '../core/theme/app_theme.dart';
 import '../core/services/auth_service.dart';
 import '../core/services/firebase_service.dart';
 import '../core/services/data_sync_service.dart';
+import '../core/services/notification_service.dart';
 import 'prayer_settings_screen.dart';
 import 'location_settings_screen.dart';
 import 'auth_screen.dart';
+import 'api_keys_screen.dart';
+import 'sync_status_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -17,6 +20,124 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _isSyncing = false;
+
+  // Notification settings state (loaded from NotificationService)
+  bool _notificationSettingsLoaded = false;
+  bool _notificationsEnabled = false;
+  final Map<String, bool> _prayerToggles = {};
+  int _preReminderMinutes = NotificationService.defaultPreReminderMinutes;
+  bool _taskRemindersEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotificationSettings();
+  }
+
+  Future<void> _loadNotificationSettings() async {
+    final enabled = await NotificationService.isEnabled();
+    final preReminder = await NotificationService.getPreReminderMinutes();
+    final taskReminders = await NotificationService.areTaskRemindersEnabled();
+    final toggles = <String, bool>{};
+    for (final prayer in NotificationService.prayers) {
+      toggles[prayer] = await NotificationService.isPrayerEnabled(prayer);
+    }
+
+    if (mounted) {
+      setState(() {
+        _notificationsEnabled = enabled;
+        _preReminderMinutes = preReminder;
+        _taskRemindersEnabled = taskReminders;
+        _prayerToggles
+          ..clear()
+          ..addAll(toggles);
+        _notificationSettingsLoaded = true;
+      });
+    }
+  }
+
+  Future<void> _handleNotificationsToggle(bool value) async {
+    try {
+      if (value) {
+        // Opt-in: request the runtime permission through PermissionHelper
+        // before enabling.
+        final granted = await NotificationService.requestPermission();
+        if (!granted) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Notification permission denied. Enable it in system settings to receive reminders.',
+                ),
+              ),
+            );
+          }
+          return;
+        }
+      }
+
+      await NotificationService.setEnabled(value);
+      if (mounted) {
+        setState(() => _notificationsEnabled = value);
+      }
+      await NotificationService.rescheduleAll();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _handlePrayerToggle(String prayer, bool value) async {
+    try {
+      await NotificationService.setPrayerEnabled(prayer, value);
+      if (mounted) {
+        setState(() => _prayerToggles[prayer] = value);
+      }
+      await NotificationService.rescheduleAll();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _handlePreReminderChanged(int? minutes) async {
+    if (minutes == null) return;
+    try {
+      await NotificationService.setPreReminderMinutes(minutes);
+      if (mounted) {
+        setState(() => _preReminderMinutes = minutes);
+      }
+      await NotificationService.rescheduleAll();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleTaskRemindersToggle(bool value) async {
+    try {
+      await NotificationService.setTaskRemindersEnabled(value);
+      if (mounted) {
+        setState(() => _taskRemindersEnabled = value);
+      }
+      await NotificationService.rescheduleAll();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
 
   Future<void> _handleSignOut() async {
     final confirm = await showDialog<bool>(
@@ -40,11 +161,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (confirm == true) {
       await AuthService.signOut();
       if (mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const AuthScreen()),
-          (route) => false,
-        );
+        // Return to the root route; AuthWrapper's auth-state StreamBuilder
+        // will show the AuthScreen once signed out.
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
     }
   }
@@ -76,11 +195,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       try {
         await AuthService.deleteAccount();
         if (mounted) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (_) => const AuthScreen()),
-            (route) => false,
-          );
+          // Return to the root route; AuthWrapper's auth-state StreamBuilder
+          // will show the AuthScreen once the account is gone.
+          Navigator.of(context).popUntil((route) => route.isFirst);
         }
       } catch (e) {
         if (mounted) {
@@ -156,6 +273,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   : null,
               ),
               _buildSettingsTile(
+                icon: Icons.cloud_outlined,
+                title: 'Sync Status',
+                subtitle: 'View cloud sync status and data summary',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SyncStatusScreen()),
+                  );
+                },
+              ),
+              _buildSettingsTile(
                 icon: Icons.logout,
                 title: 'Sign Out',
                 subtitle: 'Sign out of your account',
@@ -203,7 +331,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           const SizedBox(height: AppTheme.space16),
-          
+
+          // Notifications
+          _buildSectionHeader('Notifications'),
+          ..._buildNotificationSettings(),
+          const SizedBox(height: AppTheme.space16),
+
+          // AI & API Configuration
+          _buildSectionHeader('AI & API Configuration'),
+          _buildSettingsTile(
+            icon: Icons.key_outlined,
+            title: 'API Keys',
+            subtitle: 'Configure AI and voice transcription API keys',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ApiKeysScreen()),
+              );
+            },
+          ),
+          const SizedBox(height: AppTheme.space16),
+
           // App Info
           _buildSectionHeader('About'),
           _buildSettingsTile(
@@ -239,6 +387,146 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  List<Widget> _buildNotificationSettings() {
+    if (!_notificationSettingsLoaded) {
+      return [
+        const Padding(
+          padding: EdgeInsets.all(AppTheme.space16),
+          child: Center(
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        ),
+      ];
+    }
+
+    return [
+      _buildSwitchTile(
+        icon: Icons.notifications_active_outlined,
+        title: 'Enable Notifications',
+        subtitle: 'Prayer time alerts and task reminders (refreshed each time the app opens)',
+        value: _notificationsEnabled,
+        onChanged: _handleNotificationsToggle,
+      ),
+      for (final prayer in NotificationService.prayers)
+        _buildSwitchTile(
+          icon: Icons.mosque_outlined,
+          title: prayer,
+          subtitle: 'Notify at $prayer time',
+          value: _prayerToggles[prayer] ?? true,
+          onChanged: _notificationsEnabled
+              ? (value) => _handlePrayerToggle(prayer, value)
+              : null,
+        ),
+      _buildDropdownTile(
+        icon: Icons.alarm,
+        title: 'Pre-prayer Reminder',
+        subtitle: _preReminderMinutes == 0
+            ? 'No reminder before prayer'
+            : '$_preReminderMinutes minutes before each prayer',
+        value: _preReminderMinutes,
+        items: NotificationService.preReminderOptions,
+        onChanged: _notificationsEnabled ? _handlePreReminderChanged : null,
+      ),
+      _buildSwitchTile(
+        icon: Icons.task_alt,
+        title: 'Task Reminders',
+        subtitle: 'Notify when a scheduled task is due',
+        value: _taskRemindersEnabled,
+        onChanged:
+            _notificationsEnabled ? _handleTaskRemindersToggle : null,
+      ),
+    ];
+  }
+
+  Widget _buildSwitchTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool>? onChanged,
+  }) {
+    final enabled = onChanged != null;
+    final tileColor = enabled
+        ? AppTheme.textPrimary
+        : AppTheme.textPrimary.withValues(alpha: 0.4);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.space16),
+      child: Material(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+        child: SwitchListTile(
+          secondary: Icon(icon, color: tileColor),
+          title: Text(
+            title,
+            style: AppTheme.bodyLarge.copyWith(color: tileColor),
+          ),
+          subtitle: Text(
+            subtitle,
+            style: AppTheme.bodySmall.copyWith(
+              color: tileColor.withValues(alpha: 0.7),
+            ),
+          ),
+          value: value,
+          onChanged: onChanged,
+          activeThumbColor: AppTheme.primary,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDropdownTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required int value,
+    required List<int> items,
+    required ValueChanged<int?>? onChanged,
+  }) {
+    final enabled = onChanged != null;
+    final tileColor = enabled
+        ? AppTheme.textPrimary
+        : AppTheme.textPrimary.withValues(alpha: 0.4);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.space16),
+      child: Material(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+        child: ListTile(
+          enabled: enabled,
+          leading: Icon(icon, color: tileColor),
+          title: Text(
+            title,
+            style: AppTheme.bodyLarge.copyWith(color: tileColor),
+          ),
+          subtitle: Text(
+            subtitle,
+            style: AppTheme.bodySmall.copyWith(
+              color: tileColor.withValues(alpha: 0.7),
+            ),
+          ),
+          trailing: DropdownButton<int>(
+            value: value,
+            underline: const SizedBox.shrink(),
+            items: [
+              for (final minutes in items)
+                DropdownMenuItem<int>(
+                  value: minutes,
+                  child: Text(minutes == 0 ? 'Off' : '$minutes min'),
+                ),
+            ],
+            onChanged: onChanged,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildSectionHeader(String title, {Color? color}) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -268,7 +556,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           CircleAvatar(
             radius: 30,
-            backgroundColor: AppTheme.primary.withOpacity(0.1),
+            backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
             backgroundImage: user.photoURL != null 
               ? NetworkImage(user.photoURL!)
               : null,
@@ -328,7 +616,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           subtitle: Text(
             subtitle,
             style: AppTheme.bodySmall.copyWith(
-              color: tileColor.withOpacity(0.7),
+              color: tileColor.withValues(alpha: 0.7),
             ),
           ),
           trailing: trailing ?? (onTap != null 

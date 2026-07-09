@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/task.dart';
 import '../models/space.dart';
-import '../models/enhanced_task.dart' as enhanced;
 import '../core/services/todo_service.dart';
 import '../core/services/prayer_time_service.dart';
 import '../core/services/space_service.dart';
@@ -44,6 +43,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     
     try {
@@ -113,17 +113,21 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                 }
                 break;
               case TaskStatus.completed:
-                if (task.isCompletedForDate(today)) {
+                // Completed on the task's own scheduled date, not today
+                if (task.isCompletedForDate(taskDate)) {
                   matchesStatus = true;
                 }
                 break;
               case TaskStatus.missed:
-                if (taskDate.isBefore(today) &&
+                // Missed: the whole scheduled day has passed without completion
+                final startOfToday = DateTime(today.year, today.month, today.day);
+                if (taskDate.isBefore(startOfToday) &&
                     !task.isCompletedForDate(taskDate)) {
                   matchesStatus = true;
                 }
                 break;
               case TaskStatus.overdue:
+                // Overdue: due before now (including earlier today) and incomplete
                 if (taskDate.isBefore(today) &&
                     !task.isCompletedForDate(taskDate)) {
                   matchesStatus = true;
@@ -162,10 +166,9 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
       }).toList();
       
       // Sort by time
-      _filteredTasks.sort((a, b) {
-        if (a.scheduledTime == null && b.scheduledTime == null) return 0;
-        return a.scheduledTime.compareTo(b.scheduledTime);
-      });
+      _filteredTasks.sort(
+        (a, b) => a.scheduledTime.compareTo(b.scheduledTime),
+      );
     });
   }
 
@@ -175,15 +178,27 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
            date1.day == date2.day;
   }
 
+  /// Completion state for the card's own scheduled date. One-time tasks
+  /// also honor the global flag; recurring tasks are completed per date.
+  bool _isTaskCompleted(TaskWithTime taskWithTime) {
+    final task = taskWithTime.task;
+    if (task.recurrence == TaskRecurrence.once) {
+      return task.isCompleted ||
+          task.isCompletedForDate(taskWithTime.scheduledTime);
+    }
+    return task.isCompletedForDate(taskWithTime.scheduledTime);
+  }
+
   Future<void> _toggleTaskCompletion(TaskWithTime taskWithTime) async {
     final task = taskWithTime.task;
-    final today = DateTime.now();
-    
+    // Complete for the card's own scheduled date, not always today
+    final date = taskWithTime.scheduledTime;
+
     try {
-      if (task.isCompletedForDate(today)) {
-        await TodoService.unmarkTaskCompleted(task.id, today);
+      if (_isTaskCompleted(taskWithTime)) {
+        await TodoService.unmarkTaskCompleted(task.id, date);
       } else {
-        await TodoService.markTaskCompleted(task.id, today);
+        await TodoService.markTaskCompleted(task.id, date);
       }
       await _loadData();
     } catch (e) {
@@ -225,7 +240,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: AppTheme.backgroundColor(context),
       body: Column(
         children: [
           _buildHeader(),
@@ -270,7 +285,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
               Text(
                 'Activities',
                 style: AppTheme.headlineLarge.copyWith(
-                  color: AppTheme.textPrimary,
+                  color: AppTheme.textPrimaryColor(context),
                 ),
               ),
               IconButton(
@@ -278,8 +293,8 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                   padding: const EdgeInsets.all(AppTheme.space8),
                   decoration: BoxDecoration(
                     color: _filterOptions.hasActiveFilters
-                        ? AppTheme.primary.withOpacity(0.1)
-                        : AppTheme.surfaceVariant,
+                        ? AppTheme.primary.withValues(alpha: 0.1)
+                        : AppTheme.surfaceVariantColor(context),
                     borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                   ),
                   child: Stack(
@@ -288,7 +303,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                         Icons.filter_list,
                         color: _filterOptions.hasActiveFilters
                             ? AppTheme.primary
-                            : AppTheme.textSecondary,
+                            : AppTheme.textSecondaryColor(context),
                       ),
                       if (_filterOptions.hasActiveFilters)
                         Positioned(
@@ -350,7 +365,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
       ),
     );
     
-    if (result != null) {
+    if (result != null && mounted) {
       setState(() {
         _filterOptions = result;
         _applyFilters();
@@ -367,13 +382,13 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
             Icon(
               Icons.task_alt,
               size: 64,
-              color: AppTheme.textTertiary,
+              color: AppTheme.textTertiaryColor(context),
             ),
             const SizedBox(height: AppTheme.space16),
             Text(
               'No activities found',
               style: AppTheme.titleLarge.copyWith(
-                color: AppTheme.textSecondary,
+                color: AppTheme.textSecondaryColor(context),
               ),
             ),
             const SizedBox(height: AppTheme.space8),
@@ -382,7 +397,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                   ? 'Try adjusting your search'
                   : 'Create your first activity',
               style: AppTheme.bodyLarge.copyWith(
-                color: AppTheme.textTertiary,
+                color: AppTheme.textTertiaryColor(context),
               ),
             ),
           ],
@@ -403,11 +418,11 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
   Widget _buildTaskCard(TaskWithTime taskWithTime) {
     final task = taskWithTime.task;
     final time = taskWithTime.scheduledTime;
-    final isCompleted = task.isCompletedForDate(DateTime.now());
+    final isCompleted = _isTaskCompleted(taskWithTime);
     
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.space12),
-      decoration: AppTheme.cardDecoration(),
+      decoration: AppTheme.cardDecorationFor(context),
       child: Dismissible(
         key: Key(task.id),
         direction: DismissDirection.endToStart,
@@ -452,6 +467,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
               builder: (context) => TaskDetailsDialog(
                 task: task,
                 cachedPrayerTimes: _prayerTimes,
+                completionDate: taskWithTime.scheduledTime,
                 onEdit: () async {
                   final result = await Navigator.push(
                     context,
@@ -493,8 +509,8 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                               task.title,
                               style: AppTheme.titleMedium.copyWith(
                                 color: isCompleted
-                                    ? AppTheme.textTertiary
-                                    : AppTheme.textPrimary,
+                                    ? AppTheme.textTertiaryColor(context)
+                                    : AppTheme.textPrimaryColor(context),
                                 decoration: isCompleted
                                     ? TextDecoration.lineThrough
                                     : null,
@@ -508,7 +524,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                               vertical: AppTheme.space4,
                             ),
                             decoration: BoxDecoration(
-                              color: AppTheme.primary.withOpacity(0.1),
+                              color: AppTheme.primary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                             ),
                             child: Row(
@@ -537,7 +553,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                         Text(
                           task.description!,
                           style: AppTheme.bodySmall.copyWith(
-                            color: AppTheme.textSecondary,
+                            color: AppTheme.textSecondaryColor(context),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -553,7 +569,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                               vertical: AppTheme.space4,
                             ),
                             decoration: BoxDecoration(
-                              color: AppTheme.surfaceVariant,
+                              color: AppTheme.surfaceVariantColor(context),
                               borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                             ),
                             child: Row(
@@ -562,13 +578,13 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                                 Icon(
                                   Icons.calendar_today,
                                   size: 14,
-                                  color: AppTheme.textSecondary,
+                                  color: AppTheme.textSecondaryColor(context),
                                 ),
                                 const SizedBox(width: AppTheme.space4),
                                 Text(
                                   DateFormat('MMM d, yyyy').format(time),
                                   style: AppTheme.bodySmall.copyWith(
-                                    color: AppTheme.textSecondary,
+                                    color: AppTheme.textSecondaryColor(context),
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -580,7 +596,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                           Icon(
                             Icons.schedule,
                             size: 16,
-                            color: AppTheme.textTertiary,
+                            color: AppTheme.textTertiaryColor(context),
                           ),
                           const SizedBox(width: AppTheme.space4),
                           Text(
@@ -588,7 +604,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                                     ? '${DateFormat('h:mm a').format(taskWithTime.scheduledTime)} - ${DateFormat('h:mm a').format(taskWithTime.endTime!)}'
                                     : DateFormat('h:mm a').format(time),
                             style: AppTheme.bodySmall.copyWith(
-                              color: AppTheme.textTertiary,
+                              color: AppTheme.textTertiaryColor(context),
                             ),
                           ),
                           const Spacer(),
@@ -596,13 +612,13 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                             Icon(
                               Icons.repeat,
                               size: 16,
-                              color: AppTheme.textTertiary,
+                              color: AppTheme.textTertiaryColor(context),
                             ),
                             const SizedBox(width: AppTheme.space4),
                             Text(
                               task.recurrence.name,
                               style: AppTheme.bodySmall.copyWith(
-                                color: AppTheme.textTertiary,
+                                color: AppTheme.textTertiaryColor(context),
                               ),
                             ),
                           ],
@@ -617,7 +633,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                     vertical: AppTheme.space4,
                   ),
                   decoration: BoxDecoration(
-                    color: _getPriorityColor(task.priority).withOpacity(0.1),
+                    color: _getPriorityColor(task.priority).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                   ),
                   child: Icon(

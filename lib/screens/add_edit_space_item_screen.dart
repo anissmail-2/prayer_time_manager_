@@ -50,32 +50,35 @@ class _AddEditSpaceItemScreenState extends State<AddEditSpaceItemScreen> with Si
   }
 
   Future<void> _handleSubmit(EnhancedTask item) async {
+    // Capture the root messenger before any async gap so SnackBars can be
+    // shown safely after this route has popped.
+    final messenger = ScaffoldMessenger.of(context);
     try {
       if (widget.editingItem != null) {
         await SpaceService.updateEnhancedTask(item);
-        ScaffoldMessenger.of(context).showSnackBar(
+        if (!mounted) return;
+        Navigator.pop(context, true);
+        messenger.showSnackBar(
           SnackBar(content: Text('Updated "${item.title}"')),
         );
       } else {
         await SpaceService.createEnhancedTask(item);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Created "${item.title}"'),
-            action: item.hasTimeBlock ? SnackBarAction(
-              label: 'Push to Timeline',
-              onPressed: () {
-                // Handle push to timeline
-                Navigator.pop(context, {'item': item, 'pushToTimeline': true});
-              },
-            ) : null,
-          ),
-        );
+        if (!mounted) return;
+        if (item.hasTimeBlock) {
+          // Don't show a "Push to Timeline" SnackBar action from this
+          // screen: it would outlive this route and pop whatever is on top.
+          // Instead, return the item and let the spaces screen offer the
+          // action after the pop completes.
+          Navigator.pop(context, {'item': item, 'offerPushToTimeline': true});
+        } else {
+          Navigator.pop(context, true);
+          messenger.showSnackBar(
+            SnackBar(content: Text('Created "${item.title}"')),
+          );
+        }
       }
-      
-      if (!mounted) return;
-      Navigator.pop(context, true);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(content: Text('Error saving item: $e')),
       );
     }
@@ -86,7 +89,7 @@ class _AddEditSpaceItemScreenState extends State<AddEditSpaceItemScreen> with Si
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
-      backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.background,
+      backgroundColor: AppTheme.backgroundColor(context),
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -102,7 +105,7 @@ class _AddEditSpaceItemScreenState extends State<AddEditSpaceItemScreen> with Si
             Text(
               'in ${widget.spaceName}',
               style: AppTheme.bodySmall.copyWith(
-                color: widget.spaceColor.withOpacity(0.8),
+                color: widget.spaceColor.withValues(alpha: 0.8),
               ),
             ),
           ],
@@ -111,7 +114,7 @@ class _AddEditSpaceItemScreenState extends State<AddEditSpaceItemScreen> with Si
           icon: Container(
             padding: const EdgeInsets.all(AppTheme.space8),
             decoration: BoxDecoration(
-              color: (isDark ? Colors.white : AppTheme.primary).withOpacity(0.1),
+              color: (isDark ? Colors.white : AppTheme.primary).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
             ),
             child: Icon(

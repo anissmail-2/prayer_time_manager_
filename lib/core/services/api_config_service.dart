@@ -1,109 +1,103 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'secure_storage_wrapper.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-/// Service for managing API keys and sensitive configuration
-/// This centralizes all API key access and provides secure storage
+/// Runtime API key store.
+///
+/// Keys are entered by the user at runtime (Settings -> API Keys) and
+/// persisted in SharedPreferences, with an in-memory cache so reads stay
+/// synchronous for [ConfigLoader].
+///
+/// NOTE: SharedPreferences is plain, unencrypted on-device storage. It keeps
+/// keys out of the source tree and out of the APK, but it is not hardened
+/// against a rooted/compromised device.
 class ApiConfigService {
-  
-  // Storage keys
-  static const _geminiKeyStorage = 'gemini_api_key';
-  static const _deepgramKeyStorage = 'deepgram_api_key';
-  static const _firebaseKeyStorage = 'firebase_api_key';
-  
-  // Cache for loaded keys
-  static String? _geminiKey;
-  static String? _deepgramKey;
-  static String? _firebaseKey;
-  static String? _firebaseProjectId;
-  
-  /// Initialize API configuration
-  /// Must be called on app startup
+  // SharedPreferences keys
+  static const String _geminiPrefsKey = 'api_key_gemini';
+  static const String _deepgramPrefsKey = 'api_key_deepgram';
+
+  // Legacy keys written by the old SecureStorageWrapper implementation
+  // (SharedPreferences entries with a 'secure_' prefix). Read once for
+  // migration so previously saved keys are not lost.
+  static const String _legacyGeminiPrefsKey = 'secure_gemini_api_key';
+  static const String _legacyDeepgramPrefsKey = 'secure_deepgram_api_key';
+
+  // In-memory cache
+  static String _geminiKey = '';
+  static String _deepgramKey = '';
+  static bool _initialized = false;
+
+  /// Loads stored keys into the in-memory cache.
+  /// Must be called on app startup (see main.dart).
   static Future<void> initialize() async {
     try {
-      // Load environment variables
-      await dotenv.load(fileName: ".env");
-      
-      // Load or migrate API keys
-      await _loadOrMigrateKeys();
+      final prefs = await SharedPreferences.getInstance();
+
+      _geminiKey = prefs.getString(_geminiPrefsKey) ??
+          prefs.getString(_legacyGeminiPrefsKey) ??
+          '';
+      _deepgramKey = prefs.getString(_deepgramPrefsKey) ??
+          prefs.getString(_legacyDeepgramPrefsKey) ??
+          '';
+
+      _initialized = true;
     } catch (e) {
+      // App must still start without keys; AI/voice features simply stay
+      // disabled until keys are provided.
       print('Error initializing API config: $e');
-      // App should handle this gracefully
     }
   }
-  
-  /// Load keys from secure storage or migrate from .env
-  static Future<void> _loadOrMigrateKeys() async {
-    // Try to load from secure storage first
-    _geminiKey = await SecureStorageWrapper.read(key: _geminiKeyStorage);
-    _deepgramKey = await SecureStorageWrapper.read(key: _deepgramKeyStorage);
-    _firebaseKey = await SecureStorageWrapper.read(key: _firebaseKeyStorage);
-    
-    // If not in secure storage, migrate from .env
-    if (_geminiKey == null) {
-      _geminiKey = dotenv.env['GEMINI_API_KEY'];
-      if (_geminiKey != null) {
-        await SecureStorageWrapper.write(key: _geminiKeyStorage, value: _geminiKey);
-      }
+
+  /// Whether [initialize] has completed successfully.
+  static bool get isInitialized => _initialized;
+
+  /// Gemini API key set at runtime (empty string if not set).
+  static String get geminiApiKey => _geminiKey;
+
+  /// Deepgram API key set at runtime (empty string if not set).
+  static String get deepgramApiKey => _deepgramKey;
+
+  static bool get hasGeminiKey => _geminiKey.isNotEmpty;
+  static bool get hasDeepgramKey => _deepgramKey.isNotEmpty;
+
+  /// Stores the Gemini API key. Pass an empty string to clear it.
+  static Future<void> setGeminiApiKey(String key) async {
+    _geminiKey = key.trim();
+    final prefs = await SharedPreferences.getInstance();
+    if (_geminiKey.isEmpty) {
+      await prefs.remove(_geminiPrefsKey);
+    } else {
+      await prefs.setString(_geminiPrefsKey, _geminiKey);
     }
-    
-    if (_deepgramKey == null) {
-      _deepgramKey = dotenv.env['DEEPGRAM_API_KEY'];
-      if (_deepgramKey != null) {
-        await SecureStorageWrapper.write(key: _deepgramKeyStorage, value: _deepgramKey);
-      }
-    }
-    
-    if (_firebaseKey == null) {
-      _firebaseKey = dotenv.env['FIREBASE_API_KEY'];
-      if (_firebaseKey != null) {
-        await SecureStorageWrapper.write(key: _firebaseKeyStorage, value: _firebaseKey);
-      }
-    }
-    
-    // Firebase project ID (not sensitive, can stay in .env)
-    _firebaseProjectId = dotenv.env['FIREBASE_PROJECT_ID'];
+    await prefs.remove(_legacyGeminiPrefsKey);
   }
-  
-  /// Get Gemini API key
-  static String? get geminiApiKey => _geminiKey;
-  
-  /// Get Deepgram API key
-  static String? get deepgramApiKey => _deepgramKey;
-  
-  /// Get Firebase API key
-  static String? get firebaseApiKey => _firebaseKey;
-  
-  /// Get Firebase project ID
-  static String? get firebaseProjectId => _firebaseProjectId;
-  
-  /// Update an API key (for future settings screen)
-  static Future<void> updateApiKey(String keyType, String newKey) async {
-    switch (keyType) {
-      case 'gemini':
-        _geminiKey = newKey;
-        await SecureStorageWrapper.write(key: _geminiKeyStorage, value: newKey);
-        break;
-      case 'deepgram':
-        _deepgramKey = newKey;
-        await SecureStorageWrapper.write(key: _deepgramKeyStorage, value: newKey);
-        break;
-      case 'firebase':
-        _firebaseKey = newKey;
-        await SecureStorageWrapper.write(key: _firebaseKeyStorage, value: newKey);
-        break;
+
+  /// Stores the Deepgram API key. Pass an empty string to clear it.
+  static Future<void> setDeepgramApiKey(String key) async {
+    _deepgramKey = key.trim();
+    final prefs = await SharedPreferences.getInstance();
+    if (_deepgramKey.isEmpty) {
+      await prefs.remove(_deepgramPrefsKey);
+    } else {
+      await prefs.setString(_deepgramPrefsKey, _deepgramKey);
     }
+    await prefs.remove(_legacyDeepgramPrefsKey);
   }
-  
-  /// Clear all stored API keys (for logout/reset)
+
+  /// Removes the stored Gemini API key so any --dart-define build-time key
+  /// (or no key) takes effect again.
+  static Future<void> removeGeminiApiKey() => setGeminiApiKey('');
+
+  /// Removes the stored Deepgram API key so any --dart-define build-time key
+  /// (or no key) takes effect again.
+  static Future<void> removeDeepgramApiKey() => setDeepgramApiKey('');
+
+  /// Clears all stored API keys (for logout/reset).
   static Future<void> clearAllKeys() async {
-    await SecureStorageWrapper.deleteAll();
-    _geminiKey = null;
-    _deepgramKey = null;
-    _firebaseKey = null;
-  }
-  
-  /// Check if all required keys are available
-  static bool get hasRequiredKeys {
-    return _geminiKey != null && _geminiKey!.isNotEmpty;
+    _geminiKey = '';
+    _deepgramKey = '';
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_geminiPrefsKey);
+    await prefs.remove(_deepgramPrefsKey);
+    await prefs.remove(_legacyGeminiPrefsKey);
+    await prefs.remove(_legacyDeepgramPrefsKey);
   }
 }

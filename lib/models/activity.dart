@@ -90,8 +90,13 @@ class Activity {
         return checkDate.weekday == startTime.weekday;
         
       case ActivityRecurrence.monthly:
-        // Same day of month
-        return checkDate.day == startTime.day;
+        // Same day of month, clamped so an activity on the 31st still
+        // occurs on the last day of shorter months.
+        final lastDayOfMonth =
+            DateTime(checkDate.year, checkDate.month + 1, 0).day;
+        final target =
+            startTime.day > lastDayOfMonth ? lastDayOfMonth : startTime.day;
+        return checkDate.day == target;
         
       case ActivityRecurrence.once:
         return activityDate == checkDate;
@@ -104,7 +109,6 @@ class Activity {
       throw ArgumentError('Activity does not occur on this date');
     }
     
-    final timeDiff = startTime.hour * 60 + startTime.minute;
     final durationMinutes = duration.inMinutes;
     
     final newStart = DateTime(

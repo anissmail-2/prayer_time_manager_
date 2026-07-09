@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import '../core/services/location_service.dart';
 import '../core/theme/app_theme.dart';
@@ -84,34 +86,126 @@ class _MapLocationScreenState extends State<MapLocationScreen> {
   Future<void> _searchLocation() async {
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
-    
+
     setState(() => _isSearching = true);
-    
+
     try {
-      // Simple geocoding - in a real app, you'd use a proper geocoding API
-      // For now, check if it matches any of our quick cities
+      // Real forward geocoding via the free Nominatim search API.
+      final results = await _forwardGeocode(query);
+      if (!mounted) return;
+
+      if (results.isNotEmpty) {
+        if (results.length == 1) {
+          _selectSearchResult(results.first);
+        } else {
+          _showSearchResults(results);
+        }
+        return;
+      }
+
+      // Offline or failed lookup: fall back to the built-in city list.
       final matchingCity = _quickCities.firstWhere(
         (city) => city['name'].toLowerCase().contains(query.toLowerCase()),
         orElse: () => <String, dynamic>{},
       );
-      
+
       if (matchingCity.isNotEmpty) {
-        final latLng = LatLng(matchingCity['lat'], matchingCity['lng']);
-        setState(() {
-          _selectedLocation = latLng;
-          _locationName = matchingCity['name'];
-        });
-        _mapController.move(latLng, 12);
+        _selectSearchResult(matchingCity);
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Location not found')),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Location not found')),
+        );
       }
     } finally {
-      setState(() => _isSearching = false);
+      if (mounted) {
+        setState(() => _isSearching = false);
+      }
     }
+  }
+
+  // Forward geocoding via Nominatim (mirrors the reverse geocoding style
+  // used in LocationService). Returns an empty list on any failure so the
+  // caller can fall back to the offline quick-city list.
+  Future<List<Map<String, dynamic>>> _forwardGeocode(String query) async {
+    try {
+      final url = Uri.parse(
+        'https://nominatim.openstreetmap.org/search'
+        '?q=${Uri.encodeQueryComponent(query)}&format=json&limit=5',
+      );
+      final response = await http.get(
+        url,
+        headers: {
+          'User-Agent': 'TaskFlow Pro Prayer Time App/1.0',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data is List) {
+          final results = <Map<String, dynamic>>[];
+          for (final item in data) {
+            final lat = double.tryParse(item['lat']?.toString() ?? '');
+            final lng = double.tryParse(item['lon']?.toString() ?? '');
+            final name = item['display_name']?.toString();
+            if (lat != null && lng != null && name != null && name.isNotEmpty) {
+              results.add({'name': name, 'lat': lat, 'lng': lng});
+            }
+          }
+          return results;
+        }
+      }
+    } catch (e) {
+      debugPrint('Forward geocoding failed: $e');
+    }
+    return [];
+  }
+
+  void _selectSearchResult(Map<String, dynamic> result) {
+    final latLng = LatLng(result['lat'] as double, result['lng'] as double);
+    setState(() {
+      _selectedLocation = latLng;
+      _locationName = result['name'] as String;
+    });
+    _mapController.move(latLng, 12);
+  }
+
+  void _showSearchResults(List<Map<String, dynamic>> results) {
+    showModalBottomSheet(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(AppTheme.space16),
+              child: Text(
+                'Select a location',
+                style: AppTheme.titleMedium.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: results.map((result) => ListTile(
+                  leading: Icon(Icons.place, color: AppTheme.primary),
+                  title: Text(
+                    result['name'] as String,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _selectSearchResult(result);
+                  },
+                )).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _onMapTap(TapPosition tapPosition, LatLng position) {
@@ -308,7 +402,9 @@ class _MapLocationScreenState extends State<MapLocationScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
+          final messenger = ScaffoldMessenger.of(context);
           final position = await LocationService.getCurrentLocation();
+          if (!mounted) return;
           if (position != null) {
             final latLng = LatLng(position.latitude, position.longitude);
             setState(() {
@@ -317,13 +413,11 @@ class _MapLocationScreenState extends State<MapLocationScreen> {
             _mapController.move(latLng, 14);
             _updateLocationName();
           } else {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Unable to get current location. Please check location permissions.'),
-                ),
-              );
-            }
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text('Unable to get current location. Please check location permissions.'),
+              ),
+            );
           }
         },
         tooltip: 'Use current location',

@@ -43,22 +43,32 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
     });
   }
 
+  bool get _isSelectedDateToday {
+    final now = DateTime.now();
+    return _selectedDate.year == now.year &&
+        _selectedDate.month == now.month &&
+        _selectedDate.day == now.day;
+  }
+
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    
+
     try {
       // Get current location settings
       final locationSettings = await LocationService.getLocationSettings();
+      if (!mounted) return;
       setState(() {
         _currentLocation = '${locationSettings.customCity ?? 'Unknown'}, ${locationSettings.customCountry ?? ''}';
       });
-      
+
       final result = await PrayerTimeService.getPrayerTimesWithStatus(date: _selectedDate);
+      if (!mounted) return;
       _prayerTimes = result['times'] as Map<String, String>;
       _isOffline = result['isOffline'] as bool;
       _lastUpdated = result['lastUpdated'] as DateTime?;
-      
+
       _prayerDurations = await PrayerDurationService.getAllDurations();
+      if (!mounted) return;
       _updateNextPrayer();
     } catch (e) {
       if (mounted) {
@@ -77,8 +87,22 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
   }
 
   void _updateNextPrayer() {
+    if (!mounted) return;
+
+    // The NEXT badge and countdown compare prayer times against the current
+    // clock, which is only meaningful when viewing today's schedule.
+    if (!_isSelectedDateToday) {
+      if (_nextPrayer != null || _timeToNextPrayer != null) {
+        setState(() {
+          _nextPrayer = null;
+          _timeToNextPrayer = null;
+        });
+      }
+      return;
+    }
+
     if (_prayerTimes.isEmpty) return;
-    
+
     final now = DateTime.now();
     final currentTime = TimeOfDay.now();
     
@@ -142,12 +166,15 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: AppTheme.backgroundColor(context),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadData,
               child: SingleChildScrollView(
+                // Keep pull-to-refresh working even when the content is
+                // shorter than the viewport.
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(AppTheme.space24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -176,7 +203,7 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
         Text(
           'Prayer Schedule',
           style: AppTheme.headlineLarge.copyWith(
-            color: AppTheme.textPrimary,
+            color: AppTheme.textPrimaryColor(context),
           ),
         ),
         const SizedBox(height: AppTheme.space8),
@@ -203,14 +230,14 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
                 Icon(
                   Icons.location_on,
                   size: 16,
-                  color: AppTheme.textSecondary,
+                  color: AppTheme.textSecondaryColor(context),
                 ),
                 const SizedBox(width: AppTheme.space4),
                 Flexible(
                   child: Text(
                     _currentLocation,
                     style: AppTheme.bodyLarge.copyWith(
-                      color: AppTheme.textSecondary,
+                      color: AppTheme.textSecondaryColor(context),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -220,7 +247,7 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
                 Icon(
                   Icons.edit,
                   size: 14,
-                  color: AppTheme.textSecondary,
+                  color: AppTheme.textSecondaryColor(context),
                 ),
               ],
             ),
@@ -236,6 +263,7 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
               lastDate: DateTime.now().add(const Duration(days: 365)),
             );
             
+            if (!mounted) return;
             if (picked != null && picked != _selectedDate) {
               setState(() {
                 _selectedDate = picked;
@@ -255,26 +283,24 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
                 Icon(
                   Icons.calendar_today,
                   size: 16,
-                  color: AppTheme.textSecondary,
+                  color: AppTheme.textSecondaryColor(context),
                 ),
                 const SizedBox(width: AppTheme.space4),
                 Text(
                   DateFormat('EEE, MMM d, yyyy').format(_selectedDate),
                   style: AppTheme.bodyMedium.copyWith(
-                    color: AppTheme.textSecondary,
+                    color: AppTheme.textSecondaryColor(context),
                   ),
                 ),
                 const SizedBox(width: AppTheme.space4),
-                if (_selectedDate.day == DateTime.now().day &&
-                    _selectedDate.month == DateTime.now().month &&
-                    _selectedDate.year == DateTime.now().year)
+                if (_isSelectedDateToday)
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppTheme.space8,
                       vertical: AppTheme.space4,
                     ),
                     decoration: BoxDecoration(
-                      color: AppTheme.primary.withOpacity(0.1),
+                      color: AppTheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                     ),
                     child: Text(
@@ -299,10 +325,10 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
       margin: const EdgeInsets.only(bottom: AppTheme.space16),
       padding: const EdgeInsets.all(AppTheme.space12),
       decoration: BoxDecoration(
-        color: _isOffline ? AppTheme.warning.withOpacity(0.1) : AppTheme.info.withOpacity(0.1),
+        color: _isOffline ? AppTheme.warning.withValues(alpha: 0.1) : AppTheme.info.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
         border: Border.all(
-          color: _isOffline ? AppTheme.warning.withOpacity(0.3) : AppTheme.info.withOpacity(0.3),
+          color: _isOffline ? AppTheme.warning.withValues(alpha: 0.3) : AppTheme.info.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -356,7 +382,7 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
           Text(
             'Next Prayer',
             style: AppTheme.bodyLarge.copyWith(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
             ),
           ),
           const SizedBox(height: AppTheme.space8),
@@ -371,7 +397,7 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
           Text(
             _prayerTimes[_nextPrayer!] ?? '',
             style: AppTheme.headlineMedium.copyWith(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
             ),
           ),
           const SizedBox(height: AppTheme.space16),
@@ -381,7 +407,7 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
               vertical: AppTheme.space12,
             ),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(AppTheme.radiusCircular),
             ),
             child: Text(
@@ -404,9 +430,11 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Today\'s Prayer Times',
+          _isSelectedDateToday
+              ? 'Today\'s Prayer Times'
+              : 'Prayer Times for ${DateFormat('EEE, MMM d').format(_selectedDate)}',
           style: AppTheme.titleLarge.copyWith(
-            color: AppTheme.textPrimary,
+            color: AppTheme.textPrimaryColor(context),
           ),
         ),
         const SizedBox(height: AppTheme.space16),
@@ -439,8 +467,9 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
     
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.space12),
-      decoration: AppTheme.cardDecoration(
-        color: isNextPrayer ? AppTheme.primary.withOpacity(0.05) : null,
+      decoration: AppTheme.cardDecorationFor(
+        context,
+        color: isNextPrayer ? AppTheme.primary.withValues(alpha: 0.05) : null,
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(AppTheme.space16),
@@ -448,7 +477,7 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: _getPrayerColor(name).withOpacity(0.1),
+            color: _getPrayerColor(name).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
           ),
           child: Icon(
@@ -459,7 +488,7 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
         title: Text(
           name,
           style: AppTheme.titleMedium.copyWith(
-            color: AppTheme.textPrimary,
+            color: AppTheme.textPrimaryColor(context),
             fontWeight: isNextPrayer ? FontWeight.bold : FontWeight.w600,
           ),
         ),
@@ -467,7 +496,7 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
             ? Text(
                 'Duration: ${duration.totalDuration} min',
                 style: AppTheme.bodySmall.copyWith(
-                  color: AppTheme.textSecondary,
+                  color: AppTheme.textSecondaryColor(context),
                 ),
               )
             : null,
@@ -478,7 +507,7 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
             Text(
               time,
               style: AppTheme.headlineSmall.copyWith(
-                color: isNextPrayer ? AppTheme.primary : AppTheme.textPrimary,
+                color: isNextPrayer ? AppTheme.primary : AppTheme.textPrimaryColor(context),
                 fontWeight: FontWeight.bold,
               ),
             ),

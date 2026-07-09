@@ -54,23 +54,23 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     super.initState();
     _loadPrayerTimes();
     _loadConversation();
-    
-    // Listen to text changes to update send button
-    _messageController.addListener(() {
-      setState(() {});
-    });
+    // The send button listens to _messageController via a
+    // ValueListenableBuilder, so no screen-wide listener is needed here.
   }
 
   Future<void> _loadPrayerTimes() async {
     try {
       _prayerTimes = await PrayerTimeService.getPrayerTimes();
     } catch (e) {
-      // Handle error silently
+      // Prayer times are optional here (used to enrich suggestions); log
+      // instead of failing the screen.
+      debugPrint('AIAssistantScreen: failed to load prayer times: $e');
     }
   }
 
   Future<void> _loadConversation() async {
     final savedMessages = await AIConversationService.loadCurrentConversation();
+    if (!mounted) return;
     if (savedMessages.isNotEmpty) {
       setState(() {
         _messages.addAll(savedMessages);
@@ -126,55 +126,63 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     try {
       // Use enhanced AI assistant for more intelligent responses
       final aiResponse = await EnhancedAIAssistant.processMessage(message, _messages);
-      
-      // Add AI response to chat
+      if (!mounted) return;
+
+      // Add AI response to chat, keeping a reference so the suggestion
+      // patch below can target this exact message even if the user sends
+      // another message in the meantime.
+      final aiMessage = ChatMessage(
+        text: aiResponse.message,
+        isUser: false,
+        timestamp: DateTime.now(),
+        intent: aiResponse.intent,
+        quickActions: aiResponse.quickActions ?? aiResponse.suggestedQuestions,
+        taskList: aiResponse.taskList,
+        spaceList: aiResponse.spaceList,
+        statistics: aiResponse.statistics,
+        freeTimeSlots: aiResponse.freeTimeSlots,
+        isSuccess: aiResponse.success,
+      );
       setState(() {
-        _messages.add(ChatMessage(
-          text: aiResponse.message,
-          isUser: false,
-          timestamp: DateTime.now(),
-          intent: aiResponse.intent,
-          quickActions: aiResponse.quickActions ?? aiResponse.suggestedQuestions,
-          taskList: aiResponse.taskList,
-          spaceList: aiResponse.spaceList,
-          statistics: aiResponse.statistics,
-          freeTimeSlots: aiResponse.freeTimeSlots,
-          isSuccess: aiResponse.success,
-        ));
+        _messages.add(aiMessage);
       });
-      
+
       // If AI has task suggestions ready, show them after a brief delay
       if (aiResponse.suggestions != null && aiResponse.suggestions!.isNotEmpty) {
         await Future.delayed(const Duration(milliseconds: 500));
-        
+
         final enhancedSuggestions = await _enhanceSuggestionsWithTimes(aiResponse.suggestions!);
-        
+        if (!mounted) return;
+
         setState(() {
           _pendingSuggestions = enhancedSuggestions;
-          // Update the last message to include suggestions instead of adding a new one
-          if (_messages.isNotEmpty && _messages.last == _messages[_messages.length - 1]) {
-            _messages[_messages.length - 1] = ChatMessage(
-              text: _messages.last.text,
+          // Patch the specific message this response created (looked up by
+          // identity, not position, since more messages may have arrived).
+          final index = _messages.indexOf(aiMessage);
+          if (index != -1) {
+            _messages[index] = ChatMessage(
+              text: aiMessage.text,
               isUser: false,
-              timestamp: _messages.last.timestamp,
-              intent: _messages.last.intent,
-              quickActions: _messages.last.quickActions,
-              taskList: _messages.last.taskList,
-              spaceList: _messages.last.spaceList,
-              statistics: _messages.last.statistics,
-              freeTimeSlots: _messages.last.freeTimeSlots,
-              isSuccess: _messages.last.isSuccess,
+              timestamp: aiMessage.timestamp,
+              intent: aiMessage.intent,
+              quickActions: aiMessage.quickActions,
+              taskList: aiMessage.taskList,
+              spaceList: aiMessage.spaceList,
+              statistics: aiMessage.statistics,
+              freeTimeSlots: aiMessage.freeTimeSlots,
+              isSuccess: aiMessage.isSuccess,
               suggestions: enhancedSuggestions,
               isSuggestionResponse: true,
             );
           }
         });
       }
-      
+
       // If AI has space suggestions ready, show them
       if (aiResponse.spaceSuggestions != null && aiResponse.spaceSuggestions!.isNotEmpty) {
         await Future.delayed(const Duration(seconds: 1));
-        
+        if (!mounted) return;
+
         setState(() {
           _messages.add(ChatMessage(
             text: '',  // Empty text since the suggestion card shows all details
@@ -186,6 +194,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _messages.add(ChatMessage(
           text: 'I apologize, but I\'m having trouble processing your request. Could you please try again?',
@@ -195,8 +204,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         ));
       });
     } finally {
-      setState(() => _isLoading = false);
-      _scrollToBottom();
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _scrollToBottom();
+      }
       _saveConversation();
     }
   }
@@ -247,7 +258,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   Future<void> _acceptSuggestion(TaskSuggestion suggestion) async {
     try {
       await TodoService.createTaskFromSuggestion(suggestion);
-      
+      if (!mounted) return;
+
       setState(() {
         _pendingSuggestions.remove(suggestion);
         _messages.add(ChatMessage(
@@ -308,10 +320,11 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       );
       
       await SpaceService.createSpace(space);
-      
+
       // Update the AI assistant context with the created space
       EnhancedAIAssistant.updateLastCreatedSpace(space.id, space.name);
-      
+
+      if (!mounted) return;
       setState(() {
         _messages.add(ChatMessage(
           text: '✅ Space "${suggestion.name}" has been created successfully!',
@@ -356,7 +369,26 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     });
   }
 
+  /// Returns true when a Deepgram key is configured. Otherwise shows a
+  /// snackbar pointing at Settings > API Keys and returns false, so we
+  /// never record (or pick a file) only to fail at transcription time.
+  bool _ensureDeepgramKeyConfigured() {
+    if (ConfigLoader.deepgramApiKey.isNotEmpty) return true;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          'Voice transcription needs a Deepgram API key. '
+          'Add one in Settings > API Keys.',
+        ),
+        backgroundColor: AppTheme.error,
+      ),
+    );
+    return false;
+  }
+
   Future<void> _startRecording() async {
+    if (!_ensureDeepgramKeyConfigured()) return;
+
     if (Theme.of(context).platform != TargetPlatform.android) {
       _pickAudioFile();
       return;
@@ -364,10 +396,12 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
 
     try {
       await platform.invokeMethod('startRecording');
+      if (!mounted) return;
       setState(() {
         _isRecording = true;
       });
     } on PlatformException catch (e) {
+      if (!mounted) return;
       setState(() {
         _isRecording = false;
       });
@@ -390,13 +424,14 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       });
       
       final Map<dynamic, dynamic> result = await platform.invokeMethod('stopRecording');
+      if (!mounted) return;
       final String? path = result['path'];
-      final int? size = result['size'];
-      
+
       if (path != null) {
         await _transcribeFile(path);
       }
     } on PlatformException catch (e) {
+      if (!mounted) return;
       setState(() {
         _isRecording = false;
         _isTranscribing = false;
@@ -413,6 +448,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   }
 
   Future<void> _pickAudioFile() async {
+    if (!_ensureDeepgramKeyConfigured()) return;
+
     // First try the native method channel for Android to get proper file picker
     if (Platform.isAndroid) {
       try {
@@ -424,9 +461,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         
         // Use native method channel to show system file picker with all sources
         final Map<dynamic, dynamic> result = await filePickerPlatform.invokeMethod('pickAudioFile');
+        if (!mounted) return;
         final String? path = result['path'];
         final String? name = result['name'];
-        
+
         if (path != null) {
           setState(() {
             _selectedFileName = name ?? 'Audio file';
@@ -437,7 +475,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         }
       } catch (e) {
         // If native method fails, fall back to file_picker package
-        print('Native file picker failed: $e');
+        debugPrint('Native file picker failed: $e');
       }
     }
     
@@ -457,6 +495,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         );
       }
 
+      if (!mounted) return;
       if (result != null && result.files.single.path != null) {
         // Check if it's an audio file
         final extension = result.files.single.extension?.toLowerCase() ?? '';
@@ -494,7 +533,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                 ],
               ),
             );
-            
+            if (!mounted) return;
+
             if (proceed == true) {
               setState(() {
                 _selectedFileName = result!.files.single.name;
@@ -517,33 +557,57 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     }
   }
 
+  // Derive the Content-Type header from the audio file extension so
+  // Deepgram receives the correct format hint.
+  String _audioContentType(String filePath) {
+    final extension = filePath.split('.').last.toLowerCase();
+    switch (extension) {
+      case 'wav':
+        return 'audio/wav';
+      case 'mp3':
+      case 'mpeg':
+      case 'mpga':
+        return 'audio/mpeg';
+      case 'ogg':
+      case 'opus':
+        return 'audio/ogg';
+      case 'flac':
+        return 'audio/flac';
+      case 'm4a':
+      case 'mp4':
+      default:
+        return 'audio/mp4';
+    }
+  }
+
   Future<void> _transcribeFile(String filePath) async {
     setState(() {
       _isTranscribing = true;
     });
-    
+
     try {
       // Check if Deepgram API key is available
       if (!ConfigLoader.hasValidDeepgramKey) {
         throw Exception('Voice transcription is not configured. Please check your API key settings.');
       }
-      
+
       final file = File(filePath);
       final bytes = await file.readAsBytes();
-      
+
       final response = await http.post(
         Uri.parse('https://api.deepgram.com/v1/listen?model=$_selectedModel&punctuate=true&language=en-US'),
         headers: {
           'Authorization': 'Token ${ConfigLoader.deepgramApiKey}',
-          'Content-Type': 'audio/mp4',
+          'Content-Type': _audioContentType(filePath),
         },
         body: bytes,
       );
-      
+      if (!mounted) return;
+
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
         String transcript = '';
-        
+
         try {
           if (json['results']?['channels']?.isNotEmpty ?? false) {
             final channel = json['results']['channels'][0];
@@ -552,20 +616,31 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             }
           }
         } catch (e) {
-          transcript = 'Error parsing response';
+          debugPrint('Error parsing Deepgram response: $e');
         }
-        
+
         setState(() {
-          _messageController.text = transcript.isEmpty ? 'No speech detected' : transcript;
+          // Only fill the input with actual speech; an empty transcript is
+          // reported via a SnackBar instead of polluting the user's input.
+          if (transcript.isNotEmpty) {
+            _messageController.text = transcript;
+          }
           _isTranscribing = false;
           _selectedFileName = null;
         });
-        
-        if (mounted && transcript.isNotEmpty) {
+
+        if (transcript.isNotEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Transcription complete!'),
               backgroundColor: AppTheme.success,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('No speech detected in the audio'),
+              backgroundColor: AppTheme.warning,
             ),
           );
         }
@@ -573,27 +648,24 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         setState(() {
           _isTranscribing = false;
         });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('API Error: ${response.statusCode}'),
-              backgroundColor: AppTheme.error,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      setState(() {
-        _isTranscribing = false;
-      });
-      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text('API Error: ${response.statusCode}'),
             backgroundColor: AppTheme.error,
           ),
         );
       }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isTranscribing = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: AppTheme.error,
+        ),
+      );
     }
   }
 
@@ -770,7 +842,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTheme.surface,
+      backgroundColor: AppTheme.surfaceColor(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppTheme.radiusLarge)),
       ),
@@ -797,9 +869,12 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                   if (conversations.isNotEmpty)
                     TextButton(
                       onPressed: () async {
+                        // Capture the messenger before popping the sheet so
+                        // its context is never used after deactivation.
+                        final messenger = ScaffoldMessenger.of(context);
                         Navigator.pop(context);
                         await AIConversationService.clearAllConversations();
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        messenger.showSnackBar(
                           const SnackBar(
                             content: Text('All conversations cleared'),
                             behavior: SnackBarBehavior.floating,
@@ -817,7 +892,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                       child: Text(
                         'No saved conversations',
                         style: AppTheme.bodyMedium.copyWith(
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.textSecondaryColor(context),
                         ),
                       ),
                     )
@@ -843,8 +918,11 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                             trailing: IconButton(
                               icon: const Icon(Icons.delete_outline, size: 20),
                               onPressed: () async {
-                                await AIConversationService.deleteConversation(conv['id']);
+                                // Close the sheet before the async gap; its
+                                // context must not be used after an await.
                                 Navigator.pop(context);
+                                await AIConversationService.deleteConversation(conv['id']);
+                                if (!mounted) return;
                                 _showConversationHistory();
                               },
                             ),
@@ -929,32 +1007,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     }
   }
   
-  // Handle quick action buttons
-  Future<void> _handleQuickAction(String action) async {
-    _messageController.text = action;
-    await _sendMessage();
-  }
-  
-  // The enhanced AI assistant now handles all operations directly
-  // These old methods are no longer needed as the AI executes everything
-  
-  Future<void> _showTaskStats() async {
-    // This is kept only for backward compatibility
-    // The AI now provides statistics directly
-    _messageController.text = "Show me my task statistics";
-    await _sendMessage();
-  }
-  
-  // Placeholder for any legacy code that might call this
-  Future<void> _showTasks(String scope) async {
-    _messageController.text = "Show me my $scope tasks";
-    await _sendMessage();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: AppTheme.backgroundColor(context),
       body: SafeArea(
         child: Column(
           children: [
@@ -989,10 +1045,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         vertical: AppTheme.space12,
       ),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceColor(context),
         border: Border(
           bottom: BorderSide(
-            color: AppTheme.borderLight,
+            color: AppTheme.borderColor(context),
             width: 1,
           ),
         ),
@@ -1018,7 +1074,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             child: Text(
               'AI Assistant',
               style: AppTheme.titleMedium.copyWith(
-                color: AppTheme.textPrimary,
+                color: AppTheme.textPrimaryColor(context),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -1028,7 +1084,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             IconButton(
               onPressed: _copyChat,
               icon: const Icon(Icons.copy, size: 20),
-              color: AppTheme.textSecondary,
+              color: AppTheme.textSecondaryColor(context),
               tooltip: 'Copy chat',
               padding: const EdgeInsets.all(8),
               constraints: const BoxConstraints(
@@ -1038,7 +1094,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             ),
           // Conversation menu
           PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert, size: 20, color: AppTheme.textSecondary),
+            icon: Icon(Icons.more_vert, size: 20, color: AppTheme.textSecondaryColor(context)),
             tooltip: 'Conversation options',
             onSelected: _handleConversationMenu,
             itemBuilder: (context) => [
@@ -1078,7 +1134,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           // Model selector as icon button
           IconButton(
             onPressed: () => _showModelSelector(context),
-            icon: Icon(Icons.mic, size: 20, color: AppTheme.textSecondary),
+            icon: Icon(Icons.mic, size: 20, color: AppTheme.textSecondaryColor(context)),
             tooltip: 'Voice model: $_selectedModel',
             padding: const EdgeInsets.all(8),
             constraints: const BoxConstraints(
@@ -1094,7 +1150,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   void _showModelSelector(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppTheme.surface,
+      backgroundColor: AppTheme.surfaceColor(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppTheme.radiusLarge),
@@ -1129,7 +1185,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
               subtitle: Text(
                 entry.value,
                 style: AppTheme.bodySmall.copyWith(
-                  color: AppTheme.textSecondary,
+                  color: AppTheme.textSecondaryColor(context),
                 ),
               ),
               onTap: () {
@@ -1156,8 +1212,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppTheme.secondary.withOpacity(0.1),
-                    AppTheme.secondaryDark.withOpacity(0.1),
+                    AppTheme.secondary.withValues(alpha: 0.1),
+                    AppTheme.secondaryDark.withValues(alpha: 0.1),
                   ],
                 ),
                 shape: BoxShape.circle,
@@ -1172,7 +1228,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             Text(
               'How can I help you today?',
               style: AppTheme.titleLarge.copyWith(
-                color: AppTheme.textPrimary,
+                color: AppTheme.textPrimaryColor(context),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -1180,7 +1236,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             Text(
               'I can help you manage tasks, create spaces,\nand optimize your schedule',
               style: AppTheme.bodyMedium.copyWith(
-                color: AppTheme.textSecondary,
+                color: AppTheme.textSecondaryColor(context),
               ),
               textAlign: TextAlign.center,
             ),
@@ -1221,7 +1277,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         Text(
           title,
           style: AppTheme.labelMedium.copyWith(
-            color: AppTheme.textSecondary,
+            color: AppTheme.textSecondaryColor(context),
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -1248,10 +1304,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           vertical: AppTheme.space8,
         ),
         decoration: BoxDecoration(
-          color: AppTheme.surfaceVariant,
+          color: AppTheme.surfaceVariantColor(context),
           borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
           border: Border.all(
-            color: AppTheme.borderLight,
+            color: AppTheme.borderColor(context),
             width: 1,
           ),
         ),
@@ -1261,13 +1317,13 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             Icon(
               icon,
               size: 16,
-              color: AppTheme.textSecondary,
+              color: AppTheme.textSecondaryColor(context),
             ),
             const SizedBox(width: AppTheme.space8),
             Text(
               text,
               style: AppTheme.bodySmall.copyWith(
-                color: AppTheme.textPrimary,
+                color: AppTheme.textPrimaryColor(context),
               ),
             ),
           ],
@@ -1276,20 +1332,6 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     );
   }
 
-  Widget _buildSuggestionChip(String text) {
-    return ActionChip(
-      label: Text(text),
-      onPressed: () {
-        _messageController.text = text;
-        _sendMessage();
-      },
-      backgroundColor: AppTheme.surfaceVariant,
-      labelStyle: AppTheme.bodyMedium.copyWith(
-        color: AppTheme.textPrimary,
-      ),
-    );
-  }
-  
   Widget _buildCompactTaskItem(TaskWithTime taskWithTime) {
     final isCompleted = taskWithTime.task.isCompletedToday();
     return Container(
@@ -1300,7 +1342,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: AppTheme.borderLight.withOpacity(0.5),
+            color: AppTheme.borderColor(context).withValues(alpha: 0.5),
             width: 0.5,
           ),
         ),
@@ -1313,7 +1355,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: isCompleted ? AppTheme.success : AppTheme.borderLight,
+                color: isCompleted ? AppTheme.success : AppTheme.borderColor(context),
                 width: 2,
               ),
               color: isCompleted ? AppTheme.success : Colors.transparent,
@@ -1335,7 +1377,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                   taskWithTime.task.title,
                   style: AppTheme.bodySmall.copyWith(
                     decoration: isCompleted ? TextDecoration.lineThrough : null,
-                    color: isCompleted ? AppTheme.textSecondary : AppTheme.textPrimary,
+                    color: isCompleted ? AppTheme.textSecondaryColor(context) : AppTheme.textPrimaryColor(context),
                     fontSize: 13,
                   ),
                 ),
@@ -1343,7 +1385,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                 Text(
                   taskWithTime.task.getDisplayTimeString(_prayerTimes),
                   style: AppTheme.labelSmall.copyWith(
-                    color: AppTheme.textTertiary,
+                    color: AppTheme.textTertiaryColor(context),
                     fontSize: 11,
                   ),
                 ),
@@ -1372,7 +1414,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: AppTheme.borderLight.withOpacity(0.5),
+            color: AppTheme.borderColor(context).withValues(alpha: 0.5),
             width: 0.5,
           ),
         ),
@@ -1383,7 +1425,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: _getSpaceColor(space.color ?? 'blue').withOpacity(0.1),
+              color: _getSpaceColor(space.color ?? 'blue').withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Icon(
@@ -1409,7 +1451,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                   Text(
                     '${stats['pending']} pending, ${stats['completed']} completed',
                     style: AppTheme.labelSmall.copyWith(
-                      color: AppTheme.textTertiary,
+                      color: AppTheme.textTertiaryColor(context),
                       fontSize: 11,
                     ),
                   ),
@@ -1434,7 +1476,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             width: 4,
             height: 40,
             decoration: BoxDecoration(
-              color: AppTheme.success.withOpacity(0.3),
+              color: AppTheme.success.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -1456,13 +1498,13 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                     Icon(
                       Icons.timer_outlined,
                       size: 12,
-                      color: AppTheme.textTertiary,
+                      color: AppTheme.textTertiaryColor(context),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       '${slot.durationMinutes} minutes',
                       style: AppTheme.labelSmall.copyWith(
-                        color: AppTheme.textTertiary,
+                        color: AppTheme.textTertiaryColor(context),
                         fontSize: 11,
                       ),
                     ),
@@ -1471,7 +1513,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                       Text(
                         '• ${slot.label}',
                         style: AppTheme.labelSmall.copyWith(
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.textSecondaryColor(context),
                           fontSize: 11,
                         ),
                       ),
@@ -1499,14 +1541,14 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
               height: 32,
               decoration: BoxDecoration(
                 color: message.isError
-                    ? AppTheme.error.withOpacity(0.1)
+                    ? AppTheme.error.withValues(alpha: 0.1)
                     : message.isSuccess
-                        ? AppTheme.success.withOpacity(0.1)
+                        ? AppTheme.success.withValues(alpha: 0.1)
                         : message.isSuggestionResponse
-                            ? AppTheme.info.withOpacity(0.1)
+                            ? AppTheme.info.withValues(alpha: 0.1)
                             : message.isSpaceSuggestionResponse
-                                ? AppTheme.primary.withOpacity(0.1)
-                                : AppTheme.secondary.withOpacity(0.1),
+                                ? AppTheme.primary.withValues(alpha: 0.1)
+                                : AppTheme.secondary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -1549,12 +1591,12 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                     color: message.isUser
                         ? AppTheme.primary
                         : message.isError
-                            ? AppTheme.error.withOpacity(0.1)
+                            ? AppTheme.error.withValues(alpha: 0.1)
                             : message.isSuccess
-                                ? AppTheme.success.withOpacity(0.1)
+                                ? AppTheme.success.withValues(alpha: 0.1)
                                 : message.isSuggestionResponse
                                     ? Colors.transparent
-                                    : AppTheme.surfaceVariant,
+                                    : AppTheme.surfaceVariantColor(context),
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(message.isUser ? AppTheme.radiusMedium : AppTheme.space4),
                       topRight: Radius.circular(message.isUser ? AppTheme.space4 : AppTheme.radiusMedium),
@@ -1578,7 +1620,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                                     ? AppTheme.error
                                     : message.isSuccess
                                         ? AppTheme.success
-                                        : AppTheme.textPrimary,
+                                        : AppTheme.textPrimaryColor(context),
                             fontSize: 14,
                           ),
                         ),
@@ -1587,9 +1629,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                         const SizedBox(height: AppTheme.space12),
                         Container(
                           decoration: BoxDecoration(
-                            color: AppTheme.surface,
+                            color: AppTheme.surfaceColor(context),
                             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                            border: Border.all(color: AppTheme.borderLight),
+                            border: Border.all(color: AppTheme.borderColor(context)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1604,7 +1646,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                                     Icon(
                                       Icons.task_alt,
                                       size: 16,
-                                      color: AppTheme.textSecondary,
+                                      color: AppTheme.textSecondaryColor(context),
                                     ),
                                     const SizedBox(width: AppTheme.space8),
                                     Text(
@@ -1626,7 +1668,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                                   child: Text(
                                     '... and ${message.taskList!.length - 5} more',
                                     style: AppTheme.labelSmall.copyWith(
-                                      color: AppTheme.textSecondary,
+                                      color: AppTheme.textSecondaryColor(context),
                                     ),
                                   ),
                                 ),
@@ -1639,9 +1681,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                         const SizedBox(height: AppTheme.space12),
                         Container(
                           decoration: BoxDecoration(
-                            color: AppTheme.surface,
+                            color: AppTheme.surfaceColor(context),
                             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                            border: Border.all(color: AppTheme.borderLight),
+                            border: Border.all(color: AppTheme.borderColor(context)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1656,7 +1698,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                                     Icon(
                                       Icons.folder_special,
                                       size: 16,
-                                      color: AppTheme.textSecondary,
+                                      color: AppTheme.textSecondaryColor(context),
                                     ),
                                     const SizedBox(width: AppTheme.space8),
                                     Text(
@@ -1683,12 +1725,12 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
-                                AppTheme.success.withOpacity(0.05),
-                                AppTheme.success.withOpacity(0.02),
+                                AppTheme.success.withValues(alpha: 0.05),
+                                AppTheme.success.withValues(alpha: 0.02),
                               ],
                             ),
                             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                            border: Border.all(color: AppTheme.success.withOpacity(0.2)),
+                            border: Border.all(color: AppTheme.success.withValues(alpha: 0.2)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1726,7 +1768,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                                   child: Text(
                                     '... and ${message.freeTimeSlots!.length - 4} more slots',
                                     style: AppTheme.labelSmall.copyWith(
-                                      color: AppTheme.textSecondary,
+                                      color: AppTheme.textSecondaryColor(context),
                                     ),
                                   ),
                                 ),
@@ -1742,9 +1784,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                         Container(
                           padding: const EdgeInsets.all(AppTheme.space12),
                           decoration: BoxDecoration(
-                            color: AppTheme.info.withOpacity(0.05),
+                            color: AppTheme.info.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                            border: Border.all(color: AppTheme.info.withOpacity(0.2)),
+                            border: Border.all(color: AppTheme.info.withValues(alpha: 0.2)),
                           ),
                           child: Row(
                             children: [
@@ -1781,7 +1823,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                     child: Text(
                       DateFormat('h:mm a').format(message.timestamp),
                       style: AppTheme.labelSmall.copyWith(
-                        color: AppTheme.textTertiary,
+                        color: AppTheme.textTertiaryColor(context),
                         fontSize: 11,
                       ),
                     ),
@@ -1795,7 +1837,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.1),
+                color: AppTheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -1833,9 +1875,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         vertical: AppTheme.space8,
       ),
       decoration: BoxDecoration(
-        color: AppTheme.info.withOpacity(0.1),
+        color: AppTheme.info.withValues(alpha: 0.1),
         border: Border(
-          top: BorderSide(color: AppTheme.borderLight),
+          top: BorderSide(color: AppTheme.borderColor(context)),
         ),
       ),
       child: Row(
@@ -1852,7 +1894,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           IconButton(
             icon: const Icon(Icons.close, size: 18),
             onPressed: () => setState(() => _selectedFileName = null),
-            color: AppTheme.textSecondary,
+            color: AppTheme.textSecondaryColor(context),
           ),
         ],
       ),
@@ -1868,10 +1910,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         bottom: AppTheme.space8 + MediaQuery.of(context).padding.bottom,
       ),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceColor(context),
         border: Border(
           top: BorderSide(
-            color: AppTheme.borderLight,
+            color: AppTheme.borderColor(context),
             width: 1,
           ),
         ),
@@ -1883,7 +1925,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: AppTheme.surfaceVariant,
+                color: AppTheme.surfaceVariantColor(context),
                 borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
               ),
               child: Row(
@@ -1894,7 +1936,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                     IconButton(
                       onPressed: _isTranscribing ? null : _pickAudioFile,
                       icon: const Icon(Icons.attach_file, size: 20),
-                      color: AppTheme.textSecondary,
+                      color: AppTheme.textSecondaryColor(context),
                       tooltip: 'Attach file',
                       padding: const EdgeInsets.all(8),
                       constraints: const BoxConstraints(
@@ -1912,13 +1954,13 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                       textInputAction: TextInputAction.newline,
                       enableInteractiveSelection: true,
                       style: TextStyle(
-                        color: AppTheme.textPrimary,
+                        color: AppTheme.textPrimaryColor(context),
                         fontSize: 14,
                       ),
                       decoration: InputDecoration(
                         hintText: 'Ask me anything...',
                         hintStyle: TextStyle(
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.textSecondaryColor(context),
                           fontSize: 14,
                         ),
                         border: InputBorder.none,
@@ -1934,7 +1976,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                     IconButton(
                       onPressed: _startRecording,
                       icon: const Icon(Icons.mic, size: 20),
-                      color: AppTheme.textSecondary,
+                      color: AppTheme.textSecondaryColor(context),
                       tooltip: 'Voice input',
                       padding: const EdgeInsets.all(8),
                       constraints: const BoxConstraints(
@@ -1971,37 +2013,39 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
               child: const CircularProgressIndicator(strokeWidth: 2),
             )
           else
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _messageController.text.trim().isEmpty
-                    ? AppTheme.borderLight
-                    : AppTheme.primary,
-              ),
-              child: IconButton(
-                onPressed: _messageController.text.trim().isEmpty || _isLoading
-                    ? null 
-                    : _sendMessage,
-                icon: _isLoading
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : Icon(
-                        Icons.send, 
-                        size: 18,
-                        color: _messageController.text.trim().isEmpty
-                            ? AppTheme.textSecondary
-                            : Colors.white,
-                      ),
-                padding: EdgeInsets.zero,
-              ),
+            // Rebuild only the send button on each keystroke instead of the
+            // whole chat screen.
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _messageController,
+              builder: (context, value, _) {
+                final isEmpty = value.text.trim().isEmpty;
+                return Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isEmpty ? AppTheme.borderColor(context) : AppTheme.primary,
+                  ),
+                  child: IconButton(
+                    onPressed: isEmpty || _isLoading ? null : _sendMessage,
+                    icon: _isLoading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Icon(
+                            Icons.send,
+                            size: 18,
+                            color: isEmpty ? AppTheme.textSecondaryColor(context) : Colors.white,
+                          ),
+                    padding: EdgeInsets.zero,
+                  ),
+                );
+              },
             ),
         ],
       ),
@@ -2019,21 +2063,6 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     }
   }
   
-  Widget _getPriorityIcon(TaskPriority priority) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: _getPriorityColor(priority).withOpacity(0.1),
-        shape: BoxShape.circle,
-      ),
-      child: Icon(
-        Icons.flag,
-        size: 16,
-        color: _getPriorityColor(priority),
-      ),
-    );
-  }
-  
   Color _getSpaceColor(String colorName) {
     final colors = {
       'blue': Colors.blue,
@@ -2047,7 +2076,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     };
     return colors[colorName] ?? Colors.blue;
   }
-  
+
   String _formatStatistics(Map<String, dynamic> stats) {
     final parts = <String>[];
     if (stats['total'] != null) parts.add('Total: ${stats['total']}');
@@ -2221,9 +2250,9 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
     return Container(
       margin: const EdgeInsets.only(top: AppTheme.space8),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceColor(context),
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        border: Border.all(color: AppTheme.borderLight),
+        border: Border.all(color: AppTheme.borderColor(context)),
         boxShadow: AppTheme.shadowSmall,
       ),
       child: Column(
@@ -2233,7 +2262,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
           Container(
             padding: const EdgeInsets.all(AppTheme.space16),
             decoration: BoxDecoration(
-              color: AppTheme.primary.withOpacity(0.05),
+              color: AppTheme.primary.withValues(alpha: 0.05),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(AppTheme.radiusMedium),
                 topRight: Radius.circular(AppTheme.radiusMedium),
@@ -2249,7 +2278,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                           ? TextField(
                               controller: _titleController,
                               style: AppTheme.titleMedium.copyWith(
-                                color: AppTheme.textPrimary,
+                                color: AppTheme.textPrimaryColor(context),
                                 fontWeight: FontWeight.w600,
                               ),
                               decoration: const InputDecoration(
@@ -2261,7 +2290,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                           : Text(
                               _titleController.text,
                               style: AppTheme.titleMedium.copyWith(
-                                color: AppTheme.textPrimary,
+                                color: AppTheme.textPrimaryColor(context),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -2271,7 +2300,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                             ? TextField(
                                 controller: _descriptionController,
                                 style: AppTheme.bodySmall.copyWith(
-                                  color: AppTheme.textSecondary,
+                                  color: AppTheme.textSecondaryColor(context),
                                 ),
                                 decoration: InputDecoration(
                                   isDense: true,
@@ -2279,14 +2308,14 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                                   border: InputBorder.none,
                                   hintText: 'Add description...',
                                   hintStyle: AppTheme.bodySmall.copyWith(
-                                    color: AppTheme.textTertiary,
+                                    color: AppTheme.textTertiaryColor(context),
                                   ),
                                 ),
                               )
                             : Text(
                                 _descriptionController.text,
                                 style: AppTheme.bodySmall.copyWith(
-                                  color: AppTheme.textSecondary,
+                                  color: AppTheme.textSecondaryColor(context),
                                 ),
                               ),
                       ],
@@ -2299,7 +2328,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                     IconButton(
                       onPressed: _toggleEdit,
                       icon: Icon(_isEditing ? Icons.close : Icons.edit),
-                      color: AppTheme.textSecondary,
+                      color: AppTheme.textSecondaryColor(context),
                       tooltip: _isEditing ? 'Cancel Edit' : 'Edit',
                     ),
                     IconButton(
@@ -2331,8 +2360,8 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                       padding: const EdgeInsets.all(AppTheme.space8),
                       decoration: BoxDecoration(
                         color: hasExactTime 
-                            ? AppTheme.success.withOpacity(0.1)
-                            : AppTheme.warning.withOpacity(0.1),
+                            ? AppTheme.success.withValues(alpha: 0.1)
+                            : AppTheme.warning.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                       ),
                       child: Icon(
@@ -2349,14 +2378,14 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                           Text(
                             hasExactTime ? 'Scheduled Time' : 'Timing',
                             style: AppTheme.labelSmall.copyWith(
-                              color: AppTheme.textSecondary,
+                              color: AppTheme.textSecondaryColor(context),
                             ),
                           ),
                           _isEditing
                               ? TextField(
                                   controller: _timeController,
                                   style: AppTheme.titleMedium.copyWith(
-                                    color: hasExactTime ? AppTheme.success : AppTheme.textPrimary,
+                                    color: hasExactTime ? AppTheme.success : AppTheme.textPrimaryColor(context),
                                     fontWeight: FontWeight.w600,
                                   ),
                                   decoration: InputDecoration(
@@ -2365,14 +2394,14 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                                     border: InputBorder.none,
                                     hintText: 'e.g., 14:30 or 2:30 PM',
                                     hintStyle: AppTheme.bodySmall.copyWith(
-                                      color: AppTheme.textTertiary,
+                                      color: AppTheme.textTertiaryColor(context),
                                     ),
                                   ),
                                 )
                               : Text(
                                   _timeController.text.isEmpty ? displayTime : _timeController.text,
                                   style: AppTheme.titleMedium.copyWith(
-                                    color: hasExactTime ? AppTheme.success : AppTheme.textPrimary,
+                                    color: hasExactTime ? AppTheme.success : AppTheme.textPrimaryColor(context),
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -2412,10 +2441,10 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                                 vertical: AppTheme.space6,
                               ),
                               decoration: BoxDecoration(
-                                color: _getPriorityColor(_priority).withOpacity(0.1),
+                                color: _getPriorityColor(_priority).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(AppTheme.radiusCircular),
                                 border: Border.all(
-                                  color: _getPriorityColor(_priority).withOpacity(0.3),
+                                  color: _getPriorityColor(_priority).withValues(alpha: 0.3),
                                 ),
                               ),
                               child: Row(
@@ -2450,10 +2479,10 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                               vertical: AppTheme.space6,
                             ),
                             decoration: BoxDecoration(
-                              color: _getPriorityColor(_priority).withOpacity(0.1),
+                              color: _getPriorityColor(_priority).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(AppTheme.radiusCircular),
                               border: Border.all(
-                                color: _getPriorityColor(_priority).withOpacity(0.3),
+                                color: _getPriorityColor(_priority).withValues(alpha: 0.3),
                               ),
                             ),
                             child: Row(
@@ -2503,10 +2532,10 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                                 vertical: AppTheme.space6,
                               ),
                               decoration: BoxDecoration(
-                                color: AppTheme.info.withOpacity(0.1),
+                                color: AppTheme.info.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(AppTheme.radiusCircular),
                                 border: Border.all(
-                                  color: AppTheme.info.withOpacity(0.3),
+                                  color: AppTheme.info.withValues(alpha: 0.3),
                                 ),
                               ),
                               child: Row(
@@ -2541,10 +2570,10 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                               vertical: AppTheme.space6,
                             ),
                             decoration: BoxDecoration(
-                              color: AppTheme.info.withOpacity(0.1),
+                              color: AppTheme.info.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(AppTheme.radiusCircular),
                               border: Border.all(
-                                color: AppTheme.info.withOpacity(0.3),
+                                color: AppTheme.info.withValues(alpha: 0.3),
                               ),
                             ),
                             child: Row(
@@ -2577,7 +2606,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                     Text(
                       'Type',
                       style: AppTheme.labelMedium.copyWith(
-                        color: AppTheme.textSecondary,
+                        color: AppTheme.textSecondaryColor(context),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -2603,10 +2632,10 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                           vertical: AppTheme.space6,
                         ),
                         decoration: BoxDecoration(
-                          color: AppTheme.primary.withOpacity(0.1),
+                          color: AppTheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(AppTheme.radiusCircular),
                           border: Border.all(
-                            color: AppTheme.primary.withOpacity(0.3),
+                            color: AppTheme.primary.withValues(alpha: 0.3),
                           ),
                         ),
                         child: Row(
@@ -2639,7 +2668,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                       Container(
                         padding: const EdgeInsets.all(AppTheme.space8),
                         decoration: BoxDecoration(
-                          color: AppTheme.info.withOpacity(0.1),
+                          color: AppTheme.info.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                         ),
                         child: Icon(
@@ -2656,14 +2685,14 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                             Text(
                               'End Time',
                               style: AppTheme.labelSmall.copyWith(
-                                color: AppTheme.textSecondary,
+                                color: AppTheme.textSecondaryColor(context),
                               ),
                             ),
                             _isEditing
                                 ? TextField(
                                     controller: _endTimeController,
                                     style: AppTheme.bodyMedium.copyWith(
-                                      color: AppTheme.textPrimary,
+                                      color: AppTheme.textPrimaryColor(context),
                                     ),
                                     decoration: InputDecoration(
                                       isDense: true,
@@ -2671,14 +2700,14 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                                       border: InputBorder.none,
                                       hintText: 'Optional end time',
                                       hintStyle: AppTheme.bodySmall.copyWith(
-                                        color: AppTheme.textTertiary,
+                                        color: AppTheme.textTertiaryColor(context),
                                       ),
                                     ),
                                   )
                                 : Text(
                                     _endTimeController.text.isEmpty ? 'Not specified' : _endTimeController.text,
                                     style: AppTheme.bodyMedium.copyWith(
-                                      color: AppTheme.textPrimary,
+                                      color: AppTheme.textPrimaryColor(context),
                                     ),
                                   ),
                           ],
@@ -2696,7 +2725,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                     vertical: AppTheme.space8,
                   ),
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceVariant,
+                    color: AppTheme.surfaceVariantColor(context),
                     borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                   ),
                   child: Row(
@@ -2704,7 +2733,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                       Icon(
                         Icons.calendar_today,
                         size: 16,
-                        color: AppTheme.textSecondary,
+                        color: AppTheme.textSecondaryColor(context),
                       ),
                       const SizedBox(width: AppTheme.space8),
                       Expanded(
@@ -2713,7 +2742,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                               ? 'Today - ${DateFormat('EEEE, MMMM d, yyyy').format(_taskDate)}'
                               : DateFormat('EEEE, MMMM d, yyyy').format(_taskDate),
                           style: AppTheme.bodySmall.copyWith(
-                            color: AppTheme.textPrimary,
+                            color: AppTheme.textPrimaryColor(context),
                           ),
                         ),
                       ),
@@ -2731,7 +2760,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                               setState(() => _taskDate = picked);
                             }
                           },
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.textSecondaryColor(context),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                         ),
@@ -2747,7 +2776,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                       Container(
                         padding: const EdgeInsets.all(AppTheme.space8),
                         decoration: BoxDecoration(
-                          color: AppTheme.secondary.withOpacity(0.1),
+                          color: AppTheme.secondary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                         ),
                         child: Icon(
@@ -2764,13 +2793,13 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                             Text(
                               'Space',
                               style: AppTheme.labelSmall.copyWith(
-                                color: AppTheme.textSecondary,
+                                color: AppTheme.textSecondaryColor(context),
                               ),
                             ),
                             Text(
                               _selectedSpaceName ?? 'No space assigned',
                               style: AppTheme.bodyMedium.copyWith(
-                                color: _selectedSpaceName != null ? AppTheme.textPrimary : AppTheme.textTertiary,
+                                color: _selectedSpaceName != null ? AppTheme.textPrimaryColor(context) : AppTheme.textTertiaryColor(context),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -2781,8 +2810,8 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                         TextButton(
                           onPressed: () async {
                             final spaces = await SpaceService.getAllSpaces();
-                            if (!mounted) return;
-                            
+                            if (!context.mounted) return;
+
                             final selected = await showDialog<Space>(
                               context: context,
                               builder: (context) => AlertDialog(
@@ -2814,7 +2843,8 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                                 ),
                               ),
                             );
-                            
+                            if (!mounted) return;
+
                             setState(() {
                               if (selected != null) {
                                 _selectedSpaceId = selected.id;
@@ -2840,7 +2870,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                       vertical: AppTheme.space8,
                     ),
                     decoration: BoxDecoration(
-                      color: AppTheme.warning.withOpacity(0.1),
+                      color: AppTheme.warning.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                     ),
                     child: Row(
@@ -2857,7 +2887,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                                 ? 'Ends on ${DateFormat('MMM d, yyyy').format(_endDate!)}'
                                 : 'No end date',
                             style: AppTheme.bodySmall.copyWith(
-                              color: AppTheme.textPrimary,
+                              color: AppTheme.textPrimaryColor(context),
                             ),
                           ),
                         ),
@@ -2878,7 +2908,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                                 setState(() => _endDate = picked);
                               }
                             },
-                            color: AppTheme.textSecondary,
+                            color: AppTheme.textSecondaryColor(context),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                           ),
@@ -2906,13 +2936,13 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
         ),
         decoration: BoxDecoration(
           color: isSelected 
-              ? AppTheme.primary.withOpacity(0.1)
-              : AppTheme.surfaceVariant,
+              ? AppTheme.primary.withValues(alpha: 0.1)
+              : AppTheme.surfaceVariantColor(context),
           borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
           border: Border.all(
             color: isSelected 
-                ? AppTheme.primary.withOpacity(0.3)
-                : AppTheme.borderLight,
+                ? AppTheme.primary.withValues(alpha: 0.3)
+                : AppTheme.borderColor(context),
           ),
         ),
         child: Row(
@@ -2921,13 +2951,13 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
             Icon(
               icon,
               size: 14,
-              color: isSelected ? AppTheme.primary : AppTheme.textSecondary,
+              color: isSelected ? AppTheme.primary : AppTheme.textSecondaryColor(context),
             ),
             const SizedBox(width: AppTheme.space4),
             Text(
               type.toUpperCase(),
               style: AppTheme.labelSmall.copyWith(
-                color: isSelected ? AppTheme.primary : AppTheme.textSecondary,
+                color: isSelected ? AppTheme.primary : AppTheme.textSecondaryColor(context),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -3063,9 +3093,9 @@ class _EditableSpaceSuggestionCardState extends State<EditableSpaceSuggestionCar
     return Container(
       margin: const EdgeInsets.only(top: AppTheme.space8),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceColor(context),
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        border: Border.all(color: AppTheme.borderLight),
+        border: Border.all(color: AppTheme.borderColor(context)),
         boxShadow: AppTheme.shadowSmall,
       ),
       child: Column(
@@ -3075,7 +3105,7 @@ class _EditableSpaceSuggestionCardState extends State<EditableSpaceSuggestionCar
           Container(
             padding: const EdgeInsets.all(AppTheme.space16),
             decoration: BoxDecoration(
-              color: AppTheme.primary.withOpacity(0.05),
+              color: AppTheme.primary.withValues(alpha: 0.05),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(AppTheme.radiusMedium),
                 topRight: Radius.circular(AppTheme.radiusMedium),
@@ -3091,7 +3121,7 @@ class _EditableSpaceSuggestionCardState extends State<EditableSpaceSuggestionCar
                           ? TextField(
                               controller: _nameController,
                               style: AppTheme.titleMedium.copyWith(
-                                color: AppTheme.textPrimary,
+                                color: AppTheme.textPrimaryColor(context),
                                 fontWeight: FontWeight.w600,
                               ),
                               decoration: const InputDecoration(
@@ -3103,7 +3133,7 @@ class _EditableSpaceSuggestionCardState extends State<EditableSpaceSuggestionCar
                           : Text(
                               _nameController.text,
                               style: AppTheme.titleMedium.copyWith(
-                                color: AppTheme.textPrimary,
+                                color: AppTheme.textPrimaryColor(context),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -3113,7 +3143,7 @@ class _EditableSpaceSuggestionCardState extends State<EditableSpaceSuggestionCar
                             ? TextField(
                                 controller: _descriptionController,
                                 style: AppTheme.bodySmall.copyWith(
-                                  color: AppTheme.textSecondary,
+                                  color: AppTheme.textSecondaryColor(context),
                                 ),
                                 decoration: InputDecoration(
                                   isDense: true,
@@ -3121,14 +3151,14 @@ class _EditableSpaceSuggestionCardState extends State<EditableSpaceSuggestionCar
                                   border: InputBorder.none,
                                   hintText: 'Add description...',
                                   hintStyle: AppTheme.bodySmall.copyWith(
-                                    color: AppTheme.textTertiary,
+                                    color: AppTheme.textTertiaryColor(context),
                                   ),
                                 ),
                               )
                             : Text(
                                 _descriptionController.text,
                                 style: AppTheme.bodySmall.copyWith(
-                                  color: AppTheme.textSecondary,
+                                  color: AppTheme.textSecondaryColor(context),
                                 ),
                               ),
                       ],
@@ -3141,7 +3171,7 @@ class _EditableSpaceSuggestionCardState extends State<EditableSpaceSuggestionCar
                     IconButton(
                       onPressed: _toggleEdit,
                       icon: Icon(_isEditing ? Icons.close : Icons.edit),
-                      color: AppTheme.textSecondary,
+                      color: AppTheme.textSecondaryColor(context),
                       tooltip: _isEditing ? 'Cancel Edit' : 'Edit',
                     ),
                     IconButton(
@@ -3185,7 +3215,7 @@ class _EditableSpaceSuggestionCardState extends State<EditableSpaceSuggestionCar
                               borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                               border: Border.all(
                                 color: isSelected 
-                                    ? AppTheme.textPrimary 
+                                    ? AppTheme.textPrimaryColor(context) 
                                     : Colors.transparent,
                                 width: 3,
                               ),
@@ -3226,7 +3256,7 @@ class _EditableSpaceSuggestionCardState extends State<EditableSpaceSuggestionCar
                           Text(
                             'Space Color',
                             style: AppTheme.labelSmall.copyWith(
-                              color: AppTheme.textSecondary,
+                              color: AppTheme.textSecondaryColor(context),
                             ),
                           ),
                           Text(

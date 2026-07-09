@@ -20,11 +20,10 @@ class ActivityDetailsDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final isOngoing = activity.startTime.isBefore(now) && activity.endTime.isAfter(now);
-    final isPast = activity.endTime.isBefore(now);
     final duration = activity.duration;
     
     return Dialog(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: AppTheme.surfaceColor(context),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
       ),
@@ -39,7 +38,7 @@ class ActivityDetailsDialog extends StatelessWidget {
               decoration: BoxDecoration(
                 color: (activity.color != null 
                     ? Color(int.parse(activity.color!.replaceFirst('#', '0xff')))
-                    : activity.type.defaultColor).withOpacity(0.1),
+                    : activity.type.defaultColor).withValues(alpha: 0.1),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(AppTheme.radiusLarge),
                   topRight: Radius.circular(AppTheme.radiusLarge),
@@ -71,7 +70,7 @@ class ActivityDetailsDialog extends StatelessWidget {
                             Text(
                               activity.title,
                               style: AppTheme.headlineSmall.copyWith(
-                                color: AppTheme.textPrimary,
+                                color: AppTheme.textPrimaryColor(context),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -79,7 +78,7 @@ class ActivityDetailsDialog extends StatelessWidget {
                             Text(
                               activity.type.displayName,
                               style: AppTheme.bodyMedium.copyWith(
-                                color: AppTheme.textSecondary,
+                                color: AppTheme.textSecondaryColor(context),
                               ),
                             ),
                           ],
@@ -121,39 +120,44 @@ class ActivityDetailsDialog extends StatelessWidget {
                 children: [
                   // Date and time
                   _buildInfoRow(
+                    context: context,
                     icon: Icons.calendar_today,
                     label: 'Date',
                     value: DateFormat('EEEE, MMMM d, yyyy').format(activity.startTime),
                   ),
                   const SizedBox(height: AppTheme.space16),
-                  
+
                   _buildInfoRow(
+                    context: context,
                     icon: Icons.access_time,
                     label: 'Time',
-                    value: activity.isAllDay 
+                    value: activity.isAllDay
                         ? 'All day'
                         : '${DateFormat('h:mm a').format(activity.startTime)} - ${DateFormat('h:mm a').format(activity.endTime)}',
                   ),
                   const SizedBox(height: AppTheme.space16),
-                  
+
                   _buildInfoRow(
+                    context: context,
                     icon: Icons.timer_outlined,
                     label: 'Duration',
                     value: _formatDuration(duration),
                   ),
-                  
+
                   if (activity.location != null) ...[
                     const SizedBox(height: AppTheme.space16),
                     _buildInfoRow(
+                      context: context,
                       icon: Icons.location_on,
                       label: 'Location',
                       value: activity.location!,
                     ),
                   ],
-                  
+
                   if (activity.attendees.isNotEmpty) ...[
                     const SizedBox(height: AppTheme.space16),
                     _buildInfoRow(
+                      context: context,
                       icon: Icons.people,
                       label: 'Attendees',
                       value: activity.attendees.join(', '),
@@ -168,6 +172,7 @@ class ActivityDetailsDialog extends StatelessWidget {
                         if (snapshot.hasData && snapshot.data != null) {
                           final space = snapshot.data!;
                           return _buildInfoRow(
+                            context: context,
                             icon: Icons.folder,
                             label: 'Space',
                             value: space.name,
@@ -184,6 +189,7 @@ class ActivityDetailsDialog extends StatelessWidget {
                   if (activity.recurrence != ActivityRecurrence.once) ...[
                     const SizedBox(height: AppTheme.space16),
                     _buildInfoRow(
+                      context: context,
                       icon: Icons.repeat,
                       label: 'Recurrence',
                       value: _getRecurrenceDescription(),
@@ -192,16 +198,16 @@ class ActivityDetailsDialog extends StatelessWidget {
                   
                   if (activity.description != null && activity.description!.isNotEmpty) ...[
                     const SizedBox(height: AppTheme.space24),
-                    _buildSection('Description', activity.description!),
+                    _buildSection(context, 'Description', activity.description!),
                   ],
-                  
+
                   if (activity.notes != null && activity.notes!.isNotEmpty) ...[
                     const SizedBox(height: AppTheme.space24),
-                    _buildSection('Notes', activity.notes!),
+                    _buildSection(context, 'Notes', activity.notes!),
                   ],
-                  
+
                   const SizedBox(height: AppTheme.space24),
-                  _buildMetaInfo(),
+                  _buildMetaInfo(context),
                 ],
               ),
             ),
@@ -211,7 +217,7 @@ class ActivityDetailsDialog extends StatelessWidget {
               padding: const EdgeInsets.all(AppTheme.space16),
               decoration: BoxDecoration(
                 border: Border(
-                  top: BorderSide(color: AppTheme.borderLight),
+                  top: BorderSide(color: AppTheme.borderColor(context)),
                 ),
               ),
               child: Row(
@@ -246,6 +252,7 @@ class ActivityDetailsDialog extends StatelessWidget {
   }
 
   Widget _buildInfoRow({
+    required BuildContext context,
     required IconData icon,
     required String label,
     required String value,
@@ -257,7 +264,7 @@ class ActivityDetailsDialog extends StatelessWidget {
         Icon(
           icon,
           size: 20,
-          color: AppTheme.textTertiary,
+          color: AppTheme.textTertiaryColor(context),
         ),
         const SizedBox(width: AppTheme.space12),
         Expanded(
@@ -267,14 +274,14 @@ class ActivityDetailsDialog extends StatelessWidget {
               Text(
                 label,
                 style: AppTheme.labelMedium.copyWith(
-                  color: AppTheme.textSecondary,
+                  color: AppTheme.textSecondaryColor(context),
                 ),
               ),
               const SizedBox(height: AppTheme.space4),
               Text(
                 value,
                 style: AppTheme.bodyMedium.copyWith(
-                  color: valueColor ?? AppTheme.textPrimary,
+                  color: valueColor ?? AppTheme.textPrimaryColor(context),
                 ),
               ),
             ],
@@ -284,14 +291,14 @@ class ActivityDetailsDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildSection(String title, String content) {
+  Widget _buildSection(BuildContext context, String title, String content) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           title,
           style: AppTheme.titleMedium.copyWith(
-            color: AppTheme.textSecondary,
+            color: AppTheme.textSecondaryColor(context),
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -300,13 +307,13 @@ class ActivityDetailsDialog extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(AppTheme.space12),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceVariant,
+            color: AppTheme.surfaceVariantColor(context),
             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
           ),
           child: Text(
             content,
             style: AppTheme.bodyMedium.copyWith(
-              color: AppTheme.textPrimary,
+              color: AppTheme.textPrimaryColor(context),
             ),
           ),
         ),
@@ -314,11 +321,11 @@ class ActivityDetailsDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildMetaInfo() {
+  Widget _buildMetaInfo(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(AppTheme.space12),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceVariant.withOpacity(0.5),
+        color: AppTheme.surfaceVariantColor(context).withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
       ),
       child: Column(
@@ -329,13 +336,13 @@ class ActivityDetailsDialog extends StatelessWidget {
               Icon(
                 Icons.info_outline,
                 size: 16,
-                color: AppTheme.textTertiary,
+                color: AppTheme.textTertiaryColor(context),
               ),
               const SizedBox(width: AppTheme.space8),
               Text(
                 'Activity Information',
                 style: AppTheme.labelMedium.copyWith(
-                  color: AppTheme.textSecondary,
+                  color: AppTheme.textSecondaryColor(context),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -345,14 +352,14 @@ class ActivityDetailsDialog extends StatelessWidget {
           Text(
             'Created ${_formatRelativeDate(activity.createdAt)}',
             style: AppTheme.bodySmall.copyWith(
-              color: AppTheme.textTertiary,
+              color: AppTheme.textTertiaryColor(context),
             ),
           ),
           if (activity.updatedAt != activity.createdAt)
             Text(
               'Last updated ${_formatRelativeDate(activity.updatedAt)}',
               style: AppTheme.bodySmall.copyWith(
-                color: AppTheme.textTertiary,
+                color: AppTheme.textTertiaryColor(context),
               ),
             ),
         ],
