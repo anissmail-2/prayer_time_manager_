@@ -4,6 +4,7 @@ import '../core/theme/app_theme.dart';
 import '../core/services/auth_service.dart';
 import '../core/services/firebase_service.dart';
 import '../core/services/data_sync_service.dart';
+import '../core/services/notification_service.dart';
 import 'prayer_settings_screen.dart';
 import 'location_settings_screen.dart';
 import 'auth_screen.dart';
@@ -19,6 +20,124 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _isSyncing = false;
+
+  // Notification settings state (loaded from NotificationService)
+  bool _notificationSettingsLoaded = false;
+  bool _notificationsEnabled = false;
+  final Map<String, bool> _prayerToggles = {};
+  int _preReminderMinutes = NotificationService.defaultPreReminderMinutes;
+  bool _taskRemindersEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotificationSettings();
+  }
+
+  Future<void> _loadNotificationSettings() async {
+    final enabled = await NotificationService.isEnabled();
+    final preReminder = await NotificationService.getPreReminderMinutes();
+    final taskReminders = await NotificationService.areTaskRemindersEnabled();
+    final toggles = <String, bool>{};
+    for (final prayer in NotificationService.prayers) {
+      toggles[prayer] = await NotificationService.isPrayerEnabled(prayer);
+    }
+
+    if (mounted) {
+      setState(() {
+        _notificationsEnabled = enabled;
+        _preReminderMinutes = preReminder;
+        _taskRemindersEnabled = taskReminders;
+        _prayerToggles
+          ..clear()
+          ..addAll(toggles);
+        _notificationSettingsLoaded = true;
+      });
+    }
+  }
+
+  Future<void> _handleNotificationsToggle(bool value) async {
+    try {
+      if (value) {
+        // Opt-in: request the runtime permission through PermissionHelper
+        // before enabling.
+        final granted = await NotificationService.requestPermission();
+        if (!granted) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Notification permission denied. Enable it in system settings to receive reminders.',
+                ),
+              ),
+            );
+          }
+          return;
+        }
+      }
+
+      await NotificationService.setEnabled(value);
+      if (mounted) {
+        setState(() => _notificationsEnabled = value);
+      }
+      await NotificationService.rescheduleAll();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _handlePrayerToggle(String prayer, bool value) async {
+    try {
+      await NotificationService.setPrayerEnabled(prayer, value);
+      if (mounted) {
+        setState(() => _prayerToggles[prayer] = value);
+      }
+      await NotificationService.rescheduleAll();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _handlePreReminderChanged(int? minutes) async {
+    if (minutes == null) return;
+    try {
+      await NotificationService.setPreReminderMinutes(minutes);
+      if (mounted) {
+        setState(() => _preReminderMinutes = minutes);
+      }
+      await NotificationService.rescheduleAll();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleTaskRemindersToggle(bool value) async {
+    try {
+      await NotificationService.setTaskRemindersEnabled(value);
+      if (mounted) {
+        setState(() => _taskRemindersEnabled = value);
+      }
+      await NotificationService.rescheduleAll();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
 
   Future<void> _handleSignOut() async {
     final confirm = await showDialog<bool>(
@@ -213,6 +332,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: AppTheme.space16),
 
+          // Notifications
+          _buildSectionHeader('Notifications'),
+          ..._buildNotificationSettings(),
+          const SizedBox(height: AppTheme.space16),
+
           // AI & API Configuration
           _buildSectionHeader('AI & API Configuration'),
           _buildSettingsTile(
@@ -259,6 +383,146 @@ class _SettingsScreenState extends State<SettingsScreen> {
           
           const SizedBox(height: AppTheme.space32),
         ],
+      ),
+    );
+  }
+
+  List<Widget> _buildNotificationSettings() {
+    if (!_notificationSettingsLoaded) {
+      return [
+        const Padding(
+          padding: EdgeInsets.all(AppTheme.space16),
+          child: Center(
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        ),
+      ];
+    }
+
+    return [
+      _buildSwitchTile(
+        icon: Icons.notifications_active_outlined,
+        title: 'Enable Notifications',
+        subtitle: 'Prayer time alerts and task reminders (refreshed each time the app opens)',
+        value: _notificationsEnabled,
+        onChanged: _handleNotificationsToggle,
+      ),
+      for (final prayer in NotificationService.prayers)
+        _buildSwitchTile(
+          icon: Icons.mosque_outlined,
+          title: prayer,
+          subtitle: 'Notify at $prayer time',
+          value: _prayerToggles[prayer] ?? true,
+          onChanged: _notificationsEnabled
+              ? (value) => _handlePrayerToggle(prayer, value)
+              : null,
+        ),
+      _buildDropdownTile(
+        icon: Icons.alarm,
+        title: 'Pre-prayer Reminder',
+        subtitle: _preReminderMinutes == 0
+            ? 'No reminder before prayer'
+            : '$_preReminderMinutes minutes before each prayer',
+        value: _preReminderMinutes,
+        items: NotificationService.preReminderOptions,
+        onChanged: _notificationsEnabled ? _handlePreReminderChanged : null,
+      ),
+      _buildSwitchTile(
+        icon: Icons.task_alt,
+        title: 'Task Reminders',
+        subtitle: 'Notify when a scheduled task is due',
+        value: _taskRemindersEnabled,
+        onChanged:
+            _notificationsEnabled ? _handleTaskRemindersToggle : null,
+      ),
+    ];
+  }
+
+  Widget _buildSwitchTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool>? onChanged,
+  }) {
+    final enabled = onChanged != null;
+    final tileColor = enabled
+        ? AppTheme.textPrimary
+        : AppTheme.textPrimary.withValues(alpha: 0.4);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.space16),
+      child: Material(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+        child: SwitchListTile(
+          secondary: Icon(icon, color: tileColor),
+          title: Text(
+            title,
+            style: AppTheme.bodyLarge.copyWith(color: tileColor),
+          ),
+          subtitle: Text(
+            subtitle,
+            style: AppTheme.bodySmall.copyWith(
+              color: tileColor.withValues(alpha: 0.7),
+            ),
+          ),
+          value: value,
+          onChanged: onChanged,
+          activeThumbColor: AppTheme.primary,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDropdownTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required int value,
+    required List<int> items,
+    required ValueChanged<int?>? onChanged,
+  }) {
+    final enabled = onChanged != null;
+    final tileColor = enabled
+        ? AppTheme.textPrimary
+        : AppTheme.textPrimary.withValues(alpha: 0.4);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.space16),
+      child: Material(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+        child: ListTile(
+          enabled: enabled,
+          leading: Icon(icon, color: tileColor),
+          title: Text(
+            title,
+            style: AppTheme.bodyLarge.copyWith(color: tileColor),
+          ),
+          subtitle: Text(
+            subtitle,
+            style: AppTheme.bodySmall.copyWith(
+              color: tileColor.withValues(alpha: 0.7),
+            ),
+          ),
+          trailing: DropdownButton<int>(
+            value: value,
+            underline: const SizedBox.shrink(),
+            items: [
+              for (final minutes in items)
+                DropdownMenuItem<int>(
+                  value: minutes,
+                  child: Text(minutes == 0 ? 'Off' : '$minutes min'),
+                ),
+            ],
+            onChanged: onChanged,
+          ),
+        ),
       ),
     );
   }

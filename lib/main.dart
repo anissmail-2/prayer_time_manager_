@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'widgets/auth_wrapper.dart';
@@ -5,6 +7,7 @@ import 'core/theme/app_theme.dart';
 import 'core/services/api_config_service.dart';
 import 'core/services/firebase_service.dart';
 import 'core/services/data_sync_service.dart';
+import 'core/services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,7 +20,18 @@ void main() async {
   
   // Initialize data sync service
   await DataSyncService.initialize();
-  
+
+  // Initialize local notifications. Guarded so a notification failure can
+  // never prevent app startup; rescheduleAll is fire-and-forget and is the
+  // app's daily refresh mechanism (notifications are re-scheduled each time
+  // the app opens — there is no background fetch).
+  try {
+    await NotificationService.initialize();
+    unawaited(NotificationService.rescheduleAll());
+  } catch (e) {
+    debugPrint('Notification initialization failed: $e');
+  }
+
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
