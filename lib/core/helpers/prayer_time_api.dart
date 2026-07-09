@@ -36,10 +36,12 @@
 ///   
 ///   /// Get prayer times for a specific date
 ///   /// date format: DD-MM-YYYY
+///   /// NOTE: the Aladhan API takes the date as a PATH segment
+///   /// (/v1/timingsByCity/DD-MM-YYYY), not as a `date=` query parameter.
 ///   static Future<Map<String, dynamic>> getPrayerTimesForDate(String date) async {
 ///     try {
 ///       final response = await http.get(
-///         Uri.parse('$baseUrl/timingsByCity?city=Abu%20Dhabi&country=UAE&method=2&date=$date'),
+///         Uri.parse('$baseUrl/timingsByCity/$date?city=Abu%20Dhabi&country=UAE&method=2'),
 ///       );
 ///       
 ///       if (response.statusCode == 200) {
@@ -86,6 +88,9 @@
 /// 
 /// For UAE/Abu Dhabi, use method 16 (Dubai) with tune parameters: 0,1,-3,0,1,1,0,0,0
 /// This gives accurate times matching official UAE mosque timings.
+/// The tune offsets are passed as a query parameter, e.g.:
+///   $baseUrl/timingsByCity/DD-MM-YYYY?city=Abu%20Dhabi&country=UAE&method=16&tune=0,1,-3,0,1,1,0,0,0
+/// (offsets order: Imsak,Fajr,Sunrise,Dhuhr,Asr,Maghrib,Sunset,Isha,Midnight)
 library;
 
 class PrayerTimeApiExample {
