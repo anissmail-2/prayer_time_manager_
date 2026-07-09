@@ -17,7 +17,6 @@ class GeminiTaskAssistant {
     try {
       // Check if API key is available
       if (!ConfigLoader.hasValidGeminiKey) {
-        print('Gemini API key not configured');
         return [];
       }
       

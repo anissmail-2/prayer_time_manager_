@@ -209,7 +209,8 @@ class EnhancedAIAssistant {
             end: nextStart,
             label: 'Free after ${prayerBlocks[i].label}'));
         } else {
-          // Calculate free time around tasks
+          // Calculate free time around tasks (in chronological order)
+          tasksInSlot.sort((a, b) => a.scheduledTime.compareTo(b.scheduledTime));
           var slotStart = currentEnd;
           for (final task in tasksInSlot) {
             final taskStart = task.scheduledTime;
@@ -220,8 +221,14 @@ class EnhancedAIAssistant {
                 end: taskStart,
                 label: 'Free time'));
             }
-            // Assume task takes 30 minutes
-            slotStart = taskStart.add(const Duration(minutes: 30));
+            // Use the task's actual end time when available,
+            // falling back to a 30-minute default duration.
+            final taskEnd =
+                task.endTime ?? taskStart.add(const Duration(minutes: 30));
+            // Guard against overlapping blocks moving the cursor backwards.
+            if (taskEnd.isAfter(slotStart)) {
+              slotStart = taskEnd;
+            }
           }
           
           // Check remaining time after last task
@@ -241,7 +248,6 @@ class EnhancedAIAssistant {
   
   // Track last suggestions to allow updates
   static List<TaskSuggestion>? _lastSuggestions;
-  static SpaceSuggestion? _lastSpaceSuggestion;
   static String? _lastCreatedSpaceId;
   static String? _lastCreatedSpaceName;
   static bool _pendingSpaceCreation = false;
@@ -384,6 +390,7 @@ CURRENT CONTEXT:
 - Current time: $currentTimeStr
 - Day of week: ${DateFormat('EEEE').format(now)}
 - Prayer times: $prayerTimesStr
+- Next prayer: ${_getNextPrayer(prayerTimes, now)}
 
 User message: "$message"
 
@@ -736,7 +743,7 @@ Always check conversation history and last suggestions to understand context.
       default:
         if (scope.startsWith('space_')) {
           // Show tasks for specific space
-          final spaceId = scope.substring(8);
+          final spaceId = scope.toString().replaceFirst('space_', '');
           tasks = context.allTasks.where((t) =>
             t.task.description?.contains('#$spaceId') ?? false
           ).toList();
@@ -805,7 +812,6 @@ Always check conversation history and last suggestions to understand context.
       description: description,
     );
     
-    _lastSpaceSuggestion = spaceSuggestion;
     _lastCreatedSpaceName = name;
     _pendingSpaceCreation = false;
     
@@ -945,6 +951,8 @@ CURRENT CONTEXT:
 - Today's date: $currentDateStr
 - Current time: $currentTimeStr
 - Day of week: ${DateFormat('EEEE').format(now)}
+- Prayer times today: ${context.prayerTimes.entries.map((e) => '${e.key}: ${e.value}').join(', ')}
+- Next prayer: ${_getNextPrayer(context.prayerTimes, now)}
 
 You should remember the conversation context and respond naturally.
 Be consistent with previous messages in the conversation.
@@ -1439,10 +1447,96 @@ Don't pretend to do things you cannot do. If a feature isn't available, say so.'
   static Future<AIResponse> _handleTaskToSpace(
     ConversationAnalysis analysis,
     AIContext context) async {
-    // Implementation for assigning task to space...
+    final identifier = analysis.entities['task_identifier']?.toString();
+    final taskInfo = analysis.entities['task_info'] ?? {};
+    final spaceInfo = analysis.entities['space_info'] ?? {};
+    final spaceName = (taskInfo['space'] ?? spaceInfo['name'])?.toString();
+
+    if (identifier == null || identifier.isEmpty) {
+      return AIResponse(
+        message: "Which task would you like to move to a space? You can tell me the task name.",
+        intent: ConversationIntent.taskToSpace,
+        taskList: context.todayTasks.take(5).toList());
+    }
+
+    // Find the referenced task by title/description match
+    final query = identifier.toLowerCase();
+    final matches = context.allTasks.where((t) =>
+      t.task.title.toLowerCase().contains(query) ||
+      (t.task.description?.toLowerCase().contains(query) ?? false)
+    ).toList();
+
+    if (matches.isEmpty) {
+      return AIResponse(
+        message: "I couldn't find a task matching '$identifier'. Here are your current tasks:",
+        intent: ConversationIntent.taskToSpace,
+        taskList: context.todayTasks.take(5).toList());
+    }
+
+    if (matches.length > 1) {
+      return AIResponse(
+        message: "I found ${matches.length} tasks matching '$identifier'. Which one would you like to move?",
+        intent: ConversationIntent.taskToSpace,
+        taskList: matches,
+        needsConfirmation: true);
+    }
+
+    final task = matches.first.task;
+
+    // Resolve the target space
+    Space? space;
+    if (spaceName != null && spaceName.isNotEmpty) {
+      final nameLower = spaceName.toLowerCase();
+      final spaceMatches = context.spaces.where((s) =>
+        s.name.toLowerCase() == nameLower ||
+        s.name.toLowerCase().contains(nameLower)
+      ).toList();
+
+      if (spaceMatches.isNotEmpty) {
+        // Prefer an exact name match over a partial one
+        space = spaceMatches.firstWhere(
+          (s) => s.name.toLowerCase() == nameLower,
+          orElse: () => spaceMatches.first);
+      } else {
+        // Create the space if it doesn't exist yet
+        space = Space(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          name: spaceName,
+          color: _getRandomColor(),
+          createdAt: DateTime.now());
+        await SpaceService.createSpace(space);
+        updateLastCreatedSpace(space.id, space.name);
+      }
+    } else if (_lastCreatedSpaceId != null) {
+      // "that space" / "the space you just created"
+      space = await SpaceService.getSpace(_lastCreatedSpaceId!);
+    }
+
+    if (space == null) {
+      return AIResponse(
+        message: "Which space would you like to move '${task.title}' to?",
+        intent: ConversationIntent.taskToSpace,
+        spaceList: context.spaces);
+    }
+
+    // Link the task to the space using the #spaceId tag convention
+    final tag = '#${space.id}';
+    final currentDescription = task.description ?? '';
+    if (currentDescription.contains(tag)) {
+      return AIResponse(
+        message: "'${task.title}' is already in ${space.name}.",
+        intent: ConversationIntent.taskToSpace,
+        success: true);
+    }
+
+    final newDescription =
+        currentDescription.isEmpty ? tag : '$currentDescription $tag';
+    await TodoService.updateTask(task.copyWith(description: newDescription));
+
     return AIResponse(
-      message: "Task to space assignment will be implemented",
-      intent: ConversationIntent.taskToSpace);
+      message: "✅ I've moved '${task.title}' to ${space.name}.",
+      intent: ConversationIntent.taskToSpace,
+      success: true);
   }
   
   static Future<AIResponse> _handleProductivityInsights(
