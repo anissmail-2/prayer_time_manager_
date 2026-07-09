@@ -369,7 +369,26 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     });
   }
 
+  /// Returns true when a Deepgram key is configured. Otherwise shows a
+  /// snackbar pointing at Settings > API Keys and returns false, so we
+  /// never record (or pick a file) only to fail at transcription time.
+  bool _ensureDeepgramKeyConfigured() {
+    if (ConfigLoader.deepgramApiKey.isNotEmpty) return true;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          'Voice transcription needs a Deepgram API key. '
+          'Add one in Settings > API Keys.',
+        ),
+        backgroundColor: AppTheme.error,
+      ),
+    );
+    return false;
+  }
+
   Future<void> _startRecording() async {
+    if (!_ensureDeepgramKeyConfigured()) return;
+
     if (Theme.of(context).platform != TargetPlatform.android) {
       _pickAudioFile();
       return;
@@ -429,6 +448,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   }
 
   Future<void> _pickAudioFile() async {
+    if (!_ensureDeepgramKeyConfigured()) return;
+
     // First try the native method channel for Android to get proper file picker
     if (Platform.isAndroid) {
       try {

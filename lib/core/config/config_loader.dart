@@ -38,23 +38,15 @@ class ConfigLoader {
   // API Endpoints
   static String get prayerTimeApiBase => 'https://api.aladhan.com/v1';
 
+  // Whether a compile-time (--dart-define) key exists, used as the fallback
+  // when no runtime key is stored. Exposed so the API keys screen can show
+  // a "Using build-time key" state without duplicating this logic.
+  static bool get hasBuildTimeGeminiKey => _envGeminiKey.isNotEmpty;
+
+  static bool get hasBuildTimeDeepgramKey => _envDeepgramKey.isNotEmpty;
+
   // Validation
   static bool get hasValidGeminiKey => geminiApiKey.isNotEmpty;
 
   static bool get hasValidDeepgramKey => deepgramApiKey.isNotEmpty;
-
-  static void validateConfiguration() {
-    if (!hasValidGeminiKey) {
-      print('⚠️ WARNING: Gemini API key not configured. '
-          'AI features will not work.');
-      print('Set it in Settings -> API Keys, or build with '
-          '--dart-define=GEMINI_API_KEY=<key>.');
-    }
-    if (!hasValidDeepgramKey && enableVoiceInput) {
-      print('⚠️ WARNING: Deepgram API key not configured. '
-          'Voice input will not work.');
-      print('Set it in Settings -> API Keys, or build with '
-          '--dart-define=DEEPGRAM_API_KEY=<key>.');
-    }
-  }
 }

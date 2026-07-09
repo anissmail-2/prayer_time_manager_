@@ -246,7 +246,9 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
     // Validate weekly recurrence
     if (_recurrenceType == TaskRecurrence.weekly && _selectedWeekDays.isEmpty) {
       setState(() {
-        _errorMessage = 'Please select at least one day for weekly recurrence';
+        _errorMessage =
+            'Weekly repeat needs at least one weekday. Pick days under '
+            'Repeat > Repeat On.';
       });
       return false;
     }

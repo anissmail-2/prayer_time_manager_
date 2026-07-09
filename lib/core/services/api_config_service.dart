@@ -82,6 +82,14 @@ class ApiConfigService {
     await prefs.remove(_legacyDeepgramPrefsKey);
   }
 
+  /// Removes the stored Gemini API key so any --dart-define build-time key
+  /// (or no key) takes effect again.
+  static Future<void> removeGeminiApiKey() => setGeminiApiKey('');
+
+  /// Removes the stored Deepgram API key so any --dart-define build-time key
+  /// (or no key) takes effect again.
+  static Future<void> removeDeepgramApiKey() => setDeepgramApiKey('');
+
   /// Clears all stored API keys (for logout/reset).
   static Future<void> clearAllKeys() async {
     _geminiKey = '';

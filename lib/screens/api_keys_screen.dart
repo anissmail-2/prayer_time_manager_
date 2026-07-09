@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/config/config_loader.dart';
 import '../core/services/api_config_service.dart';
 import '../core/theme/app_theme.dart';
 
@@ -39,13 +40,23 @@ class _ApiKeysScreenState extends State<ApiKeysScreen> {
     try {
       final gemini = _geminiController.text.trim();
       final deepgram = _deepgramController.text.trim();
+      final changes = <String>[];
 
-      // Only overwrite a stored key when the user actually typed something.
+      // A non-empty field replaces the stored key; an empty field clears
+      // any stored key so a build-time (--dart-define) key can apply again.
       if (gemini.isNotEmpty) {
         await ApiConfigService.setGeminiApiKey(gemini);
+        changes.add('Gemini key saved');
+      } else if (ApiConfigService.hasGeminiKey) {
+        await ApiConfigService.removeGeminiApiKey();
+        changes.add('Gemini key cleared');
       }
       if (deepgram.isNotEmpty) {
         await ApiConfigService.setDeepgramApiKey(deepgram);
+        changes.add('Deepgram key saved');
+      } else if (ApiConfigService.hasDeepgramKey) {
+        await ApiConfigService.removeDeepgramApiKey();
+        changes.add('Deepgram key cleared');
       }
 
       if (mounted) {
@@ -53,7 +64,11 @@ class _ApiKeysScreenState extends State<ApiKeysScreen> {
         _deepgramController.clear();
         setState(() {});
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('API keys saved')),
+          SnackBar(
+            content: Text(
+              changes.isEmpty ? 'No changes to save' : changes.join(', '),
+            ),
+          ),
         );
       }
     } catch (e) {
@@ -69,31 +84,67 @@ class _ApiKeysScreenState extends State<ApiKeysScreen> {
     }
   }
 
-  Widget _buildStatusChip({required bool isSet, required String maskedKey}) {
+  Future<void> _clearKey({
+    required String keyName,
+    required Future<void> Function() remove,
+    required TextEditingController controller,
+  }) async {
+    try {
+      await remove();
+      if (mounted) {
+        controller.clear();
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$keyName key cleared')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error clearing key: $e')),
+        );
+      }
+    }
+  }
+
+  Widget _buildStatusChip({
+    required String storedKey,
+    required bool hasBuildTimeKey,
+  }) {
+    final Color color;
+    final IconData icon;
+    final String label;
+    if (storedKey.isNotEmpty) {
+      color = AppTheme.success;
+      icon = Icons.check_circle;
+      label = 'Key set (${_maskedKey(storedKey)})';
+    } else if (hasBuildTimeKey) {
+      color = AppTheme.primary;
+      icon = Icons.build_circle_outlined;
+      label = 'Using build-time key';
+    } else {
+      color = AppTheme.warning;
+      icon = Icons.error_outline;
+      label = 'Not set';
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppTheme.space8,
         vertical: AppTheme.space4,
       ),
       decoration: BoxDecoration(
-        color: (isSet ? AppTheme.success : AppTheme.warning)
-            .withValues(alpha: 0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            isSet ? Icons.check_circle : Icons.error_outline,
-            size: 16,
-            color: isSet ? AppTheme.success : AppTheme.warning,
-          ),
+          Icon(icon, size: 16, color: color),
           const SizedBox(width: AppTheme.space4),
           Text(
-            isSet ? 'Key set ($maskedKey)' : 'Not set',
-            style: AppTheme.labelMedium.copyWith(
-              color: isSet ? AppTheme.success : AppTheme.warning,
-            ),
+            label,
+            style: AppTheme.labelMedium.copyWith(color: color),
           ),
         ],
       ),
@@ -107,6 +158,8 @@ class _ApiKeysScreenState extends State<ApiKeysScreen> {
     required bool obscure,
     required VoidCallback onToggleObscure,
     required String storedKey,
+    required bool hasBuildTimeKey,
+    required VoidCallback onClear,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -117,8 +170,8 @@ class _ApiKeysScreenState extends State<ApiKeysScreen> {
               child: Text(title, style: AppTheme.titleMedium),
             ),
             _buildStatusChip(
-              isSet: storedKey.isNotEmpty,
-              maskedKey: _maskedKey(storedKey),
+              storedKey: storedKey,
+              hasBuildTimeKey: hasBuildTimeKey,
             ),
           ],
         ),
@@ -130,7 +183,7 @@ class _ApiKeysScreenState extends State<ApiKeysScreen> {
           enableSuggestions: false,
           decoration: InputDecoration(
             hintText: storedKey.isNotEmpty
-                ? 'Enter a new key to replace the stored one'
+                ? 'New key replaces the stored one; save empty to clear it'
                 : 'Paste your API key',
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
@@ -146,6 +199,23 @@ class _ApiKeysScreenState extends State<ApiKeysScreen> {
           helperText,
           style: AppTheme.bodySmall.copyWith(color: AppTheme.textSecondaryColor(context)),
         ),
+        if (storedKey.isNotEmpty)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _saving ? null : onClear,
+              icon: const Icon(Icons.delete_outline, size: 18),
+              label: Text(
+                hasBuildTimeKey
+                    ? 'Clear stored key (use build-time key)'
+                    : 'Clear stored key',
+              ),
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.error,
+                padding: EdgeInsets.zero,
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -178,6 +248,12 @@ class _ApiKeysScreenState extends State<ApiKeysScreen> {
               onToggleObscure: () =>
                   setState(() => _obscureGemini = !_obscureGemini),
               storedKey: ApiConfigService.geminiApiKey,
+              hasBuildTimeKey: ConfigLoader.hasBuildTimeGeminiKey,
+              onClear: () => _clearKey(
+                keyName: 'Gemini',
+                remove: ApiConfigService.removeGeminiApiKey,
+                controller: _geminiController,
+              ),
             ),
             const SizedBox(height: AppTheme.space24),
             _buildKeySection(
@@ -189,6 +265,12 @@ class _ApiKeysScreenState extends State<ApiKeysScreen> {
               onToggleObscure: () =>
                   setState(() => _obscureDeepgram = !_obscureDeepgram),
               storedKey: ApiConfigService.deepgramApiKey,
+              hasBuildTimeKey: ConfigLoader.hasBuildTimeDeepgramKey,
+              onClear: () => _clearKey(
+                keyName: 'Deepgram',
+                remove: ApiConfigService.removeDeepgramApiKey,
+                controller: _deepgramController,
+              ),
             ),
             const SizedBox(height: AppTheme.space32),
             FilledButton.icon(

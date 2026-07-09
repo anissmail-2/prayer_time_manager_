@@ -118,7 +118,8 @@ class _TimelineScreenState extends State<TimelineScreen> {
       }
       
       _prayerBlocks = await PrayerDurationService.getPrayerBlocksForDate(_selectedDate);
-      _freeTimeSlots = await PrayerDurationService.getFreeTimes(_todayTasks);
+      _freeTimeSlots =
+          await PrayerDurationService.getFreeTimesForDate(_selectedDate, _todayTasks);
 
       _buildTimelineItems();
 

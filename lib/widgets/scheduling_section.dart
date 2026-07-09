@@ -963,6 +963,12 @@ class _SchedulingSectionState extends State<SchedulingSection> {
           ),
         ),
         
+        // Weekday selection for weekly recurrence
+        if (_recurrenceType == TaskRecurrence.weekly) ...[
+          const SizedBox(height: AppTheme.space16),
+          _buildWeekDaySelector(isDark),
+        ],
+
         // Show date picker for once or date range for recurring tasks
         if (_recurrenceType == TaskRecurrence.once) ...[
           const SizedBox(height: AppTheme.space16),
@@ -986,6 +992,13 @@ class _SchedulingSectionState extends State<SchedulingSection> {
       onTap: () {
         setState(() {
           _recurrenceType = type;
+          // Weekly recurrence needs at least one weekday; default to the
+          // task date's weekday so the selection is always satisfiable.
+          if (type == TaskRecurrence.weekly && _selectedWeekDays.isEmpty) {
+            _selectedWeekDays = [
+              (_startDate ?? _taskDate ?? DateTime.now()).weekday,
+            ];
+          }
           _updateParent();
         });
       },
@@ -1012,6 +1025,76 @@ class _SchedulingSectionState extends State<SchedulingSection> {
     );
   }
   
+  Widget _buildWeekDaySelector(bool isDark) {
+    const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Repeat On',
+          style: AppTheme.labelLarge.copyWith(
+            color: isDark ? Colors.white70 : Colors.grey[700],
+          ),
+        ),
+        const SizedBox(height: AppTheme.space8),
+        Wrap(
+          spacing: AppTheme.space8,
+          runSpacing: AppTheme.space8,
+          children: List.generate(7, (index) {
+            final day = index + 1; // 1-7 for Mon-Sun (DateTime.weekday)
+            final isSelected = _selectedWeekDays.contains(day);
+
+            return InkWell(
+              onTap: () {
+                setState(() {
+                  if (isSelected) {
+                    _selectedWeekDays.remove(day);
+                  } else {
+                    _selectedWeekDays.add(day);
+                  }
+                  _updateParent();
+                });
+              },
+              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.space12,
+                  vertical: AppTheme.space8,
+                ),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppTheme.primary.withValues(alpha: 0.1)
+                      : (isDark
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : AppTheme.surface),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                  border: Border.all(
+                    color: isSelected
+                        ? AppTheme.primary
+                        : (isDark
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : Colors.grey.withValues(alpha: 0.3)),
+                  ),
+                ),
+                child: Text(
+                  dayLabels[index],
+                  style: AppTheme.labelMedium.copyWith(
+                    color: isSelected
+                        ? AppTheme.primary
+                        : (isDark ? Colors.white70 : Colors.grey[700]),
+                    fontWeight:
+                        isSelected ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+
   String _getRecurrenceLabel(TaskRecurrence type) {
     switch (type) {
       case TaskRecurrence.once:

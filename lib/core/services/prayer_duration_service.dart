@@ -173,15 +173,24 @@ class PrayerDurationService {
     return total;
   }
   
-  // Get free time slots between prayer blocks and tasks
+  // Get free time slots between prayer blocks and tasks for today.
+  // Kept for existing callers; delegates to the date-aware variant.
   static Future<List<FreeTimeSlot>> getFreeTimes(List<TaskWithTime> tasks) async {
-    final prayerBlocks = await getTodayPrayerBlocks();
-    final freeSlots = <FreeTimeSlot>[];
-    final today = DateTime.now();
-    
+    return getFreeTimesForDate(DateTime.now(), tasks);
+  }
+
+  // Get free time slots between prayer blocks and tasks for a specific date.
+  // Uses that date's prayer blocks and date-anchored day bounds so viewing
+  // another day doesn't mix in today's prayer times.
+  static Future<List<FreeTimeSlot>> getFreeTimesForDate(
+    DateTime date,
+    List<TaskWithTime> tasks,
+  ) async {
+    final prayerBlocks = await getPrayerBlocksForDate(date);
+
     // Create a list of all time blocks (prayers and tasks)
     final allBlocks = <TimeBlock>[];
-    
+
     // Add prayer blocks
     for (final prayer in prayerBlocks) {
       allBlocks.add(TimeBlock(
@@ -191,7 +200,7 @@ class PrayerDurationService {
         title: prayer.prayer.toString().split('.').last,
       ));
     }
-    
+
     // Add task blocks (assuming tasks take 30 minutes by default)
     for (final taskWithTime in tasks) {
       allBlocks.add(TimeBlock(
@@ -201,13 +210,11 @@ class PrayerDurationService {
         title: taskWithTime.task.title,
       ));
     }
-    
-    final dayStart = DateTime(today.year, today.month, today.day, 5, 0); // Start from 5 AM
-    final endOfDay = DateTime(today.year, today.month, today.day, 23, 59); // End at 11:59 PM
 
-    freeSlots.addAll(computeFreeSlots(allBlocks, dayStart, endOfDay));
+    final dayStart = DateTime(date.year, date.month, date.day, 5, 0); // Start from 5 AM
+    final endOfDay = DateTime(date.year, date.month, date.day, 23, 59); // End at 11:59 PM
 
-    return freeSlots;
+    return computeFreeSlots(allBlocks, dayStart, endOfDay);
   }
 
   // Compute free slots between blocks within [dayStart, dayEnd].
