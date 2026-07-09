@@ -43,22 +43,32 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
     });
   }
 
+  bool get _isSelectedDateToday {
+    final now = DateTime.now();
+    return _selectedDate.year == now.year &&
+        _selectedDate.month == now.month &&
+        _selectedDate.day == now.day;
+  }
+
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    
+
     try {
       // Get current location settings
       final locationSettings = await LocationService.getLocationSettings();
+      if (!mounted) return;
       setState(() {
         _currentLocation = '${locationSettings.customCity ?? 'Unknown'}, ${locationSettings.customCountry ?? ''}';
       });
-      
+
       final result = await PrayerTimeService.getPrayerTimesWithStatus(date: _selectedDate);
+      if (!mounted) return;
       _prayerTimes = result['times'] as Map<String, String>;
       _isOffline = result['isOffline'] as bool;
       _lastUpdated = result['lastUpdated'] as DateTime?;
-      
+
       _prayerDurations = await PrayerDurationService.getAllDurations();
+      if (!mounted) return;
       _updateNextPrayer();
     } catch (e) {
       if (mounted) {
@@ -77,8 +87,22 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
   }
 
   void _updateNextPrayer() {
+    if (!mounted) return;
+
+    // The NEXT badge and countdown compare prayer times against the current
+    // clock, which is only meaningful when viewing today's schedule.
+    if (!_isSelectedDateToday) {
+      if (_nextPrayer != null || _timeToNextPrayer != null) {
+        setState(() {
+          _nextPrayer = null;
+          _timeToNextPrayer = null;
+        });
+      }
+      return;
+    }
+
     if (_prayerTimes.isEmpty) return;
-    
+
     final now = DateTime.now();
     final currentTime = TimeOfDay.now();
     
@@ -148,6 +172,9 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
           : RefreshIndicator(
               onRefresh: _loadData,
               child: SingleChildScrollView(
+                // Keep pull-to-refresh working even when the content is
+                // shorter than the viewport.
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(AppTheme.space24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -236,6 +263,7 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
               lastDate: DateTime.now().add(const Duration(days: 365)),
             );
             
+            if (!mounted) return;
             if (picked != null && picked != _selectedDate) {
               setState(() {
                 _selectedDate = picked;
@@ -265,9 +293,7 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
                   ),
                 ),
                 const SizedBox(width: AppTheme.space4),
-                if (_selectedDate.day == DateTime.now().day &&
-                    _selectedDate.month == DateTime.now().month &&
-                    _selectedDate.year == DateTime.now().year)
+                if (_isSelectedDateToday)
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppTheme.space8,
@@ -404,7 +430,9 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Today\'s Prayer Times',
+          _isSelectedDateToday
+              ? 'Today\'s Prayer Times'
+              : 'Prayer Times for ${DateFormat('EEE, MMM d').format(_selectedDate)}',
           style: AppTheme.titleLarge.copyWith(
             color: AppTheme.textPrimary,
           ),

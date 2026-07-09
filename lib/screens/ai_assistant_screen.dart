@@ -54,23 +54,23 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     super.initState();
     _loadPrayerTimes();
     _loadConversation();
-    
-    // Listen to text changes to update send button
-    _messageController.addListener(() {
-      setState(() {});
-    });
+    // The send button listens to _messageController via a
+    // ValueListenableBuilder, so no screen-wide listener is needed here.
   }
 
   Future<void> _loadPrayerTimes() async {
     try {
       _prayerTimes = await PrayerTimeService.getPrayerTimes();
     } catch (e) {
-      // Handle error silently
+      // Prayer times are optional here (used to enrich suggestions); log
+      // instead of failing the screen.
+      debugPrint('AIAssistantScreen: failed to load prayer times: $e');
     }
   }
 
   Future<void> _loadConversation() async {
     final savedMessages = await AIConversationService.loadCurrentConversation();
+    if (!mounted) return;
     if (savedMessages.isNotEmpty) {
       setState(() {
         _messages.addAll(savedMessages);
@@ -126,55 +126,63 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     try {
       // Use enhanced AI assistant for more intelligent responses
       final aiResponse = await EnhancedAIAssistant.processMessage(message, _messages);
-      
-      // Add AI response to chat
+      if (!mounted) return;
+
+      // Add AI response to chat, keeping a reference so the suggestion
+      // patch below can target this exact message even if the user sends
+      // another message in the meantime.
+      final aiMessage = ChatMessage(
+        text: aiResponse.message,
+        isUser: false,
+        timestamp: DateTime.now(),
+        intent: aiResponse.intent,
+        quickActions: aiResponse.quickActions ?? aiResponse.suggestedQuestions,
+        taskList: aiResponse.taskList,
+        spaceList: aiResponse.spaceList,
+        statistics: aiResponse.statistics,
+        freeTimeSlots: aiResponse.freeTimeSlots,
+        isSuccess: aiResponse.success,
+      );
       setState(() {
-        _messages.add(ChatMessage(
-          text: aiResponse.message,
-          isUser: false,
-          timestamp: DateTime.now(),
-          intent: aiResponse.intent,
-          quickActions: aiResponse.quickActions ?? aiResponse.suggestedQuestions,
-          taskList: aiResponse.taskList,
-          spaceList: aiResponse.spaceList,
-          statistics: aiResponse.statistics,
-          freeTimeSlots: aiResponse.freeTimeSlots,
-          isSuccess: aiResponse.success,
-        ));
+        _messages.add(aiMessage);
       });
-      
+
       // If AI has task suggestions ready, show them after a brief delay
       if (aiResponse.suggestions != null && aiResponse.suggestions!.isNotEmpty) {
         await Future.delayed(const Duration(milliseconds: 500));
-        
+
         final enhancedSuggestions = await _enhanceSuggestionsWithTimes(aiResponse.suggestions!);
-        
+        if (!mounted) return;
+
         setState(() {
           _pendingSuggestions = enhancedSuggestions;
-          // Update the last message to include suggestions instead of adding a new one
-          if (_messages.isNotEmpty && _messages.last == _messages[_messages.length - 1]) {
-            _messages[_messages.length - 1] = ChatMessage(
-              text: _messages.last.text,
+          // Patch the specific message this response created (looked up by
+          // identity, not position, since more messages may have arrived).
+          final index = _messages.indexOf(aiMessage);
+          if (index != -1) {
+            _messages[index] = ChatMessage(
+              text: aiMessage.text,
               isUser: false,
-              timestamp: _messages.last.timestamp,
-              intent: _messages.last.intent,
-              quickActions: _messages.last.quickActions,
-              taskList: _messages.last.taskList,
-              spaceList: _messages.last.spaceList,
-              statistics: _messages.last.statistics,
-              freeTimeSlots: _messages.last.freeTimeSlots,
-              isSuccess: _messages.last.isSuccess,
+              timestamp: aiMessage.timestamp,
+              intent: aiMessage.intent,
+              quickActions: aiMessage.quickActions,
+              taskList: aiMessage.taskList,
+              spaceList: aiMessage.spaceList,
+              statistics: aiMessage.statistics,
+              freeTimeSlots: aiMessage.freeTimeSlots,
+              isSuccess: aiMessage.isSuccess,
               suggestions: enhancedSuggestions,
               isSuggestionResponse: true,
             );
           }
         });
       }
-      
+
       // If AI has space suggestions ready, show them
       if (aiResponse.spaceSuggestions != null && aiResponse.spaceSuggestions!.isNotEmpty) {
         await Future.delayed(const Duration(seconds: 1));
-        
+        if (!mounted) return;
+
         setState(() {
           _messages.add(ChatMessage(
             text: '',  // Empty text since the suggestion card shows all details
@@ -186,6 +194,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _messages.add(ChatMessage(
           text: 'I apologize, but I\'m having trouble processing your request. Could you please try again?',
@@ -195,8 +204,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         ));
       });
     } finally {
-      setState(() => _isLoading = false);
-      _scrollToBottom();
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _scrollToBottom();
+      }
       _saveConversation();
     }
   }
@@ -247,7 +258,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   Future<void> _acceptSuggestion(TaskSuggestion suggestion) async {
     try {
       await TodoService.createTaskFromSuggestion(suggestion);
-      
+      if (!mounted) return;
+
       setState(() {
         _pendingSuggestions.remove(suggestion);
         _messages.add(ChatMessage(
@@ -308,10 +320,11 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       );
       
       await SpaceService.createSpace(space);
-      
+
       // Update the AI assistant context with the created space
       EnhancedAIAssistant.updateLastCreatedSpace(space.id, space.name);
-      
+
+      if (!mounted) return;
       setState(() {
         _messages.add(ChatMessage(
           text: '✅ Space "${suggestion.name}" has been created successfully!',
@@ -364,10 +377,12 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
 
     try {
       await platform.invokeMethod('startRecording');
+      if (!mounted) return;
       setState(() {
         _isRecording = true;
       });
     } on PlatformException catch (e) {
+      if (!mounted) return;
       setState(() {
         _isRecording = false;
       });
@@ -390,13 +405,14 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       });
       
       final Map<dynamic, dynamic> result = await platform.invokeMethod('stopRecording');
+      if (!mounted) return;
       final String? path = result['path'];
-      final int? size = result['size'];
-      
+
       if (path != null) {
         await _transcribeFile(path);
       }
     } on PlatformException catch (e) {
+      if (!mounted) return;
       setState(() {
         _isRecording = false;
         _isTranscribing = false;
@@ -424,9 +440,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         
         // Use native method channel to show system file picker with all sources
         final Map<dynamic, dynamic> result = await filePickerPlatform.invokeMethod('pickAudioFile');
+        if (!mounted) return;
         final String? path = result['path'];
         final String? name = result['name'];
-        
+
         if (path != null) {
           setState(() {
             _selectedFileName = name ?? 'Audio file';
@@ -437,7 +454,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         }
       } catch (e) {
         // If native method fails, fall back to file_picker package
-        print('Native file picker failed: $e');
+        debugPrint('Native file picker failed: $e');
       }
     }
     
@@ -457,6 +474,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         );
       }
 
+      if (!mounted) return;
       if (result != null && result.files.single.path != null) {
         // Check if it's an audio file
         final extension = result.files.single.extension?.toLowerCase() ?? '';
@@ -494,7 +512,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                 ],
               ),
             );
-            
+            if (!mounted) return;
+
             if (proceed == true) {
               setState(() {
                 _selectedFileName = result!.files.single.name;
@@ -517,33 +536,57 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     }
   }
 
+  // Derive the Content-Type header from the audio file extension so
+  // Deepgram receives the correct format hint.
+  String _audioContentType(String filePath) {
+    final extension = filePath.split('.').last.toLowerCase();
+    switch (extension) {
+      case 'wav':
+        return 'audio/wav';
+      case 'mp3':
+      case 'mpeg':
+      case 'mpga':
+        return 'audio/mpeg';
+      case 'ogg':
+      case 'opus':
+        return 'audio/ogg';
+      case 'flac':
+        return 'audio/flac';
+      case 'm4a':
+      case 'mp4':
+      default:
+        return 'audio/mp4';
+    }
+  }
+
   Future<void> _transcribeFile(String filePath) async {
     setState(() {
       _isTranscribing = true;
     });
-    
+
     try {
       // Check if Deepgram API key is available
       if (!ConfigLoader.hasValidDeepgramKey) {
         throw Exception('Voice transcription is not configured. Please check your API key settings.');
       }
-      
+
       final file = File(filePath);
       final bytes = await file.readAsBytes();
-      
+
       final response = await http.post(
         Uri.parse('https://api.deepgram.com/v1/listen?model=$_selectedModel&punctuate=true&language=en-US'),
         headers: {
           'Authorization': 'Token ${ConfigLoader.deepgramApiKey}',
-          'Content-Type': 'audio/mp4',
+          'Content-Type': _audioContentType(filePath),
         },
         body: bytes,
       );
-      
+      if (!mounted) return;
+
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
         String transcript = '';
-        
+
         try {
           if (json['results']?['channels']?.isNotEmpty ?? false) {
             final channel = json['results']['channels'][0];
@@ -552,20 +595,31 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             }
           }
         } catch (e) {
-          transcript = 'Error parsing response';
+          debugPrint('Error parsing Deepgram response: $e');
         }
-        
+
         setState(() {
-          _messageController.text = transcript.isEmpty ? 'No speech detected' : transcript;
+          // Only fill the input with actual speech; an empty transcript is
+          // reported via a SnackBar instead of polluting the user's input.
+          if (transcript.isNotEmpty) {
+            _messageController.text = transcript;
+          }
           _isTranscribing = false;
           _selectedFileName = null;
         });
-        
-        if (mounted && transcript.isNotEmpty) {
+
+        if (transcript.isNotEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Transcription complete!'),
               backgroundColor: AppTheme.success,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('No speech detected in the audio'),
+              backgroundColor: AppTheme.warning,
             ),
           );
         }
@@ -573,27 +627,24 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         setState(() {
           _isTranscribing = false;
         });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('API Error: ${response.statusCode}'),
-              backgroundColor: AppTheme.error,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      setState(() {
-        _isTranscribing = false;
-      });
-      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text('API Error: ${response.statusCode}'),
             backgroundColor: AppTheme.error,
           ),
         );
       }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isTranscribing = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: AppTheme.error,
+        ),
+      );
     }
   }
 
@@ -797,9 +848,12 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                   if (conversations.isNotEmpty)
                     TextButton(
                       onPressed: () async {
+                        // Capture the messenger before popping the sheet so
+                        // its context is never used after deactivation.
+                        final messenger = ScaffoldMessenger.of(context);
                         Navigator.pop(context);
                         await AIConversationService.clearAllConversations();
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        messenger.showSnackBar(
                           const SnackBar(
                             content: Text('All conversations cleared'),
                             behavior: SnackBarBehavior.floating,
@@ -843,8 +897,11 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                             trailing: IconButton(
                               icon: const Icon(Icons.delete_outline, size: 20),
                               onPressed: () async {
-                                await AIConversationService.deleteConversation(conv['id']);
+                                // Close the sheet before the async gap; its
+                                // context must not be used after an await.
                                 Navigator.pop(context);
+                                await AIConversationService.deleteConversation(conv['id']);
+                                if (!mounted) return;
                                 _showConversationHistory();
                               },
                             ),
@@ -1971,37 +2028,39 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
               child: const CircularProgressIndicator(strokeWidth: 2),
             )
           else
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _messageController.text.trim().isEmpty
-                    ? AppTheme.borderLight
-                    : AppTheme.primary,
-              ),
-              child: IconButton(
-                onPressed: _messageController.text.trim().isEmpty || _isLoading
-                    ? null 
-                    : _sendMessage,
-                icon: _isLoading
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : Icon(
-                        Icons.send, 
-                        size: 18,
-                        color: _messageController.text.trim().isEmpty
-                            ? AppTheme.textSecondary
-                            : Colors.white,
-                      ),
-                padding: EdgeInsets.zero,
-              ),
+            // Rebuild only the send button on each keystroke instead of the
+            // whole chat screen.
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _messageController,
+              builder: (context, value, _) {
+                final isEmpty = value.text.trim().isEmpty;
+                return Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isEmpty ? AppTheme.borderLight : AppTheme.primary,
+                  ),
+                  child: IconButton(
+                    onPressed: isEmpty || _isLoading ? null : _sendMessage,
+                    icon: _isLoading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Icon(
+                            Icons.send,
+                            size: 18,
+                            color: isEmpty ? AppTheme.textSecondary : Colors.white,
+                          ),
+                    padding: EdgeInsets.zero,
+                  ),
+                );
+              },
             ),
         ],
       ),
@@ -2781,8 +2840,8 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                         TextButton(
                           onPressed: () async {
                             final spaces = await SpaceService.getAllSpaces();
-                            if (!mounted) return;
-                            
+                            if (!context.mounted) return;
+
                             final selected = await showDialog<Space>(
                               context: context,
                               builder: (context) => AlertDialog(
@@ -2814,7 +2873,8 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                                 ),
                               ),
                             );
-                            
+                            if (!mounted) return;
+
                             setState(() {
                               if (selected != null) {
                                 _selectedSpaceId = selected.id;
