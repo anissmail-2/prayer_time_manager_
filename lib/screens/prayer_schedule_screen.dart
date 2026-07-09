@@ -300,7 +300,7 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
                       vertical: AppTheme.space4,
                     ),
                     decoration: BoxDecoration(
-                      color: AppTheme.primary.withOpacity(0.1),
+                      color: AppTheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                     ),
                     child: Text(
@@ -325,10 +325,10 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
       margin: const EdgeInsets.only(bottom: AppTheme.space16),
       padding: const EdgeInsets.all(AppTheme.space12),
       decoration: BoxDecoration(
-        color: _isOffline ? AppTheme.warning.withOpacity(0.1) : AppTheme.info.withOpacity(0.1),
+        color: _isOffline ? AppTheme.warning.withValues(alpha: 0.1) : AppTheme.info.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
         border: Border.all(
-          color: _isOffline ? AppTheme.warning.withOpacity(0.3) : AppTheme.info.withOpacity(0.3),
+          color: _isOffline ? AppTheme.warning.withValues(alpha: 0.3) : AppTheme.info.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -382,7 +382,7 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
           Text(
             'Next Prayer',
             style: AppTheme.bodyLarge.copyWith(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
             ),
           ),
           const SizedBox(height: AppTheme.space8),
@@ -397,7 +397,7 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
           Text(
             _prayerTimes[_nextPrayer!] ?? '',
             style: AppTheme.headlineMedium.copyWith(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
             ),
           ),
           const SizedBox(height: AppTheme.space16),
@@ -407,7 +407,7 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
               vertical: AppTheme.space12,
             ),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(AppTheme.radiusCircular),
             ),
             child: Text(
@@ -468,7 +468,7 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.space12),
       decoration: AppTheme.cardDecoration(
-        color: isNextPrayer ? AppTheme.primary.withOpacity(0.05) : null,
+        color: isNextPrayer ? AppTheme.primary.withValues(alpha: 0.05) : null,
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(AppTheme.space16),
@@ -476,7 +476,7 @@ class _PrayerScheduleScreenState extends State<PrayerScheduleScreen> {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: _getPrayerColor(name).withOpacity(0.1),
+            color: _getPrayerColor(name).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
           ),
           child: Icon(

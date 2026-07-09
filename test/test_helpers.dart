@@ -1,4 +1,5 @@
 /// Test helper utilities and mocks for TaskFlow Pro tests
+library;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 

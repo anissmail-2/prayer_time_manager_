@@ -1213,8 +1213,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppTheme.secondary.withOpacity(0.1),
-                    AppTheme.secondaryDark.withOpacity(0.1),
+                    AppTheme.secondary.withValues(alpha: 0.1),
+                    AppTheme.secondaryDark.withValues(alpha: 0.1),
                   ],
                 ),
                 shape: BoxShape.circle,
@@ -1357,7 +1357,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: AppTheme.borderLight.withOpacity(0.5),
+            color: AppTheme.borderLight.withValues(alpha: 0.5),
             width: 0.5,
           ),
         ),
@@ -1429,7 +1429,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: AppTheme.borderLight.withOpacity(0.5),
+            color: AppTheme.borderLight.withValues(alpha: 0.5),
             width: 0.5,
           ),
         ),
@@ -1440,7 +1440,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: _getSpaceColor(space.color ?? 'blue').withOpacity(0.1),
+              color: _getSpaceColor(space.color ?? 'blue').withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Icon(
@@ -1491,7 +1491,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             width: 4,
             height: 40,
             decoration: BoxDecoration(
-              color: AppTheme.success.withOpacity(0.3),
+              color: AppTheme.success.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -1556,14 +1556,14 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
               height: 32,
               decoration: BoxDecoration(
                 color: message.isError
-                    ? AppTheme.error.withOpacity(0.1)
+                    ? AppTheme.error.withValues(alpha: 0.1)
                     : message.isSuccess
-                        ? AppTheme.success.withOpacity(0.1)
+                        ? AppTheme.success.withValues(alpha: 0.1)
                         : message.isSuggestionResponse
-                            ? AppTheme.info.withOpacity(0.1)
+                            ? AppTheme.info.withValues(alpha: 0.1)
                             : message.isSpaceSuggestionResponse
-                                ? AppTheme.primary.withOpacity(0.1)
-                                : AppTheme.secondary.withOpacity(0.1),
+                                ? AppTheme.primary.withValues(alpha: 0.1)
+                                : AppTheme.secondary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -1606,9 +1606,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                     color: message.isUser
                         ? AppTheme.primary
                         : message.isError
-                            ? AppTheme.error.withOpacity(0.1)
+                            ? AppTheme.error.withValues(alpha: 0.1)
                             : message.isSuccess
-                                ? AppTheme.success.withOpacity(0.1)
+                                ? AppTheme.success.withValues(alpha: 0.1)
                                 : message.isSuggestionResponse
                                     ? Colors.transparent
                                     : AppTheme.surfaceVariant,
@@ -1740,12 +1740,12 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
-                                AppTheme.success.withOpacity(0.05),
-                                AppTheme.success.withOpacity(0.02),
+                                AppTheme.success.withValues(alpha: 0.05),
+                                AppTheme.success.withValues(alpha: 0.02),
                               ],
                             ),
                             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                            border: Border.all(color: AppTheme.success.withOpacity(0.2)),
+                            border: Border.all(color: AppTheme.success.withValues(alpha: 0.2)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1799,9 +1799,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                         Container(
                           padding: const EdgeInsets.all(AppTheme.space12),
                           decoration: BoxDecoration(
-                            color: AppTheme.info.withOpacity(0.05),
+                            color: AppTheme.info.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                            border: Border.all(color: AppTheme.info.withOpacity(0.2)),
+                            border: Border.all(color: AppTheme.info.withValues(alpha: 0.2)),
                           ),
                           child: Row(
                             children: [
@@ -1852,7 +1852,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.1),
+                color: AppTheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -1890,7 +1890,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         vertical: AppTheme.space8,
       ),
       decoration: BoxDecoration(
-        color: AppTheme.info.withOpacity(0.1),
+        color: AppTheme.info.withValues(alpha: 0.1),
         border: Border(
           top: BorderSide(color: AppTheme.borderLight),
         ),
@@ -2082,7 +2082,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: _getPriorityColor(priority).withOpacity(0.1),
+        color: _getPriorityColor(priority).withValues(alpha: 0.1),
         shape: BoxShape.circle,
       ),
       child: Icon(
@@ -2292,7 +2292,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
           Container(
             padding: const EdgeInsets.all(AppTheme.space16),
             decoration: BoxDecoration(
-              color: AppTheme.primary.withOpacity(0.05),
+              color: AppTheme.primary.withValues(alpha: 0.05),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(AppTheme.radiusMedium),
                 topRight: Radius.circular(AppTheme.radiusMedium),
@@ -2390,8 +2390,8 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                       padding: const EdgeInsets.all(AppTheme.space8),
                       decoration: BoxDecoration(
                         color: hasExactTime 
-                            ? AppTheme.success.withOpacity(0.1)
-                            : AppTheme.warning.withOpacity(0.1),
+                            ? AppTheme.success.withValues(alpha: 0.1)
+                            : AppTheme.warning.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                       ),
                       child: Icon(
@@ -2471,10 +2471,10 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                                 vertical: AppTheme.space6,
                               ),
                               decoration: BoxDecoration(
-                                color: _getPriorityColor(_priority).withOpacity(0.1),
+                                color: _getPriorityColor(_priority).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(AppTheme.radiusCircular),
                                 border: Border.all(
-                                  color: _getPriorityColor(_priority).withOpacity(0.3),
+                                  color: _getPriorityColor(_priority).withValues(alpha: 0.3),
                                 ),
                               ),
                               child: Row(
@@ -2509,10 +2509,10 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                               vertical: AppTheme.space6,
                             ),
                             decoration: BoxDecoration(
-                              color: _getPriorityColor(_priority).withOpacity(0.1),
+                              color: _getPriorityColor(_priority).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(AppTheme.radiusCircular),
                               border: Border.all(
-                                color: _getPriorityColor(_priority).withOpacity(0.3),
+                                color: _getPriorityColor(_priority).withValues(alpha: 0.3),
                               ),
                             ),
                             child: Row(
@@ -2562,10 +2562,10 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                                 vertical: AppTheme.space6,
                               ),
                               decoration: BoxDecoration(
-                                color: AppTheme.info.withOpacity(0.1),
+                                color: AppTheme.info.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(AppTheme.radiusCircular),
                                 border: Border.all(
-                                  color: AppTheme.info.withOpacity(0.3),
+                                  color: AppTheme.info.withValues(alpha: 0.3),
                                 ),
                               ),
                               child: Row(
@@ -2600,10 +2600,10 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                               vertical: AppTheme.space6,
                             ),
                             decoration: BoxDecoration(
-                              color: AppTheme.info.withOpacity(0.1),
+                              color: AppTheme.info.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(AppTheme.radiusCircular),
                               border: Border.all(
-                                color: AppTheme.info.withOpacity(0.3),
+                                color: AppTheme.info.withValues(alpha: 0.3),
                               ),
                             ),
                             child: Row(
@@ -2662,10 +2662,10 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                           vertical: AppTheme.space6,
                         ),
                         decoration: BoxDecoration(
-                          color: AppTheme.primary.withOpacity(0.1),
+                          color: AppTheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(AppTheme.radiusCircular),
                           border: Border.all(
-                            color: AppTheme.primary.withOpacity(0.3),
+                            color: AppTheme.primary.withValues(alpha: 0.3),
                           ),
                         ),
                         child: Row(
@@ -2698,7 +2698,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                       Container(
                         padding: const EdgeInsets.all(AppTheme.space8),
                         decoration: BoxDecoration(
-                          color: AppTheme.info.withOpacity(0.1),
+                          color: AppTheme.info.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                         ),
                         child: Icon(
@@ -2806,7 +2806,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                       Container(
                         padding: const EdgeInsets.all(AppTheme.space8),
                         decoration: BoxDecoration(
-                          color: AppTheme.secondary.withOpacity(0.1),
+                          color: AppTheme.secondary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                         ),
                         child: Icon(
@@ -2900,7 +2900,7 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
                       vertical: AppTheme.space8,
                     ),
                     decoration: BoxDecoration(
-                      color: AppTheme.warning.withOpacity(0.1),
+                      color: AppTheme.warning.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                     ),
                     child: Row(
@@ -2966,12 +2966,12 @@ class _EditableTaskSuggestionCardState extends State<EditableTaskSuggestionCard>
         ),
         decoration: BoxDecoration(
           color: isSelected 
-              ? AppTheme.primary.withOpacity(0.1)
+              ? AppTheme.primary.withValues(alpha: 0.1)
               : AppTheme.surfaceVariant,
           borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
           border: Border.all(
             color: isSelected 
-                ? AppTheme.primary.withOpacity(0.3)
+                ? AppTheme.primary.withValues(alpha: 0.3)
                 : AppTheme.borderLight,
           ),
         ),
@@ -3135,7 +3135,7 @@ class _EditableSpaceSuggestionCardState extends State<EditableSpaceSuggestionCar
           Container(
             padding: const EdgeInsets.all(AppTheme.space16),
             decoration: BoxDecoration(
-              color: AppTheme.primary.withOpacity(0.05),
+              color: AppTheme.primary.withValues(alpha: 0.05),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(AppTheme.radiusMedium),
                 topRight: Radius.circular(AppTheme.radiusMedium),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/task.dart';
 import '../models/space.dart';
-import '../models/enhanced_task.dart' as enhanced;
 import '../core/services/todo_service.dart';
 import '../core/services/prayer_time_service.dart';
 import '../core/services/space_service.dart';
@@ -294,7 +293,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                   padding: const EdgeInsets.all(AppTheme.space8),
                   decoration: BoxDecoration(
                     color: _filterOptions.hasActiveFilters
-                        ? AppTheme.primary.withOpacity(0.1)
+                        ? AppTheme.primary.withValues(alpha: 0.1)
                         : AppTheme.surfaceVariant,
                     borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                   ),
@@ -525,7 +524,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                               vertical: AppTheme.space4,
                             ),
                             decoration: BoxDecoration(
-                              color: AppTheme.primary.withOpacity(0.1),
+                              color: AppTheme.primary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                             ),
                             child: Row(
@@ -634,7 +633,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                     vertical: AppTheme.space4,
                   ),
                   decoration: BoxDecoration(
-                    color: _getPriorityColor(task.priority).withOpacity(0.1),
+                    color: _getPriorityColor(task.priority).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                   ),
                   child: Icon(

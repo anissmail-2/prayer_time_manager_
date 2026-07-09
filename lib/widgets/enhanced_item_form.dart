@@ -333,7 +333,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
         Container(
           padding: const EdgeInsets.all(AppTheme.space8),
           decoration: BoxDecoration(
-            color: AppTheme.primary.withOpacity(0.1),
+            color: AppTheme.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
           ),
           child: Icon(icon, color: AppTheme.primary, size: 20),
@@ -366,7 +366,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
         padding: const EdgeInsets.symmetric(vertical: AppTheme.space16),
         decoration: BoxDecoration(
           color: isSelected 
-              ? color.withOpacity(0.1)
+              ? color.withValues(alpha: 0.1)
               : Colors.transparent,
         ),
         child: Center(
@@ -398,7 +398,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
         padding: const EdgeInsets.symmetric(vertical: AppTheme.space16),
         decoration: BoxDecoration(
           color: isSelected 
-              ? AppTheme.primary.withOpacity(0.1)
+              ? AppTheme.primary.withValues(alpha: 0.1)
               : Colors.transparent,
         ),
         child: Column(
@@ -452,10 +452,10 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
     return Container(
       padding: const EdgeInsets.all(AppTheme.space12),
       decoration: BoxDecoration(
-        color: AppTheme.primary.withOpacity(0.05),
+        color: AppTheme.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
         border: Border.all(
-          color: AppTheme.primary.withOpacity(0.2),
+          color: AppTheme.primary.withValues(alpha: 0.2),
         ),
       ),
       child: Row(
@@ -495,7 +495,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
         padding: const EdgeInsets.symmetric(vertical: AppTheme.space12),
         decoration: BoxDecoration(
           color: isSelected 
-              ? AppTheme.primary.withOpacity(0.1)
+              ? AppTheme.primary.withValues(alpha: 0.1)
               : Colors.transparent,
         ),
         child: Center(
@@ -526,7 +526,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
         padding: const EdgeInsets.symmetric(vertical: AppTheme.space12),
         decoration: BoxDecoration(
           color: isSelected 
-              ? AppTheme.primary.withOpacity(0.1)
+              ? AppTheme.primary.withValues(alpha: 0.1)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
         ),
@@ -570,12 +570,12 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
           decoration: BoxDecoration(
             color: isSelected 
                 ? AppTheme.primary
-                : isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+                : isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
             border: Border.all(
               color: isSelected 
                   ? AppTheme.primary
-                  : isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                  : isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
             ),
           ),
           child: Center(
@@ -626,7 +626,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
                 hintText: 'Enter task title',
                 prefixIcon: Icon(Icons.task_alt, color: AppTheme.primary),
                 filled: true,
-                fillColor: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+                fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                   borderSide: BorderSide.none,
@@ -634,7 +634,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                   borderSide: BorderSide(
-                    color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                    color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
@@ -672,7 +672,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
                 hintText: 'Add more details about this task',
                 prefixIcon: Icon(Icons.description_outlined, color: AppTheme.primary),
                 filled: true,
-                fillColor: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+                fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                   borderSide: BorderSide.none,
@@ -680,7 +680,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                   borderSide: BorderSide(
-                    color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                    color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
@@ -701,7 +701,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
             
             Container(
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
               ),
               child: Row(
@@ -718,7 +718,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
                   Container(
                     width: 1,
                     height: 50,
-                    color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
+                    color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.2),
                   ),
                   Expanded(
                     child: _buildPriorityOption(
@@ -732,7 +732,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
                   Container(
                     width: 1,
                     height: 50,
-                    color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
+                    color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.2),
                   ),
                   Expanded(
                     child: _buildPriorityOption(
@@ -761,7 +761,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
                 hintText: 'Type tag and press enter',
                 prefixIcon: Icon(Icons.label_outline, color: AppTheme.primary),
                 filled: true,
-                fillColor: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+                fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                   borderSide: BorderSide.none,
@@ -769,7 +769,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                   borderSide: BorderSide(
-                    color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                    color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
@@ -797,7 +797,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
                       tag,
                       style: AppTheme.labelMedium,
                     ),
-                    backgroundColor: AppTheme.primary.withOpacity(0.1),
+                    backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
                     deleteIcon: Icon(
                       Icons.close,
                       size: 18,
@@ -874,7 +874,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
                 hintText: 'Add any extra details or reminders',
                 prefixIcon: Icon(Icons.note_alt_outlined, color: AppTheme.primary),
                 filled: true,
-                fillColor: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+                fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                   borderSide: BorderSide.none,
@@ -882,7 +882,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                   borderSide: BorderSide(
-                    color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                    color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
@@ -997,10 +997,10 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
           child: Container(
             padding: const EdgeInsets.all(AppTheme.space16),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
               border: Border.all(
-                color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
               ),
             ),
             child: Row(
@@ -1008,7 +1008,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
                 Container(
                   padding: const EdgeInsets.all(AppTheme.space12),
                   decoration: BoxDecoration(
-                    color: AppTheme.primary.withOpacity(0.1),
+                    color: AppTheme.primary.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -1073,10 +1073,10 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
           child: Container(
             padding: const EdgeInsets.all(AppTheme.space16),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
               border: Border.all(
-                color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
               ),
             ),
             child: Row(
@@ -1084,7 +1084,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
                 Container(
                   padding: const EdgeInsets.all(AppTheme.space12),
                   decoration: BoxDecoration(
-                    color: AppTheme.primary.withOpacity(0.1),
+                    color: AppTheme.primary.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -1160,10 +1160,10 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
           child: Container(
             padding: const EdgeInsets.all(AppTheme.space16),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
               border: Border.all(
-                color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
               ),
             ),
             child: Row(
@@ -1171,7 +1171,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
                 Container(
                   padding: const EdgeInsets.all(AppTheme.space12),
                   decoration: BoxDecoration(
-                    color: AppTheme.secondary.withOpacity(0.1),
+                    color: AppTheme.secondary.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -1243,10 +1243,10 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
         // Prayer selection
         Container(
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
             border: Border.all(
-              color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+              color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
             ),
           ),
           child: DropdownButtonFormField<PrayerName>(
@@ -1293,7 +1293,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
         // Before/After toggle
         Container(
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           ),
           child: Row(
@@ -1309,7 +1309,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
               Container(
                 width: 1,
                 height: 40,
-                color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
+                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.2),
               ),
               Expanded(
                 child: _buildBeforeAfterOption(
@@ -1333,7 +1333,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
             helperText: 'How many minutes ${_startIsBeforePrayer ? "before" : "after"} the prayer',
             prefixIcon: Icon(Icons.timer_outlined, color: AppTheme.primary),
             filled: true,
-            fillColor: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+            fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
               borderSide: BorderSide.none,
@@ -1341,7 +1341,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
               borderSide: BorderSide(
-                color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
               ),
             ),
             focusedBorder: OutlineInputBorder(
@@ -1369,10 +1369,10 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
         // End Prayer selection
         Container(
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
             border: Border.all(
-              color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+              color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
             ),
           ),
           child: DropdownButtonFormField<PrayerName?>(
@@ -1430,7 +1430,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
                     // End Before/After toggle
                     Container(
                       decoration: BoxDecoration(
-                        color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+                        color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
                         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                       ),
                       child: Row(
@@ -1446,7 +1446,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
                           Container(
                             width: 1,
                             height: 40,
-                            color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
+                            color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.2),
                           ),
                           Expanded(
                             child: _buildBeforeAfterOption(
@@ -1470,7 +1470,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
                         helperText: 'How many minutes ${_endIsBeforePrayer ? "before" : "after"} the prayer to end',
                         prefixIcon: Icon(Icons.timer_off_outlined, color: AppTheme.secondary),
                         filled: true,
-                        fillColor: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+                        fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                           borderSide: BorderSide.none,
@@ -1478,7 +1478,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                           borderSide: BorderSide(
-                            color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                            color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
                           ),
                         ),
                         focusedBorder: OutlineInputBorder(
@@ -1523,10 +1523,10 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
         borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+          color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
         ),
       ),
       padding: const EdgeInsets.all(AppTheme.space16),
@@ -1539,7 +1539,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
               Container(
                 padding: const EdgeInsets.all(AppTheme.space8),
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withOpacity(0.1),
+                  color: AppTheme.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -1559,7 +1559,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
               // Schedule Type Toggle
               Container(
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.1) : AppTheme.surface,
+                  color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.surface,
                   borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                 ),
                 child: Row(
@@ -1574,7 +1574,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
                     Container(
                       width: 1,
                       height: 24,
-                      color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
+                      color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.2),
                     ),
                     _buildMiniToggle(
                       icon: Icons.mosque,
@@ -1633,7 +1633,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
             vertical: AppTheme.space8,
           ),
           decoration: BoxDecoration(
-            color: isSelected ? AppTheme.primary.withOpacity(0.1) : Colors.transparent,
+            color: isSelected ? AppTheme.primary.withValues(alpha: 0.1) : Colors.transparent,
           ),
           child: Icon(
             icon,
@@ -1670,10 +1670,10 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
           vertical: AppTheme.space12,
         ),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
           borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           border: Border.all(
-            color: AppTheme.primary.withOpacity(0.3),
+            color: AppTheme.primary.withValues(alpha: 0.3),
           ),
         ),
         child: Row(
@@ -1721,10 +1721,10 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
         // Prayer Selection
         Container(
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
             border: Border.all(
-              color: AppTheme.primary.withOpacity(0.3),
+              color: AppTheme.primary.withValues(alpha: 0.3),
             ),
           ),
           child: DropdownButtonFormField<PrayerName>(
@@ -1754,7 +1754,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: AppTheme.primary.withOpacity(0.1),
+                          color: AppTheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -1784,10 +1784,10 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+                  color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
                   borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                   border: Border.all(
-                    color: AppTheme.primary.withOpacity(0.3),
+                    color: AppTheme.primary.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(
@@ -1803,7 +1803,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
                     Container(
                       width: 1,
                       height: 36,
-                      color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
+                      color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.2),
                     ),
                     Expanded(
                       child: _buildBeforeAfterOption(
@@ -1822,10 +1822,10 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
             Container(
               width: 100,
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                 border: Border.all(
-                  color: AppTheme.primary.withOpacity(0.3),
+                  color: AppTheme.primary.withValues(alpha: 0.3),
                 ),
               ),
               child: TextFormField(
@@ -1942,10 +1942,10 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
             child: Container(
               padding: const EdgeInsets.all(AppTheme.space16),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                 border: Border.all(
-                  color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                  color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
                 ),
               ),
               child: Row(
@@ -1995,10 +1995,10 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
           child: Container(
             padding: const EdgeInsets.all(AppTheme.space16),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
               border: Border.all(
-                color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
               ),
             ),
             child: Row(
@@ -2040,10 +2040,10 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
               Container(
                 width: 80,
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+                  color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
                   borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                   border: Border.all(
-                    color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                    color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
                   ),
                 ),
                 child: DropdownButtonFormField<int>(
@@ -2114,10 +2114,10 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
           // Monthly day selection grid
           Container(
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
               border: Border.all(
-                color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
               ),
             ),
             padding: const EdgeInsets.all(AppTheme.space12),
@@ -2210,10 +2210,10 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
           child: Container(
             padding: const EdgeInsets.all(AppTheme.space16),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
               border: Border.all(
-                color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
               ),
             ),
             child: Row(
@@ -2253,7 +2253,7 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
         Container(
           padding: const EdgeInsets.all(AppTheme.space12),
           decoration: BoxDecoration(
-            color: AppTheme.info.withOpacity(0.1),
+            color: AppTheme.info.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
           ),
           child: Row(
@@ -2343,12 +2343,12 @@ class _EnhancedItemFormState extends State<EnhancedItemForm> with SingleTickerPr
         decoration: BoxDecoration(
           color: isSelected 
               ? AppTheme.primary
-              : (isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface),
+              : (isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface),
           borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
           border: Border.all(
             color: isSelected 
                 ? AppTheme.primary
-                : (isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.3)),
+                : (isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.3)),
           ),
         ),
         child: Center(

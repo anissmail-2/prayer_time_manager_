@@ -187,7 +187,7 @@ class _ActivityFilterDialogState extends State<ActivityFilterDialog> {
                           ),
                           selected: _selectedTypes.contains(type),
                           selectedColor: type.defaultColor,
-                          backgroundColor: type.defaultColor.withOpacity(0.1),
+                          backgroundColor: type.defaultColor.withValues(alpha: 0.1),
                           labelStyle: TextStyle(
                             color: _selectedTypes.contains(type)
                                 ? Colors.white
@@ -226,7 +226,7 @@ class _ActivityFilterDialogState extends State<ActivityFilterDialog> {
                                     height: 20,
                                     margin: const EdgeInsets.only(right: AppTheme.space4),
                                     decoration: BoxDecoration(
-                                      color: _parseColor(space.color!).withOpacity(0.2),
+                                      color: _parseColor(space.color!).withValues(alpha: 0.2),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                   ),

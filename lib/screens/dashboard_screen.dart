@@ -234,7 +234,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Container(
             padding: const EdgeInsets.all(AppTheme.space8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
             ),
             child: Icon(
@@ -294,7 +294,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Container(
                 padding: const EdgeInsets.all(AppTheme.space12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                 ),
                 child: const Icon(
@@ -311,7 +311,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Text(
                       'Next Prayer',
                       style: AppTheme.bodyMedium.copyWith(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                       ),
                     ),
                     const SizedBox(height: AppTheme.space4),
@@ -334,7 +334,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               vertical: AppTheme.space8,
             ),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(AppTheme.radiusCircular),
             ),
             child: Text(
@@ -449,10 +449,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           height: 48,
           decoration: BoxDecoration(
             color: task.priority == TaskPriority.high
-                ? AppTheme.error.withOpacity(0.1)
+                ? AppTheme.error.withValues(alpha: 0.1)
                 : task.priority == TaskPriority.medium
-                    ? AppTheme.warning.withOpacity(0.1)
-                    : AppTheme.primary.withOpacity(0.1),
+                    ? AppTheme.warning.withValues(alpha: 0.1)
+                    : AppTheme.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
           ),
           child: Icon(
@@ -482,7 +482,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             vertical: AppTheme.space4,
           ),
           decoration: BoxDecoration(
-            color: _getPriorityColor(task.priority).withOpacity(0.1),
+            color: _getPriorityColor(task.priority).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(AppTheme.radiusCircular),
           ),
           child: Text(

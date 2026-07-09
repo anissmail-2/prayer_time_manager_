@@ -10,7 +10,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'test_helpers.dart';
 import 'package:taskflow_pro/core/theme/app_theme.dart';
-import 'package:taskflow_pro/widgets/auth_wrapper.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

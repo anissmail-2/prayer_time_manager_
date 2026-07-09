@@ -432,7 +432,7 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> with Sing
                     hintText: 'Enter activity title',
                     prefixIcon: Icon(Icons.event, color: AppTheme.primary),
                     filled: true,
-                    fillColor: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+                    fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                       borderSide: BorderSide.none,
@@ -440,7 +440,7 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> with Sing
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                       borderSide: BorderSide(
-                        color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                        color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(
@@ -487,7 +487,7 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> with Sing
                 const SizedBox(height: AppTheme.space12),
                 Container(
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+                    color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
                     borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                   ),
                   child: Row(
@@ -504,7 +504,7 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> with Sing
                       Container(
                         width: 1,
                         height: 50,
-                        color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
+                        color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.2),
                       ),
                       Expanded(
                         child: _buildScheduleTypeOption(
@@ -540,7 +540,7 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> with Sing
                     hintText: 'Enter location',
                     prefixIcon: Icon(Icons.location_on, color: AppTheme.primary),
                     filled: true,
-                    fillColor: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+                    fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                       borderSide: BorderSide.none,
@@ -548,7 +548,7 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> with Sing
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                       borderSide: BorderSide(
-                        color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                        color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(
@@ -653,8 +653,8 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> with Sing
           selected: isSelected,
           selectedColor: type.defaultColor,
           backgroundColor: isDark 
-              ? (isSelected ? type.defaultColor : Colors.white.withOpacity(0.05))
-              : type.defaultColor.withOpacity(0.1),
+              ? (isSelected ? type.defaultColor : Colors.white.withValues(alpha: 0.05))
+              : type.defaultColor.withValues(alpha: 0.1),
           labelStyle: TextStyle(
             color: isSelected 
                 ? Colors.white 
@@ -666,7 +666,7 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> with Sing
               setState(() {
                 _selectedType = type;
                 // Update color to match type if no custom color
-                _selectedColor ??= '#${type.defaultColor.value.toRadixString(16).substring(2)}';
+                _selectedColor ??= '#${type.defaultColor.toARGB32().toRadixString(16).substring(2)}';
               });
             }
           },
@@ -831,7 +831,7 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> with Sing
                       height: 24,
                       margin: const EdgeInsets.only(right: AppTheme.space12),
                       decoration: BoxDecoration(
-                        color: _parseColor(space.color!).withOpacity(0.2),
+                        color: _parseColor(space.color!).withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -1016,7 +1016,7 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> with Sing
             ),
             // Custom colors
             ...colors.map((color) {
-              final colorHex = '#${color.value.toRadixString(16).substring(2)}';
+              final colorHex = '#${color.toARGB32().toRadixString(16).substring(2)}';
               final isSelected = _selectedColor == colorHex;
               
               return InkWell(
@@ -1106,7 +1106,7 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> with Sing
         padding: const EdgeInsets.symmetric(vertical: AppTheme.space16),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppTheme.primary.withOpacity(0.1)
+              ? AppTheme.primary.withValues(alpha: 0.1)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
         ),
@@ -1139,10 +1139,10 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> with Sing
         // Prayer selection
         Container(
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
             border: Border.all(
-              color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+              color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
             ),
           ),
           child: DropdownButtonFormField<PrayerName>(
@@ -1198,7 +1198,7 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> with Sing
         // Before/After toggle
         Container(
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           ),
           child: Row(
@@ -1214,7 +1214,7 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> with Sing
                     padding: const EdgeInsets.symmetric(vertical: AppTheme.space12),
                     decoration: BoxDecoration(
                       color: _isBeforePrayer
-                          ? AppTheme.primary.withOpacity(0.1)
+                          ? AppTheme.primary.withValues(alpha: 0.1)
                           : Colors.transparent,
                       borderRadius: const BorderRadius.only(
                         topLeft: Radius.circular(AppTheme.radiusMedium),
@@ -1238,7 +1238,7 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> with Sing
               Container(
                 width: 1,
                 height: 40,
-                color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
+                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.2),
               ),
               Expanded(
                 child: InkWell(
@@ -1251,7 +1251,7 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> with Sing
                     padding: const EdgeInsets.symmetric(vertical: AppTheme.space12),
                     decoration: BoxDecoration(
                       color: !_isBeforePrayer
-                          ? AppTheme.primary.withOpacity(0.1)
+                          ? AppTheme.primary.withValues(alpha: 0.1)
                           : Colors.transparent,
                       borderRadius: const BorderRadius.only(
                         topRight: Radius.circular(AppTheme.radiusMedium),
@@ -1289,7 +1289,7 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> with Sing
             helperText: 'Activity starts ${_isBeforePrayer ? "before" : "after"} ${_selectedPrayer != null ? _selectedPrayer.toString().split('.').last : "prayer"}',
             prefixIcon: Icon(Icons.timer_outlined, color: AppTheme.primary),
             filled: true,
-            fillColor: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+            fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
               borderSide: BorderSide.none,
@@ -1297,7 +1297,7 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> with Sing
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
               borderSide: BorderSide(
-                color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
               ),
             ),
             focusedBorder: OutlineInputBorder(
@@ -1348,7 +1348,7 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> with Sing
             hintText: 'How long will the activity last?',
             prefixIcon: Icon(Icons.hourglass_empty, color: AppTheme.primary),
             filled: true,
-            fillColor: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+            fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
               borderSide: BorderSide.none,
@@ -1356,7 +1356,7 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> with Sing
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
               borderSide: BorderSide(
-                color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
               ),
             ),
             focusedBorder: OutlineInputBorder(

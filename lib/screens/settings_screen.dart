@@ -292,7 +292,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           CircleAvatar(
             radius: 30,
-            backgroundColor: AppTheme.primary.withOpacity(0.1),
+            backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
             backgroundImage: user.photoURL != null 
               ? NetworkImage(user.photoURL!)
               : null,
@@ -352,7 +352,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           subtitle: Text(
             subtitle,
             style: AppTheme.bodySmall.copyWith(
-              color: tileColor.withOpacity(0.7),
+              color: tileColor.withValues(alpha: 0.7),
             ),
           ),
           trailing: trailing ?? (onTap != null 

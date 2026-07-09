@@ -363,7 +363,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -410,7 +410,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                         vertical: AppTheme.space4,
                       ),
                       decoration: BoxDecoration(
-                        color: AppTheme.primary.withOpacity(0.1),
+                        color: AppTheme.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                       ),
                       child: Row(
@@ -440,7 +440,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                       padding: const EdgeInsets.all(AppTheme.space8),
                       decoration: BoxDecoration(
                         color: hasActiveFilters
-                            ? AppTheme.primary.withOpacity(0.1)
+                            ? AppTheme.primary.withValues(alpha: 0.1)
                             : AppTheme.surfaceVariant,
                         borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                       ),
@@ -519,7 +519,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                     )
                   : null,
               filled: true,
-              fillColor: AppTheme.surfaceVariant.withOpacity(0.5),
+              fillColor: AppTheme.surfaceVariant.withValues(alpha: 0.5),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                 borderSide: BorderSide.none,
@@ -536,7 +536,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppTheme.space12),
-      color: AppTheme.error.withOpacity(0.1),
+      color: AppTheme.error.withValues(alpha: 0.1),
       child: Row(
         children: [
           const Icon(Icons.error_outline, color: AppTheme.error, size: 20),
@@ -826,7 +826,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                     Container(
                       padding: const EdgeInsets.all(AppTheme.space6),
                       decoration: BoxDecoration(
-                        color: _getItemTypeColor(task.itemType).withOpacity(0.1),
+                        color: _getItemTypeColor(task.itemType).withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -840,7 +840,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                     Container(
                       padding: const EdgeInsets.all(AppTheme.space6),
                       decoration: BoxDecoration(
-                        color: _getPriorityColor(task.priority).withOpacity(0.1),
+                        color: _getPriorityColor(task.priority).withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -870,10 +870,10 @@ class _AgendaScreenState extends State<AgendaScreen> {
         vertical: AppTheme.space4,
       ),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
         border: Border.all(
-          color: color.withOpacity(0.2),
+          color: color.withValues(alpha: 0.2),
           width: 0.5,
         ),
       ),

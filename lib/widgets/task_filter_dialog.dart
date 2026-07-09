@@ -425,7 +425,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
                 vertical: AppTheme.space4,
               ),
               decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.1),
+                color: AppTheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
               ),
               child: Text(
@@ -453,7 +453,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
                   }
                 });
               },
-              selectedColor: _getStatusColor(status).withOpacity(0.2),
+              selectedColor: _getStatusColor(status).withValues(alpha: 0.2),
               checkmarkColor: _getStatusColor(status),
             );
           }).toList(),
@@ -481,7 +481,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
                 vertical: AppTheme.space4,
               ),
               decoration: BoxDecoration(
-                color: AppTheme.secondary.withOpacity(0.1),
+                color: AppTheme.secondary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
               ),
               child: Text(
@@ -520,7 +520,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
                   }
                 });
               },
-              selectedColor: _getSpaceColor(space.color).withOpacity(0.2),
+              selectedColor: _getSpaceColor(space.color).withValues(alpha: 0.2),
               checkmarkColor: _getSpaceColor(space.color),
             );
           }).toList(),
@@ -566,7 +566,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
                   }
                 });
               },
-              selectedColor: _getPriorityColor(priority).withOpacity(0.2),
+              selectedColor: _getPriorityColor(priority).withValues(alpha: 0.2),
               checkmarkColor: _getPriorityColor(priority),
             );
           }).toList(),
@@ -612,7 +612,7 @@ class _TaskFilterDialogState extends State<TaskFilterDialog> {
                   }
                 });
               },
-              selectedColor: _getItemTypeColor(type).withOpacity(0.2),
+              selectedColor: _getItemTypeColor(type).withValues(alpha: 0.2),
               checkmarkColor: _getItemTypeColor(type),
             );
           }).toList(),

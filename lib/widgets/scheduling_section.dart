@@ -344,10 +344,10 @@ class _SchedulingSectionState extends State<SchedulingSection> {
       child: Container(
         padding: const EdgeInsets.all(AppTheme.space16),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
           borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           border: Border.all(
-            color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+            color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
           ),
         ),
         child: Row(
@@ -355,7 +355,7 @@ class _SchedulingSectionState extends State<SchedulingSection> {
             Container(
               padding: const EdgeInsets.all(AppTheme.space12),
               decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.1),
+                color: AppTheme.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -413,10 +413,10 @@ class _SchedulingSectionState extends State<SchedulingSection> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
         borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+          color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
         ),
       ),
       padding: const EdgeInsets.all(AppTheme.space16),
@@ -429,7 +429,7 @@ class _SchedulingSectionState extends State<SchedulingSection> {
               Container(
                 padding: const EdgeInsets.all(AppTheme.space8),
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withOpacity(0.1),
+                  color: AppTheme.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -449,7 +449,7 @@ class _SchedulingSectionState extends State<SchedulingSection> {
               // Schedule Type Toggle
               Container(
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.1) : AppTheme.surface,
+                  color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.surface,
                   borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                 ),
                 child: Row(
@@ -464,7 +464,7 @@ class _SchedulingSectionState extends State<SchedulingSection> {
                     Container(
                       width: 1,
                       height: 24,
-                      color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
+                      color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.2),
                     ),
                     _buildMiniToggle(
                       icon: Icons.mosque,
@@ -540,10 +540,10 @@ class _SchedulingSectionState extends State<SchedulingSection> {
           vertical: AppTheme.space12,
         ),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
           borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           border: Border.all(
-            color: AppTheme.primary.withOpacity(0.3),
+            color: AppTheme.primary.withValues(alpha: 0.3),
           ),
         ),
         child: Row(
@@ -591,10 +591,10 @@ class _SchedulingSectionState extends State<SchedulingSection> {
         // Prayer Selection
         Container(
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
             border: Border.all(
-              color: AppTheme.primary.withOpacity(0.3),
+              color: AppTheme.primary.withValues(alpha: 0.3),
             ),
           ),
           child: DropdownButtonFormField<PrayerName>(
@@ -624,7 +624,7 @@ class _SchedulingSectionState extends State<SchedulingSection> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: AppTheme.primary.withOpacity(0.1),
+                          color: AppTheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -654,10 +654,10 @@ class _SchedulingSectionState extends State<SchedulingSection> {
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+                  color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
                   borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                   border: Border.all(
-                    color: AppTheme.primary.withOpacity(0.3),
+                    color: AppTheme.primary.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(
@@ -673,7 +673,7 @@ class _SchedulingSectionState extends State<SchedulingSection> {
                     Container(
                       width: 1,
                       height: 36,
-                      color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
+                      color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.2),
                     ),
                     Expanded(
                       child: _buildBeforeAfterOption(
@@ -692,10 +692,10 @@ class _SchedulingSectionState extends State<SchedulingSection> {
             Container(
               width: 100,
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                 border: Border.all(
-                  color: AppTheme.primary.withOpacity(0.3),
+                  color: AppTheme.primary.withValues(alpha: 0.3),
                 ),
               ),
               child: TextFormField(
@@ -762,10 +762,10 @@ class _SchedulingSectionState extends State<SchedulingSection> {
     return Container(
       padding: const EdgeInsets.all(AppTheme.space12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
+        color: color.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
         border: Border.all(
-          color: color.withOpacity(0.2),
+          color: color.withValues(alpha: 0.2),
         ),
       ),
       child: Row(
@@ -807,7 +807,7 @@ class _SchedulingSectionState extends State<SchedulingSection> {
             vertical: AppTheme.space8,
           ),
           decoration: BoxDecoration(
-            color: isSelected ? AppTheme.primary.withOpacity(0.1) : Colors.transparent,
+            color: isSelected ? AppTheme.primary.withValues(alpha: 0.1) : Colors.transparent,
           ),
           child: Icon(
             icon,
@@ -834,7 +834,7 @@ class _SchedulingSectionState extends State<SchedulingSection> {
         padding: const EdgeInsets.symmetric(vertical: AppTheme.space12),
         decoration: BoxDecoration(
           color: isSelected 
-              ? AppTheme.primary.withOpacity(0.1)
+              ? AppTheme.primary.withValues(alpha: 0.1)
               : Colors.transparent,
         ),
         child: Center(
@@ -858,7 +858,7 @@ class _SchedulingSectionState extends State<SchedulingSection> {
         Container(
           padding: const EdgeInsets.all(AppTheme.space8),
           decoration: BoxDecoration(
-            color: AppTheme.primary.withOpacity(0.1),
+            color: AppTheme.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
           ),
           child: Icon(icon, color: AppTheme.primary, size: 20),
@@ -905,7 +905,7 @@ class _SchedulingSectionState extends State<SchedulingSection> {
         // Recurrence type selector
         Container(
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           ),
           padding: const EdgeInsets.all(AppTheme.space4),
@@ -997,7 +997,7 @@ class _SchedulingSectionState extends State<SchedulingSection> {
           vertical: AppTheme.space12,
         ),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primary.withOpacity(0.1) : Colors.transparent,
+          color: isSelected ? AppTheme.primary.withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
         ),
         child: Center(
@@ -1065,10 +1065,10 @@ class _SchedulingSectionState extends State<SchedulingSection> {
                 child: Container(
                   padding: const EdgeInsets.all(AppTheme.space12),
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+                    color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
                     borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                     border: Border.all(
-                      color: AppTheme.primary.withOpacity(0.3),
+                      color: AppTheme.primary.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Column(
@@ -1116,10 +1116,10 @@ class _SchedulingSectionState extends State<SchedulingSection> {
                 child: Container(
                   padding: const EdgeInsets.all(AppTheme.space12),
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+                    color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
                     borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                     border: Border.all(
-                      color: AppTheme.primary.withOpacity(0.3),
+                      color: AppTheme.primary.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Column(

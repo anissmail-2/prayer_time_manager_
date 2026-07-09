@@ -39,7 +39,7 @@ class ActivityDetailsDialog extends StatelessWidget {
               decoration: BoxDecoration(
                 color: (activity.color != null 
                     ? Color(int.parse(activity.color!.replaceFirst('#', '0xff')))
-                    : activity.type.defaultColor).withOpacity(0.1),
+                    : activity.type.defaultColor).withValues(alpha: 0.1),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(AppTheme.radiusLarge),
                   topRight: Radius.circular(AppTheme.radiusLarge),
@@ -318,7 +318,7 @@ class ActivityDetailsDialog extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppTheme.space12),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceVariant.withOpacity(0.5),
+        color: AppTheme.surfaceVariant.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
       ),
       child: Column(

@@ -105,7 +105,7 @@ class _AddEditSpaceItemScreenState extends State<AddEditSpaceItemScreen> with Si
             Text(
               'in ${widget.spaceName}',
               style: AppTheme.bodySmall.copyWith(
-                color: widget.spaceColor.withOpacity(0.8),
+                color: widget.spaceColor.withValues(alpha: 0.8),
               ),
             ),
           ],
@@ -114,7 +114,7 @@ class _AddEditSpaceItemScreenState extends State<AddEditSpaceItemScreen> with Si
           icon: Container(
             padding: const EdgeInsets.all(AppTheme.space8),
             decoration: BoxDecoration(
-              color: (isDark ? Colors.white : AppTheme.primary).withOpacity(0.1),
+              color: (isDark ? Colors.white : AppTheme.primary).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
             ),
             child: Icon(

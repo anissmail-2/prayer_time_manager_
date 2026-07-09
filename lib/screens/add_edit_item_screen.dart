@@ -269,7 +269,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
           icon: Container(
             padding: const EdgeInsets.all(AppTheme.space8),
             decoration: BoxDecoration(
-              color: (isDark ? Colors.white : AppTheme.primary).withOpacity(0.1),
+              color: (isDark ? Colors.white : AppTheme.primary).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
             ),
             child: Icon(
@@ -299,7 +299,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
                   hintText: 'Enter title',
                   prefixIcon: Icon(Icons.task_alt, color: AppTheme.primary),
                   filled: true,
-                  fillColor: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+                  fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                     borderSide: BorderSide.none,
@@ -307,7 +307,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                     borderSide: BorderSide(
-                      color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                      color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
@@ -343,7 +343,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
                   hintText: 'Add more details',
                   prefixIcon: Icon(Icons.description_outlined, color: AppTheme.primary),
                   filled: true,
-                  fillColor: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+                  fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                     borderSide: BorderSide.none,
@@ -351,7 +351,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                     borderSide: BorderSide(
-                      color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                      color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
@@ -433,10 +433,10 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
                 Container(
                   padding: const EdgeInsets.all(AppTheme.space16),
                   decoration: BoxDecoration(
-                    color: AppTheme.primary.withOpacity(0.05),
+                    color: AppTheme.primary.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                     border: Border.all(
-                      color: AppTheme.primary.withOpacity(0.2),
+                      color: AppTheme.primary.withValues(alpha: 0.2),
                     ),
                   ),
                   child: Row(
@@ -472,7 +472,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
               // Recurrence type selector - redesigned for 5 options
               Container(
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+                  color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
                   borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                 ),
                 padding: const EdgeInsets.all(AppTheme.space4),
@@ -619,7 +619,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
         Container(
           padding: const EdgeInsets.all(AppTheme.space8),
           decoration: BoxDecoration(
-            color: AppTheme.primary.withOpacity(0.1),
+            color: AppTheme.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
           ),
           child: Icon(icon, color: AppTheme.primary, size: 20),
@@ -655,7 +655,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
         padding: const EdgeInsets.symmetric(vertical: AppTheme.space12),
         decoration: BoxDecoration(
           color: isSelected 
-              ? AppTheme.primary.withOpacity(0.1)
+              ? AppTheme.primary.withValues(alpha: 0.1)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
         ),
@@ -699,12 +699,12 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
           decoration: BoxDecoration(
             color: isSelected 
                 ? AppTheme.primary
-                : isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+                : isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
             border: Border.all(
               color: isSelected 
                   ? AppTheme.primary
-                  : isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                  : isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
             ),
           ),
           child: Center(
@@ -743,12 +743,12 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
         decoration: BoxDecoration(
           color: isSelected 
               ? AppTheme.primary
-              : isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+              : isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
           borderRadius: BorderRadius.circular(AppTheme.radiusCircular),
           border: Border.all(
             color: isSelected 
                 ? AppTheme.primary
-                : isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                : isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
           ),
         ),
         child: Row(
@@ -797,13 +797,13 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
         ),
         decoration: BoxDecoration(
           color: isSelected 
-              ? color.withOpacity(0.15)
-              : isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade100,
+              ? color.withValues(alpha: 0.15)
+              : isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           border: Border.all(
             color: isSelected 
                 ? color
-                : isDark ? Colors.white.withOpacity(0.1) : Colors.grey.shade300,
+                : isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -842,7 +842,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
           ),
           decoration: BoxDecoration(
             border: Border.all(
-              color: AppTheme.primary.withOpacity(0.3),
+              color: AppTheme.primary.withValues(alpha: 0.3),
             ),
             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
           ),
@@ -983,7 +983,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
             Container(
               padding: const EdgeInsets.all(AppTheme.space8),
               decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.1),
+                color: AppTheme.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -1018,11 +1018,11 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
               padding: const EdgeInsets.all(AppTheme.space16),
               decoration: BoxDecoration(
                 color: isDark
-                    ? Colors.white.withOpacity(0.05)
-                    : AppTheme.primary.withOpacity(0.05),
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : AppTheme.primary.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                 border: Border.all(
-                  color: AppTheme.primary.withOpacity(0.2),
+                  color: AppTheme.primary.withValues(alpha: 0.2),
                 ),
               ),
               child: startPreview != null
@@ -1077,7 +1077,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
               padding: const EdgeInsets.all(AppTheme.space12),
               decoration: BoxDecoration(
                 color: isDark 
-                    ? Colors.white.withOpacity(0.05)
+                    ? Colors.white.withValues(alpha: 0.05)
                     : AppTheme.surfaceVariant,
                 borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
               ),
@@ -1169,10 +1169,10 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
             child: Container(
               padding: const EdgeInsets.all(AppTheme.space16),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                 border: Border.all(
-                  color: AppTheme.primary.withOpacity(0.3),
+                  color: AppTheme.primary.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
@@ -1204,7 +1204,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
           Container(
             padding: const EdgeInsets.all(AppTheme.space12),
             decoration: BoxDecoration(
-              color: AppTheme.info.withOpacity(0.1),
+              color: AppTheme.info.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
             ),
             child: Row(
@@ -1250,10 +1250,10 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
           child: Container(
             padding: const EdgeInsets.all(AppTheme.space16),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
               border: Border.all(
-                color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
               ),
             ),
             child: Row(
@@ -1295,10 +1295,10 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
               Container(
                 width: 80,
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+                  color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
                   borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                   border: Border.all(
-                    color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                    color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
                   ),
                 ),
                 child: DropdownButtonFormField<int>(
@@ -1370,10 +1370,10 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
           Container(
             padding: const EdgeInsets.all(AppTheme.space12),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
               border: Border.all(
-                color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
               ),
             ),
             child: GridView.builder(
@@ -1406,15 +1406,15 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
                       color: isSelected
                           ? AppTheme.primary
                           : isDark
-                              ? Colors.white.withOpacity(0.05)
+                              ? Colors.white.withValues(alpha: 0.05)
                               : AppTheme.surface,
                       borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                       border: Border.all(
                         color: isSelected
                             ? AppTheme.primary
                             : isDark
-                                ? Colors.white.withOpacity(0.1)
-                                : Colors.grey.withOpacity(0.2),
+                                ? Colors.white.withValues(alpha: 0.1)
+                                : Colors.grey.withValues(alpha: 0.2),
                       ),
                     ),
                     child: Center(
@@ -1462,10 +1462,10 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
           child: Container(
             padding: const EdgeInsets.all(AppTheme.space16),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surfaceVariant,
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceVariant,
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
               border: Border.all(
-                color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent,
+                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
               ),
             ),
             child: Row(
@@ -1505,7 +1505,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
         Container(
           padding: const EdgeInsets.all(AppTheme.space12),
           decoration: BoxDecoration(
-            color: AppTheme.info.withOpacity(0.1),
+            color: AppTheme.info.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
           ),
           child: Row(

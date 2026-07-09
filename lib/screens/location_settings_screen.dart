@@ -247,7 +247,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
           icon: Container(
             padding: const EdgeInsets.all(AppTheme.space8),
             decoration: BoxDecoration(
-              color: (isDark ? Colors.white : AppTheme.primary).withOpacity(0.1),
+              color: (isDark ? Colors.white : AppTheme.primary).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
             ),
             child: Icon(
@@ -278,10 +278,10 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
             // GPS Toggle Section
             Container(
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                 border: Border.all(
-                  color: isDark ? Colors.white.withOpacity(0.1) : AppTheme.borderLight,
+                  color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.borderLight,
                 ),
               ),
               child: Column(
@@ -318,7 +318,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                               padding: const EdgeInsets.all(AppTheme.space12),
                               decoration: BoxDecoration(
                                 color: isDark 
-                                    ? Colors.white.withOpacity(0.05)
+                                    ? Colors.white.withValues(alpha: 0.05)
                                     : AppTheme.backgroundLight,
                                 borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                               ),
@@ -478,10 +478,10 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
             // Manual Location Section
             Container(
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                 border: Border.all(
-                  color: isDark ? Colors.white.withOpacity(0.1) : AppTheme.borderLight,
+                  color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.borderLight,
                 ),
               ),
               padding: const EdgeInsets.all(AppTheme.space16),
@@ -493,7 +493,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                       Container(
                         padding: const EdgeInsets.all(AppTheme.space8),
                         decoration: BoxDecoration(
-                          color: AppTheme.primary.withOpacity(0.1),
+                          color: AppTheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                         ),
                         child: Icon(
@@ -520,7 +520,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                       hintText: 'Enter your city',
                       prefixIcon: Icon(Icons.location_city, color: AppTheme.primary),
                       filled: true,
-                      fillColor: isDark ? Colors.white.withOpacity(0.05) : AppTheme.backgroundLight,
+                      fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.backgroundLight,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                         borderSide: BorderSide.none,
@@ -528,7 +528,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                         borderSide: BorderSide(
-                          color: isDark ? Colors.white.withOpacity(0.1) : AppTheme.borderLight,
+                          color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.borderLight,
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
@@ -554,7 +554,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                       hintText: 'Enter your country',
                       prefixIcon: Icon(Icons.flag, color: AppTheme.primary),
                       filled: true,
-                      fillColor: isDark ? Colors.white.withOpacity(0.05) : AppTheme.backgroundLight,
+                      fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.backgroundLight,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                         borderSide: BorderSide.none,
@@ -562,7 +562,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                         borderSide: BorderSide(
-                          color: isDark ? Colors.white.withOpacity(0.1) : AppTheme.borderLight,
+                          color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.borderLight,
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
@@ -587,10 +587,10 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
             // Common Cities
             Container(
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                 border: Border.all(
-                  color: isDark ? Colors.white.withOpacity(0.1) : AppTheme.borderLight,
+                  color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.borderLight,
                 ),
               ),
               padding: const EdgeInsets.all(AppTheme.space16),
@@ -602,7 +602,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                       Container(
                         padding: const EdgeInsets.all(AppTheme.space8),
                         decoration: BoxDecoration(
-                          color: AppTheme.primary.withOpacity(0.1),
+                          color: AppTheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                         ),
                         child: Icon(
@@ -657,12 +657,12 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                             ),
                             decoration: BoxDecoration(
                               color: isDark 
-                                  ? Colors.white.withOpacity(0.05)
+                                  ? Colors.white.withValues(alpha: 0.05)
                                   : AppTheme.backgroundLight,
                               borderRadius: BorderRadius.circular(AppTheme.radiusCircular),
                               border: Border.all(
                                 color: isDark 
-                                    ? Colors.white.withOpacity(0.1)
+                                    ? Colors.white.withValues(alpha: 0.1)
                                     : AppTheme.borderLight,
                               ),
                             ),
@@ -701,10 +701,10 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
   Widget _buildCalculationMethodSection(bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.1) : AppTheme.borderLight,
+          color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.borderLight,
         ),
       ),
       padding: const EdgeInsets.all(AppTheme.space16),
@@ -716,7 +716,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
               Container(
                 padding: const EdgeInsets.all(AppTheme.space8),
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withOpacity(0.1),
+                  color: AppTheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                 ),
                 child: Icon(
@@ -738,10 +738,10 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
           
           Container(
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.backgroundLight,
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.backgroundLight,
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
               border: Border.all(
-                color: isDark ? Colors.white.withOpacity(0.1) : AppTheme.borderLight,
+                color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.borderLight,
               ),
             ),
             child: DropdownButtonFormField<int>(
@@ -793,10 +793,10 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
   Widget _buildPrayerAdjustmentsSection(bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : AppTheme.surface,
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surface,
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.1) : AppTheme.borderLight,
+          color: isDark ? Colors.white.withValues(alpha: 0.1) : AppTheme.borderLight,
         ),
       ),
       padding: const EdgeInsets.all(AppTheme.space16),
@@ -808,7 +808,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
               Container(
                 padding: const EdgeInsets.all(AppTheme.space8),
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withOpacity(0.1),
+                  color: AppTheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                 ),
                 child: Icon(
@@ -873,7 +873,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                           icon: Container(
                             padding: const EdgeInsets.all(AppTheme.space4),
                             decoration: BoxDecoration(
-                              color: AppTheme.error.withOpacity(0.1),
+                              color: AppTheme.error.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
@@ -888,7 +888,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                             padding: const EdgeInsets.symmetric(vertical: AppTheme.space8),
                             decoration: BoxDecoration(
                               color: isDark 
-                                  ? Colors.white.withOpacity(0.05)
+                                  ? Colors.white.withValues(alpha: 0.05)
                                   : AppTheme.backgroundLight,
                               borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                             ),
@@ -919,7 +919,7 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> with Si
                           icon: Container(
                             padding: const EdgeInsets.all(AppTheme.space4),
                             decoration: BoxDecoration(
-                              color: AppTheme.success.withOpacity(0.1),
+                              color: AppTheme.success.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(

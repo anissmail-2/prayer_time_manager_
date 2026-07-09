@@ -438,7 +438,7 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
               vertical: 12,
             ),
             decoration: BoxDecoration(
-              color: isSelected ? AppTheme.primary.withOpacity(0.1) : null,
+              color: isSelected ? AppTheme.primary.withValues(alpha: 0.1) : null,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -519,7 +519,7 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     child: Material(
-                      color: isSelected ? AppTheme.primary.withOpacity(0.1) : Colors.transparent,
+                      color: isSelected ? AppTheme.primary.withValues(alpha: 0.1) : Colors.transparent,
                       borderRadius: BorderRadius.circular(8),
                       child: ListTile(
                         leading: Icon(
