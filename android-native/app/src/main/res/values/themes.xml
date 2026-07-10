@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Real theming happens in Compose (AwkatiTheme) -- this XML theme only
+         needs to exist for the manifest/window system before Compose takes
+         over, so it's intentionally minimal. -->
+    <style name="Theme.Awkati" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
+</resources>

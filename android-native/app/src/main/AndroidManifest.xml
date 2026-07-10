@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- M0 scope only: local prayer-time calculation needs a rough location,
+         the Aladhan cross-check (optional) needs network. Notification
+         permissions (POST_NOTIFICATIONS, exact-alarm, BOOT_COMPLETED) are
+         intentionally NOT declared here -- add them in the same commit that
+         implements M1's AlarmReceiver, not before. TaskFlow Pro shipped
+         notification permissions for a feature that was never built; this
+         manifest must never get ahead of the code again. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <application
+        android:name=".AwkatiApplication"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/Theme.Awkati"
+        android:supportsRtl="true"
+        android:networkSecurityConfig="@xml/network_security_config">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Awkati">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- M1 adds AlarmReceiver + BootRescheduleReceiver here, alongside
+             the notification permissions above, in the same commit. -->
+
+    </application>
+</manifest>
